@@ -1,0 +1,26 @@
+{
+  "name": "java_version_secondary_tool_is_ignored",
+  "category": "positive",
+  "description": "A Maven application with a small Gradle helper tool in a subdirectory: the helper's Java level is not the application's.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "1.7",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "maven",
+      "status": [
+        "CONFIRMED"
+      ],
+      "note_contains": "deeper in the tree"
+    }
+  ],
+  "criteria": []
+}

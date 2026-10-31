@@ -1,0 +1,17 @@
+{
+  "name": "deps_env_example_is_documentation",
+  "category": "negative",
+  "description": ".env.example documents variables and configures nothing; a real .env does.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

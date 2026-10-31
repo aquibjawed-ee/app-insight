@@ -1,0 +1,49 @@
+{
+  "name": "container_spring_boot_gradle_kotlin_dsl_configured",
+  "category": "positive",
+  "description": "Spring Boot Gradle bootBuildImage block (Kotlin DSL) with name, builder, publish and a publish registry.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.image_name",
+      "value": "acme/app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.builder",
+      "value": "paketobuildpacks/builder-jammy-base"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.publish",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.registry",
+      "value": "https://eu.gcr.io"
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google Container / Artifact Registry",
+          "role": "image registry",
+          "basis": [
+            "image reference"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

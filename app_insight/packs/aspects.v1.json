@@ -1,0 +1,104 @@
+{
+  "contract": "aspect-catalogue.v1",
+  "version": "1.0.0",
+  "status": "DRAFT: catalogue agreed as a starting point, not reviewed control by control",
+  "states": {
+    "PRESENT": "the control was found in the files read; `level` says how strongly (declared, configured, enforced in CI, verified at run time)",
+    "PARTIAL": "found for part of the application, or configured but not shown to run",
+    "ABSENT": "searched and not found in the files read; it may exist elsewhere (a shared pipeline, a platform repository)",
+    "ISSUE": "a fact that was read shows a problem (for example a runtime past vendor support, tests switched off)",
+    "UNKNOWN": "cannot be decided from the files (for example a pipeline hidden in a remote template)",
+    "NOT_APPLICABLE": "does not apply to this kind of application",
+    "NOT_ASSESSED": "applies, but no detector exists yet or its input was not available"
+  },
+  "levels": ["declared", "configured", "enforced", "verified"],
+  "aspects": [
+    {"id": "delivery", "title": "Build & delivery", "icon": "rocket", "order": 1, "question": "Can a change reach production automatically and be undone?", "why_first": "Every other fix needs a pipeline to run in"},
+    {"id": "testing", "title": "Testing & safety net", "icon": "check-circle", "order": 2, "question": "Would a regression be caught before it ships?", "why_first": "Before upgrades: a safety net makes them verifiable"},
+    {"id": "security", "title": "Security & supply chain", "icon": "shield", "order": 3, "question": "Are code, dependencies and secrets scanned, and is exposure known?", "why_first": "Runs in the same pipeline; independent of the others"},
+    {"id": "platform", "title": "Platform & dependencies", "icon": "clock", "order": 4, "question": "Is the runtime and framework supported, and are libraries current?", "why_first": "After the safety net, so behaviour changes are caught"},
+    {"id": "runtime", "title": "Runtime resilience", "icon": "server", "order": 5, "question": "Does the application survive slow or failing dependencies and restarts?", "why_first": "Needs tests that exercise failure paths"},
+    {"id": "availability", "title": "Deployment & availability", "icon": "layers", "order": 6, "question": "Does it keep serving through rollouts, node loss and load?", "why_first": "Needs the deploy stage from Build & delivery"},
+    {"id": "observability", "title": "Observability & operations", "icon": "search", "order": 7, "question": "Would the team know it is failing, and why?", "why_first": "Measure before tuning resilience and capacity"},
+    {"id": "api", "title": "API & contracts", "icon": "share", "order": 8, "question": "Can consumers rely on a published, checked contract?", "why_first": "Independent; matters most for shared APIs"},
+    {"id": "data", "title": "Data management", "icon": "database", "order": 9, "question": "Are schema changes controlled and data recoverable?", "why_first": "Before platform or database upgrades"},
+    {"id": "architecture", "title": "Architecture & coupling", "icon": "network", "order": 10, "question": "What does it depend on, and what depends on it?", "why_first": "Decides what has to change together"},
+    {"id": "code", "title": "Code health", "icon": "file", "order": 11, "question": "Is the code easy and safe to change?", "why_first": "Guides where to add tests first"},
+    {"id": "knowledge", "title": "Knowledge & ownership", "icon": "building", "order": 12, "question": "Who owns it, and could someone new work on it?", "why_first": "Owners must be known to plan any of the above"},
+    {"id": "config", "title": "Configuration hygiene", "icon": "settings", "order": 13, "question": "Is configuration externalised, consistent and free of secrets?", "why_first": "Low effort; reduces environment surprises"}
+  ],
+  "controls": [
+    {"id": "delivery.build", "aspect": "delivery", "title": "Automated build in CI", "source": {"criterion": "automated_build"}, "severity": "high", "fix": "Add a CI job that compiles and packages the application on every commit."},
+    {"id": "delivery.tests_in_ci", "aspect": "delivery", "title": "Tests run in the pipeline", "source": {"criterion": "tests_run_in_ci"}, "severity": "high", "fix": "Run the test task in the pipeline and fail the build when a test fails."},
+    {"id": "delivery.version_tagging", "aspect": "delivery", "title": "Automated version tagging", "source": {"criterion": "version_tagging"}, "severity": "high", "fix": "Have the pipeline create a version tag for every release."},
+    {"id": "delivery.deploy", "aspect": "delivery", "title": "Automated deploy", "source": {"criterion": "automated_deploy"}, "severity": "high", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a deploy stage per environment."},
+    {"id": "delivery.rollback", "aspect": "delivery", "title": "Automatic rollback", "source": {"criterion": "rollback"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Roll back automatically when a deploy fails its checks."},
+
+    {"id": "testing.unit", "aspect": "testing", "title": "Unit tests exist", "source": {"criterion": "unit_tests_exist"}, "severity": "high", "fix": "Add unit tests for each module, starting with the classes that change most."},
+    {"id": "testing.coverage_gate", "aspect": "testing", "title": "Coverage gate (>= 75%) run in the pipeline", "source": {"criterion": "coverage"}, "severity": "high", "fix": "Configure a JaCoCo or Kover gate at 75% and run it in the pipeline."},
+    {"id": "testing.integration", "aspect": "testing", "title": "Integration tests", "source": {"criterion": "integration_tests"}, "severity": "medium", "fix": "Add integration tests for the data and messaging paths."},
+    {"id": "testing.acceptance", "aspect": "testing", "title": "Acceptance tests", "source": {"criterion": "acceptance_tests"}, "severity": "high", "fix": "Add acceptance tests for the main user journeys."},
+    {"id": "testing.contract", "aspect": "testing", "title": "Contract tests", "source": {"criterion": "contract_tests"}, "severity": "medium", "fix": "Add consumer contract tests for every API this application calls."},
+    {"id": "testing.performance", "aspect": "testing", "title": "Performance tests", "source": {"criterion": "performance_tests"}, "severity": "medium", "fix": "Add a load test for the busiest endpoints."},
+    {"id": "testing.entry_points", "aspect": "testing", "title": "Entry points reached by a test", "source": {"safetynet": "entry_points"}, "severity": "medium", "fix": "Add tests that reach the unmapped endpoints, consumers and data paths."},
+
+    {"id": "security.secret_scanning", "aspect": "security", "title": "Secret scanning in CI", "source": {"criterion": "secret_scanning"}, "severity": "medium", "fix": "Add a secret-scanning job (for example GitGuardian) to the pipeline."},
+    {"id": "security.dependency_scanning", "aspect": "security", "title": "Dependency scanning in CI", "source": {"criterion": "dependency_scanning"}, "severity": "medium", "fix": "Add a dependency-scanning job (for example Snyk) to the pipeline."},
+    {"id": "security.sast", "aspect": "security", "title": "Static code scanning (SAST) in CI", "source": {"criterion": "sast"}, "severity": "medium", "fix": "Add a SAST job to the pipeline."},
+    {"id": "security.dependency_updates", "aspect": "security", "title": "Automated dependency updates", "source": {"criterion": "dependency_updates"}, "severity": "medium", "fix": "Turn on automated dependency update pull requests (Renovate or Dependabot)."},
+    {"id": "security.exposure_known", "aspect": "security", "title": "Vulnerability exposure known", "source": {"security_scan": true}, "severity": "info", "fix": "Run a vulnerability scan so exposure is known, not assumed."},
+    {"id": "security.secrets_in_code", "aspect": "security", "title": "No secrets committed in code or config", "source": {"pending": "secret detector over source and configuration"}, "severity": "high", "fix": "Move secrets to a secret store and rotate any that were committed."},
+
+    {"id": "platform.java_support", "aspect": "platform", "title": "Java version in vendor support", "source": {"lifecycle": "java"}, "severity": "high", "fix": "Move to a supported Java LTS; run change impact for the target version first."},
+    {"id": "platform.framework_support", "aspect": "platform", "title": "Spring Boot version in support", "source": {"lifecycle": "spring_boot"}, "severity": "high", "applies": {"needs": "spring_boot"}, "fix": "Upgrade Spring Boot to a supported line; run change impact first."},
+    {"id": "platform.libraries_current", "aspect": "platform", "title": "Libraries current, none end of life", "source": {"pending": "library age and end-of-life reference data"}, "severity": "medium", "fix": "Upgrade end-of-life and long-outdated libraries."},
+
+    {"id": "runtime.http_timeouts", "aspect": "runtime", "title": "Outbound HTTP calls have timeouts", "source": {"pending": "HTTP client configuration reader"}, "severity": "high", "applies": {"needs": "outbound_http"}, "fix": "Set connect and read timeouts, and a total deadline, on every HTTP client."},
+    {"id": "runtime.retries_breakers", "aspect": "runtime", "title": "Retries and circuit breakers where calls can fail", "source": {"pending": "Resilience4j / Spring Retry configuration reader"}, "severity": "medium", "applies": {"needs": "outbound_http"}, "fix": "Add bounded retries with backoff and a circuit breaker for non-idempotent-safe calls."},
+    {"id": "runtime.messaging_errors", "aspect": "runtime", "title": "Message failures handled (retry, dead letter, offsets)", "source": {"pending": "Kafka / JMS consumer configuration reader"}, "severity": "high", "applies": {"needs": "messaging"}, "fix": "Configure retries, a dead-letter topic or queue, and commit offsets only after processing."},
+    {"id": "runtime.db_timeouts", "aspect": "runtime", "title": "Database pool and query timeouts set", "source": {"pending": "datasource and pool configuration reader"}, "severity": "medium", "applies": {"needs": "database"}, "fix": "Size the connection pool and set connection and query timeouts."},
+    {"id": "runtime.graceful_shutdown", "aspect": "runtime", "title": "Graceful shutdown in the application", "source": {"pending": "server.shutdown and lifecycle timeout reader"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Enable graceful shutdown so in-flight requests finish on SIGTERM."},
+
+    {"id": "availability.replicas", "aspect": "availability", "title": "More than one instance", "source": {"ha": "replicas"}, "severity": "high", "applies": {"kind": ["service", "unknown"]}, "fix": "Run at least two replicas."},
+    {"id": "availability.anti_affinity", "aspect": "availability", "title": "Instances spread across nodes", "source": {"ha": "anti_affinity"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Add pod anti-affinity or topology spread constraints."},
+    {"id": "availability.zone_spread", "aspect": "availability", "title": "Instances spread across zones", "source": {"ha": "zone_spread"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Spread replicas across availability zones."},
+    {"id": "availability.pdb", "aspect": "availability", "title": "Disruption budget", "source": {"ha": "pdb"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a PodDisruptionBudget."},
+    {"id": "availability.liveness", "aspect": "availability", "title": "Liveness probe", "source": {"ha": "liveness"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a liveness probe."},
+    {"id": "availability.readiness", "aspect": "availability", "title": "Readiness probe", "source": {"ha": "readiness"}, "severity": "high", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a readiness probe so traffic only reaches ready instances."},
+    {"id": "availability.startup", "aspect": "availability", "title": "Startup probe", "source": {"ha": "startup"}, "severity": "low", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a startup probe for slow-starting applications."},
+    {"id": "availability.rollout", "aspect": "availability", "title": "Rolling update without downtime", "source": {"ha": "rollout"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Use a rolling update with maxUnavailable 0."},
+    {"id": "availability.graceful_stop", "aspect": "availability", "title": "Graceful termination period", "source": {"ha": "graceful_stop"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Set a termination grace period and a preStop hook."},
+    {"id": "availability.resources", "aspect": "availability", "title": "CPU and memory requests and limits", "source": {"ha": "resources"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Set CPU and memory requests and limits."},
+    {"id": "availability.autoscaling", "aspect": "availability", "title": "Autoscaling", "source": {"ha": "autoscaling"}, "severity": "low", "applies": {"kind": ["service", "unknown"]}, "fix": "Add a HorizontalPodAutoscaler where load varies."},
+    {"id": "availability.restart_recovery", "aspect": "availability", "title": "Restarts on failure", "source": {"ha": "restart_recovery"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Use a restart policy that recovers failed instances."},
+    {"id": "availability.image_pinned", "aspect": "availability", "title": "Image pinned to a version", "source": {"ha": "image_pinned"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Deploy an immutable image tag or digest, not latest."},
+    {"id": "availability.backup_dr", "aspect": "availability", "title": "Backup and disaster recovery", "source": {"pending": "backup and DR evidence (platform or runbook)"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Document and test backup, restore and failover."},
+
+    {"id": "observability.health", "aspect": "observability", "title": "Health endpoint", "source": {"fact": "resilience.health_endpoint"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Expose a health endpoint (for example Spring Boot Actuator health)."},
+    {"id": "observability.metrics", "aspect": "observability", "title": "Application metrics exported", "source": {"dependency": {"kind": "Observability", "match": "prometheus|datadog|new relic|micrometer|otlp|cloudwatch|statsd|graphite|influx|dynatrace|elastic apm"}}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Export application metrics with Micrometer to the organisation's metrics backend."},
+    {"id": "observability.tracing", "aspect": "observability", "title": "Distributed tracing", "source": {"dependency": {"kind": "Observability", "match": "opentelemetry|zipkin|jaeger|sleuth|brave|x-ray"}}, "severity": "low", "applies": {"kind": ["service", "unknown"]}, "fix": "Add OpenTelemetry tracing with context propagation."},
+    {"id": "observability.structured_logging", "aspect": "observability", "title": "Structured logging", "source": {"pending": "logging configuration reader"}, "severity": "low", "applies": {"kind": ["service", "unknown"]}, "fix": "Log as JSON with correlation identifiers."},
+    {"id": "observability.alerts_slos", "aspect": "observability", "title": "Alerts and SLOs defined", "source": {"pending": "alert and SLO definitions (monitoring repository)"}, "severity": "medium", "applies": {"kind": ["service", "unknown"]}, "fix": "Define SLOs with burn-rate alerts for availability, errors and latency."},
+
+    {"id": "api.openapi", "aspect": "api", "title": "OpenAPI specification provided", "source": {"criterion": "openapi_exposed"}, "severity": "medium", "applies": {"needs": "http_endpoints"}, "fix": "Serve an OpenAPI specification from the application."},
+    {"id": "api.spec_checked", "aspect": "api", "title": "Specification checked for breaking changes in CI", "source": {"pending": "OpenAPI diff in the pipeline"}, "severity": "medium", "applies": {"needs": "http_endpoints"}, "fix": "Compare the specification against the last release in CI and fail on breaking changes."},
+
+    {"id": "data.migrations", "aspect": "data", "title": "Schema changes managed by a migration tool", "source": {"dependency": {"kind": "Schema migrations", "match": "."}}, "severity": "medium", "applies": {"needs": "database"}, "fix": "Manage schema changes with Flyway or Liquibase."},
+    {"id": "data.backups", "aspect": "data", "title": "Backups and restore tested", "source": {"pending": "backup evidence (platform or runbook)"}, "severity": "medium", "applies": {"needs": "database"}, "fix": "Back up the data stores and test a restore."},
+
+    {"id": "architecture.calls_matched", "aspect": "architecture", "title": "Every call and message matched to a known application", "source": {"graph": "unmatched_calls"}, "severity": "medium", "fix": "Add the missing repositories to the analysis, or supply an alias file."},
+    {"id": "architecture.no_shared_database", "aspect": "architecture", "title": "No database shared with another application", "source": {"graph": "shared_database"}, "severity": "medium", "applies": {"needs": "database"}, "fix": "Give each application its own schema, or plan shared-schema changes together."},
+
+    {"id": "code.complexity", "aspect": "code", "title": "Complexity and duplication within limits", "source": {"pending": "complexity and duplication analyser"}, "severity": "low", "fix": "Refactor the most complex, most changed classes first."},
+    {"id": "code.hotspots", "aspect": "code", "title": "Change hotspots known", "source": {"pending": "git churn x complexity"}, "severity": "low", "fix": "Cover the hotspots with tests before changing them."},
+
+    {"id": "knowledge.readme", "aspect": "knowledge", "title": "README describes the application", "source": {"fact": "identity.about"}, "severity": "low", "fix": "Add a README: what it does, how to build, run and test it."},
+    {"id": "knowledge.owners", "aspect": "knowledge", "title": "Owners declared (CODEOWNERS)", "source": {"fact": "identity.owners"}, "severity": "medium", "fix": "Add a CODEOWNERS file naming the owning team."},
+    {"id": "knowledge.decisions", "aspect": "knowledge", "title": "Architecture decisions recorded", "source": {"pending": "ADR folder reader"}, "severity": "low", "fix": "Record significant decisions as ADRs in the repository."},
+    {"id": "knowledge.bus_factor", "aspect": "knowledge", "title": "More than one active contributor", "source": {"pending": "git history reader"}, "severity": "medium", "fix": "Spread knowledge: pair on changes and document the hard parts."},
+
+    {"id": "config.profiles_consistent", "aspect": "config", "title": "Connection targets consistent across profiles", "source": {"graph": "profile_differences"}, "severity": "low", "fix": "Keep one property per target and vary only the value per environment."},
+    {"id": "config.placeholders_resolved", "aspect": "config", "title": "Configuration placeholders resolvable", "source": {"graph": "unresolved_placeholders"}, "severity": "low", "fix": "Give every placeholder a default or document where its value comes from."},
+    {"id": "config.secrets_externalised", "aspect": "config", "title": "Secrets kept out of configuration files", "source": {"pending": "configuration secret reader"}, "severity": "high", "fix": "Read secrets from the environment or a secret store, never from committed files."}
+  ]
+}

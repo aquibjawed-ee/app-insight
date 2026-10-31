@@ -1,0 +1,65 @@
+{
+  "name": "deps_quarkus_postgres_redis_kafka_oidc",
+  "category": "positive",
+  "description": "Quarkus: db-kind and extension name PostgreSQL, Redis hosts, SmallRye Kafka, OIDC server, and a declared REST client.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "Kafka",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "OAuth2 / OIDC provider",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Identity and access"
+        },
+        {
+          "technology": "HTTP service: inventory-api",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Services it calls"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.http_client_libraries",
+      "rule": "http-client-libraries",
+      "items_include": [
+        {
+          "technology": "MicroProfile / Quarkus REST client",
+          "where": "application"
+        }
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

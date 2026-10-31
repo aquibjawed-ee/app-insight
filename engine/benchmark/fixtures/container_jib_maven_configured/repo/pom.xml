@@ -1,0 +1,30 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0</version>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <configuration>
+          <from>
+            <image>eclipse-temurin:17-jre</image>
+          </from>
+          <to>
+            <image>gcr.io/acme/app</image>
+          </to>
+          <container>
+            <ports>
+              <port>8080</port>
+              <port>8443</port>
+            </ports>
+            <mainClass>com.acme.Main</mainClass>
+          </container>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+  </dependencies>
+</project>

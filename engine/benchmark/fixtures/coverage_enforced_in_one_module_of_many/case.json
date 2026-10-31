@@ -1,0 +1,29 @@
+{
+  "name": "coverage_enforced_in_one_module_of_many",
+  "category": "insufficient",
+  "description": "JaCoCo with a 90% check is configured in m0 only; the other four modules and the parent do not have it: not a repository-wide gate.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_scope",
+      "rule": "coverage-gate",
+      "path": "partial",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

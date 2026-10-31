@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run app-insight from a checkout without installing it.
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+PYTHONPATH="$HERE${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m app_insight "$@"

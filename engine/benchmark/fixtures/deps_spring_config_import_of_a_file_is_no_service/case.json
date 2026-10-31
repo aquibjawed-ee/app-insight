@@ -1,0 +1,17 @@
+{
+  "name": "deps_spring_config_import_of_a_file_is_no_service",
+  "category": "negative",
+  "description": "Importing a local file through spring.config.import is not a config server.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

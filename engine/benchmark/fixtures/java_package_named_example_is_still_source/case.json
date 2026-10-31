@@ -1,0 +1,26 @@
+{
+  "name": "java_package_named_example_is_still_source",
+  "category": "positive",
+  "description": "com/example/ is a package, not an examples directory: its sources and tests still count.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "java",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

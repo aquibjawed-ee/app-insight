@@ -1,0 +1,4 @@
+service: app
+provider:
+  name: aws
+  runtime: java17

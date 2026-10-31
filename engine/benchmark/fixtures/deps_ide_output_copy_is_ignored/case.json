@@ -1,0 +1,17 @@
+{
+  "name": "deps_ide_output_copy_is_ignored",
+  "category": "negative",
+  "description": "A bin/main copy of the configuration (an IDE's compiled output) is not the application's configuration.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

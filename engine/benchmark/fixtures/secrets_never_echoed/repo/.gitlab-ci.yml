@@ -1,0 +1,5 @@
+stages: [build]
+build:
+  stage: build
+  script:
+    - ./gradlew build -Ppassword=hunter2hunter2

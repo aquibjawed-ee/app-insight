@@ -1,0 +1,60 @@
+{
+  "name": "maven_tests_skipped_in_ci",
+  "category": "contradictory",
+  "description": "Tests exist, but the pipeline builds with -DskipTests. Positive evidence that tests do not run.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "disabled_in_pipeline",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_state",
+      "rule": "ci-skip-detection",
+      "value": "tests_disabled_in_pipeline",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "NOT_MET"
+      ]
+    },
+    {
+      "id": "coverage",
+      "rule": "ci-skip-detection",
+      "result": [
+        "NOT_MET"
+      ]
+    },
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    }
+  ],
+  "never_met": [
+    "tests_run_in_ci",
+    "coverage"
+  ]
+}

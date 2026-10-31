@@ -1,0 +1,25 @@
+{
+  "name": "sast_upload_sarif_is_not_codeql",
+  "category": "negative",
+  "description": "A workflow only uploads a SARIF report (OpenSSF Scorecard style); nothing runs a code analysis.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "security.sast",
+      "rule": "scanner-in-pipeline",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "sast",
+      "rule": "scanner-in-pipeline",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ]
+}

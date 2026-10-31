@@ -1,0 +1,8 @@
+include:
+  - project: grp/templates
+    file: ci.yml
+stages: [build]
+build:
+  stage: build
+  script:
+    - ./gradlew build

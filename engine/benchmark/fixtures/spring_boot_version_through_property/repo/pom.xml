@@ -1,0 +1,14 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>g</groupId>
+  <artifactId>a</artifactId>
+  <version>1</version>
+  <properties>
+    <sb.version>3.2.0</sb.version>
+  </properties>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>${sb.version}</version>
+  </parent>
+</project>

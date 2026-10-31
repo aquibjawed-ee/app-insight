@@ -1,0 +1,4 @@
+[versions]
+kover = "0.9.9"
+[plugins]
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

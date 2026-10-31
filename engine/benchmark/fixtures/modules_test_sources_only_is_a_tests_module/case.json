@@ -1,0 +1,26 @@
+{
+  "name": "modules_test_sources_only_is_a_tests_module",
+  "category": "positive",
+  "description": "A Gradle module with test sources and no production sources is a tests module, whatever its name.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "path": "suite",
+          "role": "tests"
+        },
+        {
+          "path": "app",
+          "role": "application"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,26 @@
+{
+  "name": "codecov_target_is_external",
+  "category": "insufficient",
+  "description": "codecov.yml declares a 95% target applied by an external status check; this scan cannot see it enforced.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_service",
+      "rule": "coverage-gate",
+      "path": "target_pct",
+      "value": 95.0,
+      "status": [
+        "INFERRED"
+      ]
+    },
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "coverage-gate",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

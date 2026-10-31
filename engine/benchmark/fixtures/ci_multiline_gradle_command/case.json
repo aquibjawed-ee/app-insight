@@ -1,0 +1,33 @@
+{
+  "name": "ci_multiline_gradle_command",
+  "category": "positive",
+  "description": "The Gradle command is split across lines with backslashes; `check` is on a later line.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "build_ci.build_step",
+      "rule": "ci-build-step",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

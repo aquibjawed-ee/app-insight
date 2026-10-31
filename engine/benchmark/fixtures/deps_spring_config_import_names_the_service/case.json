@@ -1,0 +1,29 @@
+{
+  "name": "deps_spring_config_import_names_the_service",
+  "category": "positive",
+  "description": "spring.config.import is read by its value: sm:// is Google Secret Manager, configserver: is a Spring Cloud Config Server.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Google Secret Manager",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Configuration, secrets and discovery"
+        },
+        {
+          "technology": "Spring Cloud Config Server",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

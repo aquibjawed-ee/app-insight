@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<project name="x" default="all">
+  <target name="all"/>
+</project>

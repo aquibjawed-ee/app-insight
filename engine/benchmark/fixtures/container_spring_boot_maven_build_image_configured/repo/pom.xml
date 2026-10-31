@@ -1,0 +1,30 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0</version>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <image>
+            <name>eu.gcr.io/acme/app</name>
+            <builder>paketobuildpacks/builder-jammy-base</builder>
+            <runImage>paketobuildpacks/run-jammy-base</runImage>
+            <publish>true</publish>
+          </image>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build-image</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+  </dependencies>
+</project>

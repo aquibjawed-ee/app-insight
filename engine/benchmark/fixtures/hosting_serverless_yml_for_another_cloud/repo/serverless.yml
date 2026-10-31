@@ -1,0 +1,3 @@
+service: app
+provider:
+  name: google

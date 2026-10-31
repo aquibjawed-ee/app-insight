@@ -1,0 +1,37 @@
+{
+  "name": "modules_maven_named_with_roles",
+  "category": "positive",
+  "description": "A Maven reactor: the aggregator, two jars and a war are listed by artifactId with their role.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "name": "shop-parent",
+          "path": ".",
+          "role": "aggregator"
+        },
+        {
+          "name": "shop-api",
+          "path": "api",
+          "role": "jar"
+        },
+        {
+          "name": "shop-core",
+          "path": "core"
+        },
+        {
+          "name": "shop-web",
+          "path": "web",
+          "role": "web application (war)"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

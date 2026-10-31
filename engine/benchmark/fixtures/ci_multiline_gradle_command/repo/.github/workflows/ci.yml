@@ -1,0 +1,11 @@
+name: CI
+on: [push]
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+        run: |
+          ./gradlew \
+            -Pversion=1 \
+            check

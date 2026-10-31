@@ -1,0 +1,26 @@
+{
+  "name": "java_package_named_test_is_not_a_test_dir",
+  "category": "negative",
+  "description": "A production package named jvm.test (under src/main) is not a test source directory.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ]
+}

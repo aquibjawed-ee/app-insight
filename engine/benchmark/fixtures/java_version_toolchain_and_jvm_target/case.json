@@ -1,0 +1,17 @@
+{
+  "name": "java_version_toolchain_and_jvm_target",
+  "category": "insufficient",
+  "description": "Gradle declares jvmToolchain(17) and jvmTarget JVM_1_8: both are reported, the lowest is the baseline.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "1.8",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

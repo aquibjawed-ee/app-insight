@@ -1,0 +1,21 @@
+{
+  "name": "container_jib_gradle_groovy_dsl_configured",
+  "category": "positive",
+  "description": "Jib in a Gradle Groovy DSL block.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image",
+      "value": "eclipse-temurin:17-jre"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image",
+      "value": "registry.example.internal/app"
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,25 @@
+{
+  "name": "java_version_test_module_pom_is_ignored",
+  "category": "negative",
+  "description": "A verification module named maven-tests declares Java 21; the application builds with Gradle at Java 8.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "1.8",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "gradle",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

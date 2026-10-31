@@ -1,0 +1,3 @@
+package:
+  script:
+    - ./mvnw package -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true

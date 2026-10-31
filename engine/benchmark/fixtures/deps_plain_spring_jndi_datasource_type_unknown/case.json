@@ -1,0 +1,41 @@
+{
+  "name": "deps_plain_spring_jndi_datasource_type_unknown",
+  "category": "positive",
+  "description": "A JNDI data source names a SQL database but not which one: the type is not guessed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        },
+        {
+          "technology": "Oracle",
+          "where": "application"
+        },
+        {
+          "technology": "MySQL",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "deps_jwt_library_alone_is_not_an_identity_provider",
+  "category": "negative",
+  "description": "A JWT / JWKS helper library does not show which identity provider the application depends on.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "resilience.v1.schema.json", "title": "HA / resilience configuration (resilience.v1)",
+  "type": "object", "additionalProperties": false, "required": ["contract", "version", "application", "state", "platforms", "eks", "workloads", "summary", "groups", "reason", "limitations"],
+  "properties": {
+    "contract": {"const": "resilience.v1"}, "version": {"type": "string"}, "application": {"type": "string"}, "state": {"enum": ["assessed", "not_assessed"]},
+    "platforms": {"type": "array", "items": {"enum": ["kubernetes", "nomad", "compose"]}},
+    "eks": {"type": "object", "required": ["detected", "evidence", "note"]},
+    "workloads": {"type": "array", "items": {"type": "object", "required": ["platform", "kind", "name", "file", "checks"]}},
+    "summary": {"type": "array", "items": {"type": "object", "required": ["id", "group", "title", "why", "state", "workloads", "evidence"],
+                "properties": {"state": {"enum": ["present", "absent", "unknown", "default", "partial", "not_applicable", "not_assessed"]}}}},
+    "groups": {"type": "array", "items": {"type": "string"}}, "reason": {"type": ["string", "null"]}, "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

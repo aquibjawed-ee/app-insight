@@ -1,0 +1,3 @@
+<beans>
+  <jee:jndi-lookup id="dataSource" jndi-name="jdbc/OrdersDS"/>
+</beans>

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "safetynet.v1.schema.json", "title": "Safety-net mapping (safetynet.v1)",
+  "type": "object", "additionalProperties": false, "required": ["contract", "application", "version", "repository_level", "components", "summary", "limitations"],
+  "properties": {
+    "contract": {"const": "safetynet.v1"}, "application": {"type": "string"}, "version": {"type": "string"},
+    "repository_level": {"type": "object", "required": ["test_exists", "runs_automatically", "passes", "coverage_measured", "coverage_threshold_enforced"]},
+    "components": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+      "required": ["component_id", "kind", "label", "edges", "dimensions", "mapping", "classification", "explanation"], "properties": {
+        "component_id": {"type": "string"}, "kind": {"enum": ["api_endpoint", "message_consumer", "message_publisher", "database_path", "downstream_http"]},
+        "label": {"type": "string"}, "edges": {"type": "array", "items": {"type": "string"}},
+        "dimensions": {"type": "object", "required": ["test_exists", "mapped_to_component", "runs_automatically", "passes", "coverage_measured", "coverage_threshold_enforced", "behaviour_verified"]},
+        "mapping": {"type": "array"}, "strength": {"enum": ["route", "class", "reference", null]}, "classification": {"enum": ["mapped_with_assertions", "mapped_no_assertion_seen", "unverified"]}, "explanation": {"type": "string"}}}},
+    "summary": {"type": "object"}, "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

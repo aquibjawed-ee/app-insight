@@ -1,0 +1,17 @@
+{
+  "name": "deps_library_without_external_services",
+  "category": "negative",
+  "description": "A library with only utility dependencies depends on no external service.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

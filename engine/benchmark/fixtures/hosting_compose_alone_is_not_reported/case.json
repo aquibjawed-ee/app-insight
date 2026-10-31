@@ -1,0 +1,17 @@
+{
+  "name": "hosting_compose_alone_is_not_reported",
+  "category": "negative",
+  "description": "A docker-compose file alone does not say where the application is deployed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

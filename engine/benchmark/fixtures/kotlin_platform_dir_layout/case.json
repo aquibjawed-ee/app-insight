@@ -1,0 +1,18 @@
+{
+  "name": "kotlin_platform_dir_layout",
+  "category": "positive",
+  "description": "Layout used by ktor: <platform>/src and <platform>/test instead of src/main and src/test.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 2,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,20 @@
+{
+ "description": "host equals only the callee's directory name; its declared identity is different, so no resolution",
+ "category": "negative",
+ "forbid_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "analytics",
+   "state": "resolved"
+  }
+ ],
+ "expect_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "reporting",
+   "state": "unresolved"
+  }
+ ]
+}

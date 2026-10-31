@@ -1,0 +1,43 @@
+{
+  "name": "ssh_alias_host_corroborated",
+  "category": "positive",
+  "description": "Remote host is an SSH alias (work.gitlab.com); the README links to https://gitlab.com/Org/..., which shows the real web host.",
+  "setup": {
+    "remote": "git@work.gitlab.com:Org/team/app.git"
+  },
+  "facts": [
+    {
+      "id": "identity.git_remote",
+      "rule": "repo-link-alias",
+      "value": "git@work.gitlab.com:Org/team/app.git",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "identity.app_id",
+      "rule": "repo-link-alias",
+      "value": "app",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "identity.repository_url",
+      "rule": "repo-link-alias",
+      "value": "https://gitlab.com/Org/team/app",
+      "status": [
+        "INFERRED"
+      ]
+    },
+    {
+      "id": "identity.pipeline_url",
+      "rule": "repo-link-alias",
+      "value": "https://gitlab.com/Org/team/app/-/pipelines",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

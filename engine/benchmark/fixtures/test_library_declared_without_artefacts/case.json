@@ -1,0 +1,29 @@
+{
+  "name": "test_library_declared_without_artefacts",
+  "category": "negative",
+  "description": "rest-assured is a dependency but there is no acceptance test of any kind: a library is not a test.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met": [
+    "acceptance_tests"
+  ]
+}

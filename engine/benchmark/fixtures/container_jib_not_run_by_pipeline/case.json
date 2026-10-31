@@ -1,0 +1,15 @@
+{
+  "name": "container_jib_not_run_by_pipeline",
+  "category": "positive",
+  "description": "Jib is configured but no pipeline file runs it.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.run_by",
+      "value": null
+    }
+  ],
+  "criteria": []
+}

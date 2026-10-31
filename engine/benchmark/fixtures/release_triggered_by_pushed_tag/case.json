@@ -1,0 +1,36 @@
+{
+  "name": "release_triggered_by_pushed_tag",
+  "category": "insufficient",
+  "description": "A release workflow runs on pushed tags: releases are tag-driven, but nothing in the pipeline creates the tag.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.release_triggered_by_tag",
+      "rule": "ci-version-tagging",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "build_ci.version_tagging",
+      "rule": "ci-version-tagging",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "version_tagging",
+      "rule": "ci-version-tagging",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "version_tagging"
+  ]
+}

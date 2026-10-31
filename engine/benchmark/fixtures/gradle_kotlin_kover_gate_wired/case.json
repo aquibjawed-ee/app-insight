@@ -1,0 +1,120 @@
+{
+  "name": "gradle_kotlin_kover_gate_wired",
+  "category": "positive",
+  "description": "Kotlin-only Gradle service, Kover minimum 80% wired to the test task via finalizedBy, GitHub Actions runs ./gradlew build.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "kotlin",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.java_sources",
+      "rule": "language-from-source-files",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "stack.kotlin_sources",
+      "rule": "language-from-source-files",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "gradle",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": "1.9.22",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "17",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.build_wrapper",
+      "rule": "build-wrapper",
+      "value_includes": [
+        "gradlew"
+      ]
+    },
+    {
+      "id": "tests.coverage_tool_configured",
+      "rule": "kover-support",
+      "value": "kover",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_threshold_pct",
+      "rule": "kover-support",
+      "value": 80.0,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_gate_in_ci",
+      "rule": "coverage-gate-wiring",
+      "value": "wired_into_build",
+      "status": [
+        "INFERRED"
+      ]
+    },
+    {
+      "id": "tests.frameworks",
+      "rule": "test-frameworks",
+      "value_includes": [
+        "junit5"
+      ]
+    },
+    {
+      "id": "build_ci.ci_system",
+      "rule": "ci-system",
+      "value": [
+        "github-actions"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate-wiring",
+      "result": [
+        "MET"
+      ]
+    },
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-test-execution",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

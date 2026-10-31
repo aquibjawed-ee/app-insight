@@ -1,0 +1,22 @@
+{
+  "name": "deps_stub_tools_are_grouped_as_stubs",
+  "category": "positive",
+  "description": "WireMock is a stub tool whatever scope the build declares it in.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "WireMock (HTTP stub)",
+          "group": "Stubs and emulators"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,5 @@
+stages: [build]
+build:
+  stage: build
+  script:
+    - mvn -B verify

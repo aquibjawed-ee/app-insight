@@ -1,0 +1,17 @@
+{
+  "name": "gradle_version_catalog_versions",
+  "category": "positive",
+  "description": "Kotlin version comes from a Gradle version catalog: the plugin entry's version.ref points at [versions] kotlin.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "version-catalog",
+      "value": "1.9.22",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

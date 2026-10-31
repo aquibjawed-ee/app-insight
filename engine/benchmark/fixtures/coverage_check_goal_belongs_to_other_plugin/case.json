@@ -1,0 +1,44 @@
+{
+  "name": "coverage_check_goal_belongs_to_other_plugin",
+  "category": "negative",
+  "description": "The only <goal>check</goal> is nohttp-checkstyle's; JaCoCo has prepare-agent and report but no check, so nothing enforces coverage.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_tool_configured",
+      "rule": "coverage-gate",
+      "value": "jacoco",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "coverage-gate",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.coverage_gate_in_ci",
+      "rule": "coverage-gate",
+      "value": "no_gate",
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

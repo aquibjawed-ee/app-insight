@@ -1,0 +1,7 @@
+#!/bin/bash
+_gradle() {
+  ./gradlew "$@"
+}
+case "$1" in
+  build) _gradle clean check ;;
+esac

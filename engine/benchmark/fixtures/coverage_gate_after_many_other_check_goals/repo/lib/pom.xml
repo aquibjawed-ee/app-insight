@@ -1,0 +1,7 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>g</groupId>
+  <artifactId>lib</artifactId>
+  <version>1</version>
+  <parent><groupId>g</groupId><artifactId>parent</artifactId><version>1</version></parent>
+</project>

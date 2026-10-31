@@ -1,0 +1,26 @@
+{
+  "name": "kotlin_custom_source_set_name",
+  "category": "positive",
+  "description": "A Gradle source set with a custom name (commonJvmAndroid) still holds production Kotlin.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "kotlin",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

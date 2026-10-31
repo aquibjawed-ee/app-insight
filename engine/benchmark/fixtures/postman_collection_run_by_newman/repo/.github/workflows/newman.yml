@@ -1,0 +1,7 @@
+name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: newman run src/test/postman/api.postman_collection.json

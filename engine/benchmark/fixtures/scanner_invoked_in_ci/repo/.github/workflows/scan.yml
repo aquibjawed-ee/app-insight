@@ -1,0 +1,7 @@
+name: Scan
+on: [push]
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@0.20.0

@@ -1,0 +1,17 @@
+{
+  "name": "ci_env_var_named_release_is_not_a_deploy",
+  "category": "negative",
+  "description": "An environment variable RELEASE_ID in a workflow is not a deploy job.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.deploy_step",
+      "rule": "ci-deploy-step",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

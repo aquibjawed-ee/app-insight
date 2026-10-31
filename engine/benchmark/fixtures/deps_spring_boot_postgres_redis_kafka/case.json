@@ -1,0 +1,66 @@
+{
+  "name": "deps_spring_boot_postgres_redis_kafka",
+  "category": "positive",
+  "description": "Spring Boot: PostgreSQL driver + datasource key with a placeholder, Redis and Kafka keys, H2 only under test scope.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Database"
+        },
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Cache and data grid"
+        },
+        {
+          "technology": "Kafka",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Messaging"
+        },
+        {
+          "technology": "H2 (embedded)",
+          "where": "tests only"
+        },
+        {
+          "technology": "PostgreSQL",
+          "group": "Data stores"
+        },
+        {
+          "technology": "Redis",
+          "group": "Data stores"
+        },
+        {
+          "technology": "Kafka",
+          "group": "Messaging"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "H2 (embedded)",
+          "where": "application"
+        },
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

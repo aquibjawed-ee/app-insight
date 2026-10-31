@@ -1,0 +1,5 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+spec:
+  minReplicas: 6
+  maxReplicas: 20

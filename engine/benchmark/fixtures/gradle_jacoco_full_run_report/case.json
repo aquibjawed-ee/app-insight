@@ -1,0 +1,55 @@
+{
+  "name": "gradle_jacoco_full_run_report",
+  "category": "positive",
+  "description": "JaCoCo XML report (85% line) from a run that executed all 4 of the 4 test classes; no gate configured.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_measured",
+      "rule": "jacoco-support",
+      "value": 85.0,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "LINE"
+    },
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "representative"
+    },
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": 4,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "executed_test_classes"
+    },
+    {
+      "id": "tests.coverage_state",
+      "rule": "coverage-state",
+      "value": "coverage_configured_not_enforced",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate-wiring",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

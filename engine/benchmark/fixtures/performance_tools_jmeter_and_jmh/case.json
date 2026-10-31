@@ -1,0 +1,21 @@
+{
+  "name": "performance_tools_jmeter_and_jmh",
+  "category": "positive",
+  "description": "A JMeter plan and a JMH benchmark: both tools are named.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.performance_tests",
+      "rule": "performance-tests",
+      "path": "tools",
+      "value": [
+        "jmeter",
+        "jmh"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

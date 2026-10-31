@@ -1,0 +1,2 @@
+common:
+  security.validator_service_url: https://csec.nr-data.net

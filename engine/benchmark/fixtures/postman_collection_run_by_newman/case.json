@@ -1,0 +1,26 @@
+{
+  "name": "postman_collection_run_by_newman",
+  "category": "positive",
+  "description": "A Postman collection under src/test/postman is run by a Newman CI job: an API acceptance suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "postman_collections",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

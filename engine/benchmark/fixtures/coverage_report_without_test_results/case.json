@@ -1,0 +1,31 @@
+{
+  "name": "coverage_report_without_test_results",
+  "category": "insufficient",
+  "description": "A coverage report exists but there are no test results on disk, so it cannot be compared with the run that made it. It must not be called partial or complete.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.coverage_measured",
+      "rule": "partial-run-coverage",
+      "status": [
+        "CONFIRMED"
+      ],
+      "note_excludes": "PARTIAL RUN"
+    },
+    {
+      "id": "tests.coverage_measured",
+      "rule": "jacoco-support",
+      "value": 85.0,
+      "path": "LINE"
+    }
+  ],
+  "criteria": []
+}

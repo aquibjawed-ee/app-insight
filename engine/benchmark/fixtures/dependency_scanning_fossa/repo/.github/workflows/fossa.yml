@@ -1,0 +1,7 @@
+name: FOSSA
+on: [push]
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: fossas/fossa-action@v1

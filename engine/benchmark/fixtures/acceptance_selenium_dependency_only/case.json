@@ -1,0 +1,26 @@
+{
+  "name": "acceptance_selenium_dependency_only",
+  "category": "negative",
+  "description": "Selenium is a declared dependency but nothing uses it: a library is not a test suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "browser_tools",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ]
+}

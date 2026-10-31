@@ -1,0 +1,42 @@
+{
+  "name": "symlinks_not_followed",
+  "category": "negative",
+  "description": "Source and README entries are symlinks to a file outside the repository. They must not be read, cited or counted.",
+  "setup": {
+    "symlinks": {
+      "src/main/kotlin/Leak.kt": "leak.txt",
+      "README.md": "leak.txt"
+    },
+    "symlink_content": "OUTSIDE_SECRET_MARKER class Leak"
+  },
+  "facts": [
+    {
+      "id": "stack.kotlin_sources",
+      "rule": "symlink-safety",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "stack.language",
+      "rule": "symlink-safety",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "identity.about",
+      "rule": "symlink-safety",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [],
+  "forbid_in_output": [
+    "OUTSIDE_SECRET_MARKER"
+  ]
+}

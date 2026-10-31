@@ -1,0 +1,23 @@
+{
+  "name": "deps_test_dependency_plus_source_mention",
+  "category": "negative",
+  "description": "A test-scope driver and a connection string in main source: the claim is only 'named in source', never 'declared' for the application.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "H2 (embedded)",
+          "where": "application",
+          "evidence_strength": "named in source"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

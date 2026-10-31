@@ -1,0 +1,17 @@
+{
+  "name": "openapi_tag_from_swagger_import",
+  "category": "positive",
+  "description": "@Tag imported from io.swagger is an OpenAPI annotation.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.openapi_annotations",
+      "rule": "openapi-annotations",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

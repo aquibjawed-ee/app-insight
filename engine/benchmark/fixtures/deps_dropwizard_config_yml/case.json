@@ -1,0 +1,23 @@
+{
+  "name": "deps_dropwizard_config_yml",
+  "category": "positive",
+  "description": "Dropwizard: the JDBC url sits in config.yml at the repository root next to the driver dependency.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

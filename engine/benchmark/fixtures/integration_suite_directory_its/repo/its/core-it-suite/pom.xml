@@ -1,0 +1,9 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>g</groupId>
+  <artifactId>suite</artifactId>
+  <version>1</version>
+  <properties>
+    <skipTests>true</skipTests>
+  </properties>
+</project>

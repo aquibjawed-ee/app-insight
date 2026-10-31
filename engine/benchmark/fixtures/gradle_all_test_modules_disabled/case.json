@@ -1,0 +1,25 @@
+{
+  "name": "gradle_all_test_modules_disabled",
+  "category": "negative",
+  "description": "The only module holding unit tests switches them off, so CI running the build runs no tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "disabled_in_build",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "NOT_MET"
+      ]
+    }
+  ]
+}

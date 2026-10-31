@@ -1,0 +1,17 @@
+{
+  "name": "ci_kind_cluster_is_a_test_not_a_deploy",
+  "category": "negative",
+  "description": "kubectl apply into a throwaway kind cluster is a manifest test, not a deployment.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.deploy_step",
+      "rule": "ci-deploy-step",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

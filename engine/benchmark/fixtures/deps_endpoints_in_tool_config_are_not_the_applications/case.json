@@ -1,0 +1,17 @@
+{
+  "name": "deps_endpoints_in_tool_config_are_not_the_applications",
+  "category": "negative",
+  "description": "URLs in a tool's own configuration (newrelic.yml, a secrets-auditor ignore file) and return/cancel URLs are not services the application calls.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

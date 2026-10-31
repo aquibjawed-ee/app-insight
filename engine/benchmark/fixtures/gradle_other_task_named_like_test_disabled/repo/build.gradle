@@ -1,0 +1,4 @@
+apply plugin: 'java'
+
+checkstyleAotTest.enabled = false
+formatAotTest.enabled = false

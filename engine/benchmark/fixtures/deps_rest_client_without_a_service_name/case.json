@@ -1,0 +1,35 @@
+{
+  "name": "deps_rest_client_without_a_service_name",
+  "category": "positive",
+  "description": "@RegisterRestClient without a configKey or baseUri names only a Java interface, which is not a service and is not reported; a baseUri is.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "HTTP service: https://api.example.com",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "HTTP service: Foo"
+        },
+        {
+          "technology": "HTTP client interface: Foo"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,33 @@
+{
+  "name": "container_jib_without_base_image_uses_jib_default",
+  "category": "positive",
+  "description": "Jib with no from block: the base image is not set in the build, and nothing is invented for it.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image",
+      "value": null
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image_set_by_variable",
+      "value": false
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image",
+      "value": "acme/app"
+    }
+  ],
+  "criteria": []
+}

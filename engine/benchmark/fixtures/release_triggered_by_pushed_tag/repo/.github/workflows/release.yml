@@ -1,0 +1,10 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./mvnw -B verify

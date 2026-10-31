@@ -1,0 +1,65 @@
+{
+  "name": "deps_endpoints_named_in_configuration",
+  "category": "positive",
+  "description": "Literal http(s) URLs under url/uri/host keys are reported as configured endpoints (not as known services); localhost, placeholders, docs and callback URLs are not.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Endpoint: loyalty.api.url",
+          "where": "application",
+          "evidence_strength": "configured",
+          "group": "Services it calls",
+          "hosts": [
+            "prod-membership-api.loyalty-membership"
+          ]
+        },
+        {
+          "technology": "Endpoint: monetate.api.url",
+          "hosts": [
+            "engine.monetate.net"
+          ]
+        },
+        {
+          "technology": "Auth0",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Identity and access"
+        },
+        {
+          "technology": "PingFederate",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "Endpoint: springdoc.swagger-ui.url"
+        },
+        {
+          "technology": "Endpoint: app.callback.url"
+        },
+        {
+          "technology": "Endpoint: local.api.url"
+        },
+        {
+          "technology": "Endpoint: other.api.url"
+        },
+        {
+          "technology": "Endpoint: auth0.service.api.url"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

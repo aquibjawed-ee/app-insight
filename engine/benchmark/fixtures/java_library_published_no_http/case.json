@@ -1,0 +1,50 @@
+{
+  "name": "java_library_published_no_http",
+  "category": "negative",
+  "description": "A Java library published to a registry from CI: no endpoints, image or deploy descriptor. Service-only checks are not applicable.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.artifact_kind",
+      "rule": "artifact-kind",
+      "value": "library",
+      "status": [
+        "INFERRED"
+      ]
+    },
+    {
+      "id": "build_ci.publish_step",
+      "rule": "publish-step",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "automated_deploy",
+      "rule": "service-only-checks",
+      "result": [],
+      "absent": true
+    },
+    {
+      "id": "rollback",
+      "rule": "service-only-checks",
+      "result": [],
+      "absent": true
+    },
+    {
+      "id": "zero_downtime",
+      "rule": "service-only-checks",
+      "result": [],
+      "absent": true
+    },
+    {
+      "id": "openapi_exposed",
+      "rule": "service-only-checks",
+      "result": [],
+      "absent": true
+    }
+  ]
+}

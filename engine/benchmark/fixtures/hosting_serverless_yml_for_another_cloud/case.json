@@ -1,0 +1,18 @@
+{
+  "name": "hosting_serverless_yml_for_another_cloud",
+  "category": "negative",
+  "description": "serverless.yml naming another provider is not AWS.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_absent": [
+        {
+          "target": "AWS Lambda (Serverless Framework)"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

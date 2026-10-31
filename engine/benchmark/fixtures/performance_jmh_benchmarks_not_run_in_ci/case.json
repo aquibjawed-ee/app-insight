@@ -1,0 +1,29 @@
+{
+  "name": "performance_jmh_benchmarks_not_run_in_ci",
+  "category": "insufficient",
+  "description": "JMH benchmarks exist under benchmarks/ but nothing in CI runs them: present, not shown to run.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.performance_tests",
+      "rule": "performance-tests",
+      "path": "artefacts",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "performance_tests",
+      "rule": "performance-tests",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "performance_tests"
+  ]
+}

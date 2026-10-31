@@ -1,0 +1,25 @@
+{
+  "name": "hosting_app_engine_descriptor",
+  "category": "positive",
+  "description": "app.yaml with a runtime is an App Engine descriptor.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google App Engine",
+          "role": "deployment target",
+          "basis": [
+            "deployment file"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

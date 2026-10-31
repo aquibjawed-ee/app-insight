@@ -1,0 +1,29 @@
+{
+  "name": "container_quarkus_expression_values_are_not_reported",
+  "category": "negative",
+  "description": "A ${REGISTRY:gcr.io} expression is not a registry value: it is reported as set by an expression.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.registry",
+      "value": null
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.set_by_variable",
+      "value_includes": [
+        "registry"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": true
+    }
+  ],
+  "criteria": []
+}

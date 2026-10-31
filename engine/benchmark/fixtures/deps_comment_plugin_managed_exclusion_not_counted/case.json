@@ -1,0 +1,17 @@
+{
+  "name": "deps_comment_plugin_managed_exclusion_not_counted",
+  "category": "negative",
+  "description": "A commented dependency, a plugin's own dependency, a managed version, an exclusion and look-alike artifactIds are not dependencies.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

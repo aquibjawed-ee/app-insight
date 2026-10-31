@@ -1,0 +1,20 @@
+{
+  "name": "readme_with_intro",
+  "category": "positive",
+  "description": "README has an intro paragraph before the first section.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "identity.about",
+      "rule": "readme-about",
+      "value": [
+        "Backend-for-frontend that aggregates basket and payment services for the checkout journey.",
+        "It exposes a single REST API to the web app."
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

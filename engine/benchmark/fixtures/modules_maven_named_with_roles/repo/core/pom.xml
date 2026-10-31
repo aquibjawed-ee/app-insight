@@ -1,0 +1,10 @@
+<project>
+  <parent>
+    <artifactId>shop-parent</artifactId>
+  </parent>
+  <groupId>com.acme</groupId>
+  <artifactId>shop-core</artifactId>
+  <version>1.0</version>
+  <dependencies>
+  </dependencies>
+</project>

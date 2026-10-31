@@ -1,0 +1,17 @@
+{
+  "name": "maven_compiler_version_through_property",
+  "category": "positive",
+  "description": "Legacy pom: compiler source/target refer to ${jdkVersion}, defined as 1.5 in the same pom.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "1.5",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

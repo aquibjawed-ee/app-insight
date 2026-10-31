@@ -1,0 +1,27 @@
+{
+  "name": "container_spring_boot_maven_image_name_from_property_is_not_reported",
+  "category": "negative",
+  "description": "A Maven ${property} image name is not reported as a value.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.image_name",
+      "value": null
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.image_name_variable",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    }
+  ],
+  "criteria": []
+}

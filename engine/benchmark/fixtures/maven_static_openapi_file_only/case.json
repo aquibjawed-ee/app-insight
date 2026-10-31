@@ -1,0 +1,29 @@
+{
+  "name": "maven_static_openapi_file_only",
+  "category": "contradictory",
+  "description": "Controllers and an openapi.yaml file, but no generator or serving configuration. A spec exists; exposure cannot be shown.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.openapi_exposure",
+      "rule": "openapi-provided",
+      "value": "static_spec_only",
+      "status": [
+        "INFERRED",
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "openapi_exposed",
+      "rule": "openapi-provided",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "openapi_exposed"
+  ]
+}

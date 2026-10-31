@@ -1,0 +1,25 @@
+{
+  "name": "ci_install_skips_tests_then_test_step_runs",
+  "category": "positive",
+  "description": "One step installs with -DskipTests; the next step runs verify with tests. Tests run in CI.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

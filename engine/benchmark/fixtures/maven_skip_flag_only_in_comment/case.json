@@ -1,0 +1,33 @@
+{
+  "name": "maven_skip_flag_only_in_comment",
+  "category": "contradictory",
+  "description": "A commented-out <skipTests>true</skipTests> in the pom is not configuration; CI runs `mvn verify`.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.build_level_test_skip",
+      "rule": "ci-skip-detection",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

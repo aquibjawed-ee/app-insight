@@ -1,0 +1,96 @@
+{
+  "name": "container_quarkus_container_image_enabled_in_config",
+  "category": "positive",
+  "description": "Quarkus container-image-jib with quarkus.container-image.build=true: registry, group, name, tag, Jib base image and ports are read; the registry is reported.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.builder",
+      "value": "jib"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled_by",
+      "value": "configuration"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.registry",
+      "value": "gcr.io"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.group",
+      "value": "acme"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.name",
+      "value": "app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.tag",
+      "value": "1.0"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.base_image",
+      "value": "eclipse-temurin:17-jre"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.ports",
+      "value": [
+        "8080",
+        "8443"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "base_images",
+      "value_includes": [
+        "eclipse-temurin:17-jre"
+      ]
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google Container / Artifact Registry",
+          "role": "image registry",
+          "basis": [
+            "image reference"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

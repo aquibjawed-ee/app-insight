@@ -1,0 +1,33 @@
+{
+  "name": "container_quarkus_yaml_configuration",
+  "category": "positive",
+  "description": "Quarkus container-image configuration in application.yml.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.group",
+      "value": "acme"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.name",
+      "value": "app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.builder",
+      "value": "buildpack"
+    }
+  ],
+  "criteria": []
+}

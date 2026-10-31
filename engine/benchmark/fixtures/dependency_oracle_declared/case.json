@@ -1,0 +1,19 @@
+{
+  "name": "dependency_oracle_declared",
+  "category": "positive",
+  "description": "A real Oracle JDBC dependency is declared.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.notable_dependencies",
+      "rule": "dependency-declarations",
+      "value_includes": [
+        "oracle"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

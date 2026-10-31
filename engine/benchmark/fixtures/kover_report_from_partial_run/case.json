@@ -1,0 +1,58 @@
+{
+  "name": "kover_report_from_partial_run",
+  "category": "insufficient",
+  "description": "A Kover HTML report reads 3.5% line coverage, but the build that produced it executed only 2 of the 10 test classes. The figure must not be treated as the application's coverage.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": false,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "representative"
+    },
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": 2,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "executed_test_classes"
+    },
+    {
+      "id": "tests.coverage_run",
+      "rule": "partial-run-coverage",
+      "value": 10,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "discovered_test_classes"
+    },
+    {
+      "id": "tests.coverage_measured",
+      "rule": "partial-run-coverage",
+      "status": [
+        "INFERRED"
+      ],
+      "note_contains": "PARTIAL RUN"
+    },
+    {
+      "id": "tests.coverage_measured",
+      "rule": "kover-support",
+      "value": 3.45,
+      "path": "LINE"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate-wiring",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

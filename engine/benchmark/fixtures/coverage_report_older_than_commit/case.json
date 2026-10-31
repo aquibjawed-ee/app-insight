@@ -1,0 +1,28 @@
+{
+  "name": "coverage_report_older_than_commit",
+  "category": "contradictory",
+  "description": "The coverage report is older than the HEAD commit, so it may describe different code.",
+  "setup": {
+    "commit": true,
+    "old_files": [
+      "build/reports/jacoco/test/jacocoTestReport.xml"
+    ]
+  },
+  "facts": [
+    {
+      "id": "tests.coverage_measured",
+      "rule": "stale-report",
+      "status": [
+        "INFERRED"
+      ],
+      "note_contains": "STALE"
+    },
+    {
+      "id": "tests.coverage_measured",
+      "rule": "jacoco-support",
+      "value": 85.0,
+      "path": "LINE"
+    }
+  ],
+  "criteria": []
+}

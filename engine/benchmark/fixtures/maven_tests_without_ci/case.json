@@ -1,0 +1,68 @@
+{
+  "name": "maven_tests_without_ci",
+  "category": "negative",
+  "description": "Tests exist but there is no CI definition anywhere: nothing shows they run automatically.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.build_step",
+      "rule": "ci-build-step",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.coverage_state",
+      "rule": "coverage-state",
+      "value": "tests_present_coverage_not_configured",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "automated_build",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    },
+    {
+      "id": "tests_run_in_ci",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    },
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    },
+    {
+      "id": "coverage",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met": [
+    "automated_build",
+    "tests_run_in_ci",
+    "coverage"
+  ]
+}

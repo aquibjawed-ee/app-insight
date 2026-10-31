@@ -1,0 +1,43 @@
+{
+  "name": "empty_repository",
+  "category": "insufficient",
+  "description": "A repository with only a text note: nothing can be established and nothing may be claimed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "no-evidence-not-met",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "stack.build_tool",
+      "rule": "no-evidence-not-met",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "no-evidence-not-met",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "build_ci.ci_system",
+      "rule": "no-evidence-not-met",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [],
+  "never_met_all": true
+}

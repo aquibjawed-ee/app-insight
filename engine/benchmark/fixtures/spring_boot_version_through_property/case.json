@@ -1,0 +1,17 @@
+{
+  "name": "spring_boot_version_through_property",
+  "category": "positive",
+  "description": "The Spring Boot version in the parent is ${sb.version}, defined once in <properties>.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.spring_boot_version",
+      "rule": "declared-versions",
+      "value": "3.2.0",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

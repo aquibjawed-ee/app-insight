@@ -1,0 +1,53 @@
+{
+  "name": "deps_compose_services_only",
+  "category": "positive",
+  "description": "Services started by docker-compose are reported as such, not as application dependencies.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "docker-compose only",
+          "evidence_strength": "compose"
+        },
+        {
+          "technology": "Redis",
+          "where": "docker-compose only",
+          "evidence_strength": "compose"
+        },
+        {
+          "technology": "Kafka",
+          "where": "docker-compose only",
+          "evidence_strength": "compose"
+        },
+        {
+          "technology": "SMTP mail server",
+          "where": "docker-compose only",
+          "evidence_strength": "compose",
+          "kind": "Notifications"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        },
+        {
+          "technology": "Redis",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

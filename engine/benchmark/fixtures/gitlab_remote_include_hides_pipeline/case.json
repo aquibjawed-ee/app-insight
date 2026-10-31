@@ -1,0 +1,72 @@
+{
+  "name": "gitlab_remote_include_hides_pipeline",
+  "category": "insufficient",
+  "description": "The pipeline includes a template from another GitLab project. Whatever it defines (tagging, secret scanning, SAST) cannot be known offline: UNKNOWN, never absent and never present.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.unresolved_includes",
+      "rule": "remote-includes-unknown",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "build_ci.version_tagging",
+      "rule": "remote-includes-unknown",
+      "status": [
+        "UNKNOWN"
+      ]
+    },
+    {
+      "id": "security.secret_scanning",
+      "rule": "remote-includes-unknown",
+      "status": [
+        "UNKNOWN"
+      ]
+    },
+    {
+      "id": "security.sast",
+      "rule": "remote-includes-unknown",
+      "status": [
+        "UNKNOWN"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "secret_scanning",
+      "rule": "remote-includes-unknown",
+      "result": [
+        "UNKNOWN"
+      ]
+    },
+    {
+      "id": "sast",
+      "rule": "remote-includes-unknown",
+      "result": [
+        "UNKNOWN"
+      ]
+    },
+    {
+      "id": "version_tagging",
+      "rule": "remote-includes-unknown",
+      "result": [
+        "UNKNOWN"
+      ]
+    },
+    {
+      "id": "automated_build",
+      "rule": "ci-build-step",
+      "result": [
+        "MET"
+      ]
+    }
+  ],
+  "never_met": [
+    "secret_scanning",
+    "sast",
+    "version_tagging"
+  ]
+}

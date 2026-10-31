@@ -1,0 +1,28 @@
+{
+  "name": "ci_runs_repo_script_inferred_only",
+  "category": "insufficient",
+  "description": "CI calls ./go build; the script wraps gradle. The build is inferred from the script, never confirmed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.build_step",
+      "rule": "ci-build-step",
+      "value": true,
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "automated_build",
+      "rule": "ci-build-step",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "automated_build"
+  ]
+}

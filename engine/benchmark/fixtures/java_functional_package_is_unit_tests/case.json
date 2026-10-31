@@ -1,0 +1,29 @@
+{
+  "name": "java_functional_package_is_unit_tests",
+  "category": "negative",
+  "description": "A package named functional inside src/test holds in-process tests; it is not a separate acceptance suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met": [
+    "acceptance_tests"
+  ]
+}

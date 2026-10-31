@@ -1,0 +1,18 @@
+{
+  "name": "java_version_from_ci_jdk_only",
+  "category": "insufficient",
+  "description": "No Java level in any build file; the workflow builds with JDK 17. Reported as the CI JDK, not as the target.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "17",
+      "status": [
+        "INFERRED"
+      ],
+      "note_contains": "pipeline builds with"
+    }
+  ],
+  "criteria": []
+}

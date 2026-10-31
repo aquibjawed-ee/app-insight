@@ -1,0 +1,25 @@
+{
+  "name": "gradle_other_task_named_like_test_disabled",
+  "category": "positive",
+  "description": "Disabling checkstyleAotTest/formatAotTest is not disabling the `test` task.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

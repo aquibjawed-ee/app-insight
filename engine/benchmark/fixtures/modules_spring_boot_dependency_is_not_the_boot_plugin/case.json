@@ -1,0 +1,30 @@
+{
+  "name": "modules_spring_boot_dependency_is_not_the_boot_plugin",
+  "category": "negative",
+  "description": "A module that only depends on spring-boot-starter-* or has test sources with a Boot dependency is not a Boot application.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "path": "app",
+          "role": "application"
+        },
+        {
+          "path": "lib",
+          "role": "jar"
+        },
+        {
+          "path": "pact",
+          "role": "tests"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

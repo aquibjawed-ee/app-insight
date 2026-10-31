@@ -1,0 +1,39 @@
+{
+  "name": "container_quarkus_enabled_by_pipeline_flag",
+  "category": "positive",
+  "description": "-Dquarkus.container-image.build=true in a pipeline command enables the build in CI.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled_by",
+      "value": "pipeline flag"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.push",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.run_by",
+      "value": "the pipeline"
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,4 @@
+image-build:
+  stage: package
+  script:
+    - ./gradlew jib --info

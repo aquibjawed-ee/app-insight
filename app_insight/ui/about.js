@@ -1,0 +1,19 @@
+/* about: how to read this report */
+function pAbout(m) {
+  put(m, crumbs([["About"]]) + pageHeading("About this report", "How to read what you see.") + (D.failed_sources && D.failed_sources.length ? `<div class="static-banner">${icon("info")}<span><b>${D.failed_sources.length} source(s) could not be read:</b> ${D.failed_sources.map(f => esc(f.spec + " (" + f.error + ")")).join("; ")}</span></div>` : ""));
+  const rows = [["Static analysis", "Source, configuration, build and deployment files were read. Nothing was compiled, run or queried; no model was involved."], ["Evidence", "Every relationship and fact cites file and line. Use any Evidence button; the cited line is re-read by relate.py validate."],
+    ["Resolved · unresolved · ambiguous", "A call is attached to an application only when its name is a declared identity of exactly one application. Otherwise it stays unresolved, or ambiguous with candidates listed."],
+    ["Configured · declared · inferred", "Configured: named in source, configuration or deployment files. Declared: a library or module declares it. Inferred: derived from a type or pattern."],
+    ["Confirmed · inferred · not found · unknown", "Confirmed: read from a cited line. Inferred: derived and says so. Not found: searched, nothing there (not proof of absence). Unknown: cannot be known offline."],
+    ["Unverified", "No test could be tied to the component statically. It never means no test exists."],
+    ["No overall score", "Dimensions are separate on purpose. Business criticality is never inferred from technology. Rings and bars show coverage (how many could be assessed, how many facts are confirmed), not health."],
+    ["AS-IS · Assessment · Findings · Roadmap", "AS-IS shows what the application is. Assessment shows how it is doing in each aspect: every control with its state, evidence and remedy. Findings lists each control that is not in place once, with the applications it was raised for. Roadmap groups the gaps by aspect in dependency order."],
+    ["Aspects and controls", "The catalogue (version " + D.catalogue.version + ") defines " + ASPECTS.length + " aspects and their controls, where each control reads its answer, and when it applies. An aspect's status is the worst of its controls; there is no score."],
+    ["Control states", Object.entries(D.catalogue.states).map(([k, v]) => k + ": " + v).join(" · ")],
+    ["Remedies", "From the client's remedy packs, highest priority first: " + D.remedy_packs.map(p => p.title + " (" + p.id + " " + p.version + ")").join(", ") + ". Packs are swapped per client without changing the catalogue."],
+    ["Reference data", "Support windows and compatibility rules are reference data in rules/*.json. Each pack carries a review block; until a maintainer sets it to reviewed, the report says so."]];
+  const E = D.portfolio.graph.edges.filter(e => e.type !== "CONTAINS"), unres = E.filter(e => ["unresolved", "ambiguous"].includes(e.resolution.state)).length;
+  const act = [["Static scan completed", D.apps.length + " repositories read"], ["Relationships extracted", E.length + " edges, " + unres + " unresolved or ambiguous"], ["Evidence re-verified", "every cited line re-read"], ["Not run", "build, tests, CI and runtime were not executed"], ["Analysed", fmtDate(D.generated)]];
+  put(m, `<section class="card overview-card" style="margin-bottom:12px"><div class="section-heading"><div><h2>This analysis</h2><p>What it did and did not do</p></div></div>${act.map(([k, v]) => `<div class="row"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}</section>`);
+  put(m, `<section class="card overview-card">${rows.map(([k, v]) => `<div class="row"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("")}</section><details style="margin-top:12px"><summary>Tool versions</summary><pre>${esc(JSON.stringify(D.tools, null, 1))}</pre></details>`);
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gradle_catalog_only_kotlinx_entries",
+  "category": "negative",
+  "description": "Only an org.jetbrains.kotlinx.* entry exists (kover 0.9.9): that is not the Kotlin version and must not be reported as it.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "version-catalog",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

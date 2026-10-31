@@ -1,0 +1,26 @@
+{
+  "name": "example_module_is_not_the_application",
+  "category": "negative",
+  "description": "A module called x-example holds a sample controller and Dockerfile; the project itself is a library.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.http_endpoints_present",
+      "rule": "http-endpoints",
+      "path": "controller_files",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "resilience.container_image",
+      "rule": "artifact-kind",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "gradle_spring_boot_version_in_variable",
+  "category": "positive",
+  "description": "The Spring Boot Gradle plugin version is the single literal in ext.springBootVersion.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.spring_boot_version",
+      "rule": "declared-versions",
+      "value": "2.0.7.RELEASE",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

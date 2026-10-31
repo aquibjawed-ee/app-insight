@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "dimensions.v1.schema.json", "title": "Assessment dimensions (dimensions.v1)",
+  "type": "object", "additionalProperties": false, "required": ["contract", "application", "as_of", "dimensions", "statement"],
+  "properties": {
+    "contract": {"const": "dimensions.v1"}, "application": {"type": "string"}, "as_of": {"type": "string"}, "statement": {"type": "string"},
+    "dimensions": {"type": "object", "additionalProperties": false,
+      "required": ["engineering_maturity", "security_exposure", "technology_lifecycle", "operational_resilience", "safety_net_strength", "architecture_coupling", "change_complexity", "business_criticality", "evidence_completeness"],
+      "properties": {
+        "engineering_maturity": {"$ref": "#/$defs/dim"}, "security_exposure": {"$ref": "#/$defs/dim"}, "technology_lifecycle": {"$ref": "#/$defs/dim"}, "operational_resilience": {"$ref": "#/$defs/dim"},
+        "safety_net_strength": {"$ref": "#/$defs/dim"}, "architecture_coupling": {"$ref": "#/$defs/dim"}, "change_complexity": {"$ref": "#/$defs/dim"}, "business_criticality": {"$ref": "#/$defs/dim"},
+        "evidence_completeness": {"$ref": "#/$defs/dim"}}}
+  },
+  "$defs": {"dim": {"type": "object", "required": ["state", "headline", "level", "rule", "based_on", "values", "title"],
+                    "properties": {"state": {"enum": ["assessed", "partial", "not_assessed", "unknown", "not_applicable"]}, "level": {"enum": ["info", "attention", "concern"]}}}}
+}

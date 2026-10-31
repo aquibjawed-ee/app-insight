@@ -1,0 +1,20 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0</version>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <image>
+            <name>${registry}/app</name>
+          </image>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+  </dependencies>
+</project>

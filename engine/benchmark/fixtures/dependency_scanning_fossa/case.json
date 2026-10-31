@@ -1,0 +1,25 @@
+{
+  "name": "dependency_scanning_fossa",
+  "category": "positive",
+  "description": "A workflow runs the FOSSA action: dependency scanning in the pipeline.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "security.dependency_scanning_in_pipeline",
+      "rule": "scanner-in-pipeline",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "dependency_scanning",
+      "rule": "scanner-in-pipeline",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

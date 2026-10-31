@@ -1,0 +1,23 @@
+{
+  "name": "deps_dotenv_file_counts_as_configuration",
+  "category": "positive",
+  "description": "A real .env file names the Redis the application is configured with.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

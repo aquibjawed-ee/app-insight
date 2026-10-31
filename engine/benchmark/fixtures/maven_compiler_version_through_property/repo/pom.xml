@@ -1,0 +1,6 @@
+<project><modelVersion>4.0.0</modelVersion><groupId>g</groupId><artifactId>a</artifactId><version>1</version>
+<properties><jdkVersion>1.5</jdkVersion></properties>
+<build><plugins><plugin><artifactId>maven-compiler-plugin</artifactId><configuration>
+<source>${jdkVersion}</source>
+<target>${jdkVersion}</target>
+</configuration></plugin></plugins></build></project>

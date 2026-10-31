@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "impact.v1.schema.json", "title": "Change-impact assessment (impact.v1)",
+  "type": "object", "additionalProperties": false,
+  "required": ["contract", "engine_version", "rules_version", "rules_reviewed_as_of", "scenario", "graph_scope", "confirmed_incompatibilities", "potential_risks", "informational",
+               "affected_components", "downstream_impact", "required_verification", "unknowns", "statement", "applications_in_scope"],
+  "properties": {
+    "contract": {"const": "impact.v1"}, "engine_version": {"type": "string"}, "rules_version": {"type": "string"}, "rules_reviewed_as_of": {"type": "string"}, "rules_review": {"type": "object"},
+    "scenario": {"type": "object", "required": ["type"], "properties": {"type": {"enum": ["java_runtime", "spring_boot", "dependency_major", "db_migration", "messaging_schema", "api_contract", "infrastructure"]}}},
+    "graph_scope": {"enum": ["application", "portfolio"]},
+    "confirmed_incompatibilities": {"type": "array", "items": {"$ref": "#/$defs/finding"}}, "potential_risks": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "informational": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "affected_components": {"type": "array", "items": {"type": "object", "required": ["component", "type", "why"]}},
+    "downstream_impact": {"type": "array", "items": {"type": "object", "required": ["component", "type", "name", "hops", "via", "because", "path_confidence", "note"],
+                          "properties": {"path_confidence": {"enum": ["as_discovered", "reduced"]}, "hops": {"type": "integer", "minimum": 1}}}},
+    "required_verification": {"type": "array", "items": {"type": "object", "required": ["what", "component"]}},
+    "unknowns": {"type": "array", "items": {"type": "object", "required": ["what", "why"]}},
+    "statement": {"type": "string"}, "applications_in_scope": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {"finding": {"type": "object", "required": ["rule_id", "app", "message", "evidence", "occurrences"], "properties": {"rule_id": {"type": "string"}, "occurrences": {"type": "integer", "minimum": 0}}}}
+}

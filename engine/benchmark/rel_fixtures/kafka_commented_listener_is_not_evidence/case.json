@@ -1,0 +1,11 @@
+{
+ "description": "listener annotation appears only in javadoc and a line comment",
+ "category": "negative",
+ "forbid_edges": [
+  {
+   "type": "CONSUMES_FROM",
+   "source": "consumer",
+   "target": "orders.created"
+  }
+ ]
+}

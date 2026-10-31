@@ -1,0 +1,27 @@
+{
+  "name": "http_client_library_alone_names_no_service",
+  "category": "negative",
+  "description": "A client library is reported under http_client_libraries, never as a service the application depends on.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.http_client_libraries",
+      "rule": "http-client-libraries",
+      "items_include": [
+        {
+          "technology": "OkHttp",
+          "where": "application"
+        }
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

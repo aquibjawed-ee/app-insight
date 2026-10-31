@@ -1,0 +1,41 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>g</groupId>
+  <artifactId>parent</artifactId>
+  <version>1</version>
+  <packaging>pom</packaging>
+  <modules><module>lib</module></modules>
+  <build><plugins><plugin><artifactId>p0-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p1-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p2-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p3-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p4-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p5-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p6-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p7-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p8-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p9-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p10-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p11-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p12-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p13-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><artifactId>p14-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals></execution></executions></plugin><plugin><groupId>org.jacoco</groupId><artifactId>jacoco-maven-plugin</artifactId><executions><execution><goals>
+<goal>check</goal>
+</goals><configuration><rules><rule><limits><limit><minimum>0.90</minimum></limit></limits></rule></rules></configuration></execution></executions></plugin></plugins></build>
+</project>

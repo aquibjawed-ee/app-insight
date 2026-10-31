@@ -1,0 +1,37 @@
+{
+  "name": "coverage_thresholds_as_properties_only",
+  "category": "insufficient",
+  "description": "Ratios are declared as properties and the JaCoCo rule that uses them is not in this repository: intent is shown, enforcement is not.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "coverage-gate",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.coverage_thresholds_declared",
+      "rule": "coverage-gate",
+      "value": true,
+      "status": [
+        "INFERRED"
+      ],
+      "note_contains": "not in this repository"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

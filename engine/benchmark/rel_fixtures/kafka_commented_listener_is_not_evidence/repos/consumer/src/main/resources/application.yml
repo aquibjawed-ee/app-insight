@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: consumer
+  kafka:
+    bootstrap-servers: kafka-1.internal:9092

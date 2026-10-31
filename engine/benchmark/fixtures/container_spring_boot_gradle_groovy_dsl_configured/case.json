@@ -1,0 +1,27 @@
+{
+  "name": "container_spring_boot_gradle_groovy_dsl_configured",
+  "category": "positive",
+  "description": "Spring Boot Gradle bootBuildImage block (Groovy DSL).",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.image_name",
+      "value": "acme/app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.builder",
+      "value": "paketobuildpacks/builder-jammy-base"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.publish",
+      "value": false
+    }
+  ],
+  "criteria": []
+}

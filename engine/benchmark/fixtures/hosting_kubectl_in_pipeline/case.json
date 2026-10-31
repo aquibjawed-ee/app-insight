@@ -1,0 +1,28 @@
+{
+  "name": "hosting_kubectl_in_pipeline",
+  "category": "positive",
+  "description": "A pipeline job applies manifests with kubectl.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Kubernetes",
+          "role": "deployment target",
+          "via": [
+            "kubectl (pipeline)"
+          ],
+          "basis": [
+            "pipeline command"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

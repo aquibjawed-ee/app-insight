@@ -1,0 +1,19 @@
+{
+ "description": "the called host is not any analysed application; it must not be attached to the unrelated app",
+ "category": "negative",
+ "forbid_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "callee"
+  }
+ ],
+ "expect_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "payments.partner-example.com",
+   "state": "not_applicable"
+  }
+ ]
+}

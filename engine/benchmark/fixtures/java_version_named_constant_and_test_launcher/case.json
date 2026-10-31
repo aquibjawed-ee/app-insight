@@ -1,0 +1,17 @@
+{
+  "name": "java_version_named_constant_and_test_launcher",
+  "category": "insufficient",
+  "description": "A convention plugin sets val javaReleaseVersion = 11 (found by name); a test-launcher convention uses JavaLanguageVersion.of(17), which configures tests only.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "11",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

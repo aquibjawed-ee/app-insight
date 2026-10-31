@@ -1,0 +1,34 @@
+{
+  "name": "kotlin_multiplatform_source_sets",
+  "category": "positive",
+  "description": "Kotlin Multiplatform source sets: commonMain is production code; jvmTest/commonTest hold the tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "kotlin",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 2,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

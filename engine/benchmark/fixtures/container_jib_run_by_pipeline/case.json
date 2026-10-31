@@ -1,0 +1,15 @@
+{
+  "name": "container_jib_run_by_pipeline",
+  "category": "positive",
+  "description": "A pipeline job that runs Gradle's jib task builds the image in CI.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.run_by",
+      "value": "the pipeline"
+    }
+  ],
+  "criteria": []
+}

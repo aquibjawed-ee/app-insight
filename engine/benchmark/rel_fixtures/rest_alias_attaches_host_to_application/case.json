@@ -1,0 +1,17 @@
+{
+ "description": "an unrelated host is mapped to an analysed application by a person-supplied alias",
+ "category": "positive",
+ "aliases": {
+  "payments.partner-example.com": "callee"
+ },
+ "expect_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "callee",
+   "method": "GET",
+   "path": "/api/items/1",
+   "state": "resolved"
+  }
+ ]
+}

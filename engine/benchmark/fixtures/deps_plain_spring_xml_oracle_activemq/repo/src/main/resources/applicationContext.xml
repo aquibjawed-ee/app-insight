@@ -1,0 +1,9 @@
+<beans>
+  <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+    <property name="driverClassName" value="oracle.jdbc.OracleDriver"/>
+    <property name="url" value="jdbc:oracle:thin:@db.internal:1521:ORCL"/>
+  </bean>
+  <bean id="cf" class="org.apache.activemq.ActiveMQConnectionFactory">
+    <property name="brokerURL" value="failover:(tcp://mq1:61616,tcp://mq2:61616)"/>
+  </bean>
+</beans>

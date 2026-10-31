@@ -1,0 +1,37 @@
+{
+  "name": "deps_only_evidence_from_the_deciding_scope_is_cited",
+  "category": "negative",
+  "description": "An application dependency is cited by the application-scope line, not by the test-scope line of the same technology.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Elasticsearch / OpenSearch",
+          "where": "application",
+          "at": [
+            "build.gradle.kts:2"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "Elasticsearch / OpenSearch",
+          "at": [
+            "build.gradle.kts:3"
+          ]
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,29 @@
+{
+  "name": "acceptance_module_with_tests_disabled",
+  "category": "negative",
+  "description": "The journey module holds acceptance-style tests but switches its tests off: they exist and never run.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "acceptance_tests"
+  ]
+}

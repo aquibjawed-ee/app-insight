@@ -1,0 +1,36 @@
+{
+  "name": "deps_test_module_dependencies_are_tests_only",
+  "category": "negative",
+  "description": "A dependency declared only in an integration-tests module is a test dependency of the project.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Redis",
+          "where": "application"
+        },
+        {
+          "technology": "PostgreSQL",
+          "where": "tests only"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

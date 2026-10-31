@@ -1,0 +1,17 @@
+{
+  "name": "test_resource_pom_is_not_the_build",
+  "category": "negative",
+  "description": "The only pom is a template inside src/test/resources; the build is Gradle.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "gradle",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

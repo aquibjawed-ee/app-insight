@@ -1,0 +1,17 @@
+{
+  "name": "kind_service_has_image_and_publishes",
+  "category": "positive",
+  "description": "A service with a Dockerfile that also publishes stays a service.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.artifact_kind",
+      "rule": "artifact-kind",
+      "value": "service",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

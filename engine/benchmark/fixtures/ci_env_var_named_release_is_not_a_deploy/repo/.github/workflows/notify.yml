@@ -1,0 +1,9 @@
+name: Notify
+on: [push]
+jobs:
+  n:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -X POST $URL
+        env:
+          RELEASE_ID: ${{ steps.r.outputs.id }}

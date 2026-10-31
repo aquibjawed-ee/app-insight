@@ -1,0 +1,27 @@
+{
+  "name": "container_quarkus_extension_alone_does_not_build_an_image",
+  "category": "negative",
+  "description": "The Quarkus container-image extension without quarkus.container-image.build=true builds nothing (the default is false).",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": false
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.builder",
+      "value": "docker"
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": null
+    }
+  ],
+  "criteria": []
+}

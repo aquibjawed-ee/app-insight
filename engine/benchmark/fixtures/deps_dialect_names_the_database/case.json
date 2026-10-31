@@ -1,0 +1,33 @@
+{
+  "name": "deps_dialect_names_the_database",
+  "category": "positive",
+  "description": "No JDBC url is present but spring.jpa.database-platform names a MySQL dialect; a placeholder variable name is not evidence.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "MySQL",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

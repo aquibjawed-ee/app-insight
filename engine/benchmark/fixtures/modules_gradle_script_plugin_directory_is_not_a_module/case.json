@@ -1,0 +1,30 @@
+{
+  "name": "modules_gradle_script_plugin_directory_is_not_a_module",
+  "category": "negative",
+  "description": "A directory holding Gradle script plugins (gradle/dependencies.gradle) is not a module; the included project is.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "path": "app"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_absent": [
+        {
+          "path": "gradle"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

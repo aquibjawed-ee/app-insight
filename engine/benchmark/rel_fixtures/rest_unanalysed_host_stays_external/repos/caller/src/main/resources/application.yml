@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: caller
+client:
+  url: http://payments.partner-example.com

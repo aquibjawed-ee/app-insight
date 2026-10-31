@@ -1,0 +1,48 @@
+{
+  "name": "gradle_custom_buildfile_names",
+  "category": "positive",
+  "description": "settings.gradle.kts renames the build files of the contract and functional modules; tests in those modules are contract and acceptance tests, not unit tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "identity.modules",
+      "rule": "module-discovery",
+      "value": [
+        ".",
+        "contract",
+        "functional"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.contract_tests",
+      "rule": "test-classification",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    }
+  ],
+  "criteria": []
+}

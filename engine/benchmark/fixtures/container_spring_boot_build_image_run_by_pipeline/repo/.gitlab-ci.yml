@@ -1,0 +1,4 @@
+image:
+  stage: package
+  script:
+    - ./gradlew bootBuildImage --imageName=acme/app

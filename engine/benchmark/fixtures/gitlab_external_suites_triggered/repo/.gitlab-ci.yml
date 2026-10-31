@@ -1,0 +1,18 @@
+stages: [build, e2e]
+build:
+  stage: build
+  script:
+    - ./gradlew build
+acceptance-tests:
+  stage: e2e
+  trigger:
+    project: grp/app-acceptance-tests
+    strategy: depend
+performance-tests:
+  stage: e2e
+  trigger:
+    project: grp/app-performance-tests
+deploy-prod:
+  stage: e2e
+  script:
+    - ./deploy.sh

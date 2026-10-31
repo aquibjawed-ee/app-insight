@@ -1,0 +1,34 @@
+{
+  "name": "hosting_registry_named_in_a_build_file",
+  "category": "positive",
+  "description": "An image repository named in a build file (outside any image plugin block) is reported as an image registry, never as the deployment target.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google Container / Artifact Registry",
+          "role": "image registry",
+          "basis": [
+            "image reference"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_absent": [
+        {
+          "role": "deployment target"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

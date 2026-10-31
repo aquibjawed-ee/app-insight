@@ -1,0 +1,4 @@
+security:
+  issuer: https://acme.eu.auth0.com/
+other:
+  sso: https://acme.okta.com/oauth2/default

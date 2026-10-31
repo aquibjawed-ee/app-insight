@@ -1,0 +1,11 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0</version>
+  <dependencies>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-container-image-buildpack</artifactId>
+    </dependency>
+  </dependencies>
+</project>

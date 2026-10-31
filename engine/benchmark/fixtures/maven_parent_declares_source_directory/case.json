@@ -1,0 +1,26 @@
+{
+  "name": "maven_parent_declares_source_directory",
+  "category": "positive",
+  "description": "Parent pom sets sourceDirectory=src and testSourceDirectory=test; the child module lib inherits them relative to its own directory.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "java",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

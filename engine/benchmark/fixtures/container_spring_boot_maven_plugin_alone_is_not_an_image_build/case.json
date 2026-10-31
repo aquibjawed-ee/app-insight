@@ -1,0 +1,24 @@
+{
+  "name": "container_spring_boot_maven_plugin_alone_is_not_an_image_build",
+  "category": "negative",
+  "description": "spring-boot-maven-plugin with only repackage and no image configuration or build-image command builds a jar, not an image.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "spring_boot",
+      "value": null
+    }
+  ],
+  "criteria": []
+}

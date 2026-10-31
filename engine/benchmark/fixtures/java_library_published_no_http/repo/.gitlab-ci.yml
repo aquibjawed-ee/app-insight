@@ -1,0 +1,5 @@
+stages: [publish]
+publish:
+  stage: publish
+  script:
+    - mvn -B deploy

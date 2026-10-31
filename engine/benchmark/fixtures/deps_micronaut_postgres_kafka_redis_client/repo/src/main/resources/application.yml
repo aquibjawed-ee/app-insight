@@ -1,0 +1,9 @@
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:5432/app
+    driverClassName: org.postgresql.Driver
+kafka:
+  bootstrap:
+    servers: localhost:9092
+redis:
+  uri: redis://localhost

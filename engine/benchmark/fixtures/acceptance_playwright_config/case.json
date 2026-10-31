@@ -1,0 +1,20 @@
+{
+  "name": "acceptance_playwright_config",
+  "category": "positive",
+  "description": "A playwright.config.ts: a browser end-to-end suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "browser_tools",
+      "value_includes": [
+        "playwright"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

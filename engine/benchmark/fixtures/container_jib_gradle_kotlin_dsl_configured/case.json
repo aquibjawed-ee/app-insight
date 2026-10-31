@@ -1,0 +1,36 @@
+{
+  "name": "container_jib_gradle_kotlin_dsl_configured",
+  "category": "positive",
+  "description": "Jib in a Gradle Kotlin DSL jib { from { } to { } container { } } block.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image",
+      "value": "eclipse-temurin:21-jre"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image",
+      "value": "eu.gcr.io/acme/app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.ports",
+      "value": [
+        "8080",
+        "8081"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.main_class",
+      "value": "com.acme.MainKt"
+    }
+  ],
+  "criteria": []
+}

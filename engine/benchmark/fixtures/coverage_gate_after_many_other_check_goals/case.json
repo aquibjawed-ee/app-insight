@@ -1,0 +1,34 @@
+{
+  "name": "coverage_gate_after_many_other_check_goals",
+  "category": "positive",
+  "description": "The parent pom has fifteen other plugins with a check goal before JaCoCo's; the JaCoCo gate must still be found. Its child module inherits it.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "coverage-gate",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_scope",
+      "rule": "coverage-gate",
+      "path": "partial",
+      "value": false,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

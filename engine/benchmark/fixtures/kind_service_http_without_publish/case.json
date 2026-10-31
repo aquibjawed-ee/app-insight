@@ -1,0 +1,17 @@
+{
+  "name": "kind_service_http_without_publish",
+  "category": "positive",
+  "description": "HTTP controllers and nothing that publishes an artefact: a service.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.artifact_kind",
+      "rule": "artifact-kind",
+      "value": "service",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

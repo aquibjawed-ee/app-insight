@@ -1,0 +1,40 @@
+{
+  "name": "deps_endpoint_prefers_the_production_value",
+  "category": "positive",
+  "description": "The same endpoint key is set per environment: the production host leads and is the one cited; the other environments are still listed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Endpoint: loyalty.api.url",
+          "hosts": [
+            "prod-loyalty.loyalty",
+            "integration-loyalty.loyalty"
+          ],
+          "at": [
+            "k8s/prod/config/application.properties:1"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "Endpoint: loyalty.api.url",
+          "at": [
+            "k8s/integration/config/application.properties:1"
+          ]
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

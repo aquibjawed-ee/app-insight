@@ -1,0 +1,21 @@
+{
+  "name": "container_quarkus_dev_profile_does_not_build_the_production_image",
+  "category": "negative",
+  "description": "%dev.quarkus.container-image.build=true only applies in dev mode: it does not make the production build an image build.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": false
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": null
+    }
+  ],
+  "criteria": []
+}

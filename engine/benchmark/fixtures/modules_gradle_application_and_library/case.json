@@ -1,0 +1,33 @@
+{
+  "name": "modules_gradle_application_and_library",
+  "category": "positive",
+  "description": "Gradle: the root aggregates an application and a library, named from settings.gradle.kts.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "name": "shop",
+          "path": ".",
+          "role": "aggregator"
+        },
+        {
+          "name": "app",
+          "path": "app",
+          "role": "application"
+        },
+        {
+          "name": "lib",
+          "path": "lib",
+          "role": "library"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

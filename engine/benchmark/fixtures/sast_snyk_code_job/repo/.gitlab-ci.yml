@@ -1,0 +1,4 @@
+stages: [build]
+security-code-scan:
+  stage: build
+  extends: .snyk-code-scanner

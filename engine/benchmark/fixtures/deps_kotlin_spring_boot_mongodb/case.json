@@ -1,0 +1,24 @@
+{
+  "name": "deps_kotlin_spring_boot_mongodb",
+  "category": "positive",
+  "description": "Kotlin Spring Boot with MongoDB: starter dependency and spring.data.mongodb.uri in properties.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "MongoDB",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Database"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

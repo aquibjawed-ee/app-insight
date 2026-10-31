@@ -1,0 +1,9 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>g</groupId>
+  <artifactId>support</artifactId>
+  <version>1</version>
+  <properties>
+    <maven.compiler.release>8</maven.compiler.release>
+  </properties>
+</project>

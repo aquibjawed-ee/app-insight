@@ -1,0 +1,55 @@
+{
+  "name": "deps_ktor_kotlin_postgres_exposed",
+  "category": "positive",
+  "description": "Kotlin Ktor service: PostgreSQL via Exposed with a JDBC url in HOCON, Lettuce, a Ktor client; a commented MongoDB driver is ignored.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "declared"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.http_client_libraries",
+      "rule": "http-client-libraries",
+      "items_include": [
+        {
+          "technology": "Ktor client",
+          "where": "application"
+        }
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "MongoDB",
+          "where": "application"
+        },
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application"
+        },
+        {
+          "technology": "Ktor client"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

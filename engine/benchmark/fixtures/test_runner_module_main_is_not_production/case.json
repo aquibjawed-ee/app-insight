@@ -1,0 +1,17 @@
+{
+  "name": "test_runner_module_main_is_not_production",
+  "category": "negative",
+  "description": "A module named journey-tests has Kotlin under src/main: it is test code, so the only production language is Java.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "java",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

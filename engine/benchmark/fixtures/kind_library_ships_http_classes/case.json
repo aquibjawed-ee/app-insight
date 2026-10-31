@@ -1,0 +1,17 @@
+{
+  "name": "kind_library_ships_http_classes",
+  "category": "positive",
+  "description": "A framework that ships HTTP resource classes and publishes to a repository, with no image or descriptor, is a library.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.artifact_kind",
+      "rule": "artifact-kind",
+      "value": "library",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

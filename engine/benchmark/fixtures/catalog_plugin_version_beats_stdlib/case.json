@@ -1,0 +1,17 @@
+{
+  "name": "catalog_plugin_version_beats_stdlib",
+  "category": "positive",
+  "description": "The Kotlin Gradle plugin is 2.1.21 and the stdlib library is deliberately 1.9.25: the plugin is the compiler's version.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "version-catalog",
+      "value": "2.1.21",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

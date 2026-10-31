@@ -1,0 +1,17 @@
+{
+  "name": "ci_version_from_pipeline_number",
+  "category": "positive",
+  "description": "The CI file passes the pipeline number into the build as the artefact version.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.artifact_version_from_ci",
+      "rule": "ci-version",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

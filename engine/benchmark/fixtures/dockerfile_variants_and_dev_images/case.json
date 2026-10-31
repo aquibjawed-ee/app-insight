@@ -1,0 +1,19 @@
+{
+  "name": "dockerfile_variants_and_dev_images",
+  "category": "positive",
+  "description": "src/main/docker/Dockerfile.jvm is the application image; a root Dockerfile built FROM gitpod/ is a developer workspace.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "resilience.container_image",
+      "rule": "artifact-kind",
+      "value": [
+        "src/main/docker/Dockerfile.jvm"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

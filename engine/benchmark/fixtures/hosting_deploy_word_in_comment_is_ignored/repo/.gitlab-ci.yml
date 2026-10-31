@@ -1,0 +1,4 @@
+build:
+  script:
+    - mvn package
+    # - kubectl apply -f k8s/

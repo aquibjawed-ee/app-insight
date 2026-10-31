@@ -1,0 +1,41 @@
+{
+  "name": "container_jib_images_set_by_variables_are_not_reported",
+  "category": "negative",
+  "description": "A Jib image taken from a variable, a Maven property or the environment is not a value: it is reported as set by a variable / environment variable, never as a string.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image",
+      "value": null
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image_set_by_variable",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image",
+      "value": null
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image_env",
+      "value": "CONTAINER_IMAGE"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "base_images",
+      "value_absent": [
+        "baseImage"
+      ]
+    }
+  ],
+  "criteria": []
+}

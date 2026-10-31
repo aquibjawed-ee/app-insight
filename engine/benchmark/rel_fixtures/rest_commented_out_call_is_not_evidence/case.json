@@ -1,0 +1,11 @@
+{
+ "description": "the only call to callee is inside a // comment and a block comment",
+ "category": "negative",
+ "forbid_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "callee"
+  }
+ ]
+}

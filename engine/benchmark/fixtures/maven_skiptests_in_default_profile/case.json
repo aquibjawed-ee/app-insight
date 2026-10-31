@@ -1,0 +1,25 @@
+{
+  "name": "maven_skiptests_in_default_profile",
+  "category": "negative",
+  "description": "skipTests=true inside a profile that is active by default: the ordinary build skips the tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "disabled_in_build",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "NOT_MET"
+      ]
+    }
+  ]
+}

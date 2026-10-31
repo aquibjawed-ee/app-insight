@@ -1,0 +1,12 @@
+{
+  "name": "maven_bare_mvn_without_default_goal",
+  "category": "insufficient",
+  "description": "CI runs `mvn` with options only and the pom has no defaultGoal: nothing shows tests run, so it must not be MET.",
+  "setup": {},
+  "facts": [],
+  "criteria": [],
+  "never_met": [
+    "tests_run_in_ci",
+    "automated_build"
+  ]
+}

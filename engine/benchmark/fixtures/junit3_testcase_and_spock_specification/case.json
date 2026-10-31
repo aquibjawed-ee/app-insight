@@ -1,0 +1,26 @@
+{
+  "name": "junit3_testcase_and_spock_specification",
+  "category": "positive",
+  "description": "JUnit 3 classes extend TestCase and Spock specs extend Specification; neither uses @Test.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 2,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

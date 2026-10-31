@@ -1,0 +1,7 @@
+name: Release
+on: [push]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./mvnw -B deploy

@@ -1,0 +1,54 @@
+{
+  "name": "gradle_multimodule_settings",
+  "category": "positive",
+  "description": "Gradle settings include api and worker; api has 2 test classes, worker has 1. Citations must say which module they came from.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "identity.modules",
+      "rule": "module-discovery",
+      "value": [
+        ".",
+        "api",
+        "worker"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 3,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "module-attribution",
+      "value": {
+        "api": 2,
+        "worker": 1
+      },
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "by_module"
+    }
+  ],
+  "criteria": [],
+  "citation_modules": [
+    {
+      "id": "tests.unit_tests",
+      "path_prefix": "api/",
+      "module": "api"
+    },
+    {
+      "id": "tests.unit_tests",
+      "path_prefix": "worker/",
+      "module": "worker"
+    }
+  ]
+}

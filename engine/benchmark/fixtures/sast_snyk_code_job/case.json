@@ -1,0 +1,25 @@
+{
+  "name": "sast_snyk_code_job",
+  "category": "positive",
+  "description": "A GitLab job extends a Snyk Code scanner: code scanning in the pipeline, not dependency scanning.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "security.sast_in_pipeline",
+      "rule": "scanner-in-pipeline",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "security.dependency_scanning",
+      "rule": "scanner-in-pipeline",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

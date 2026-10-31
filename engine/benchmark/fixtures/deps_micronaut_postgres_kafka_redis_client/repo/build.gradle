@@ -1,0 +1,8 @@
+dependencies {
+    implementation 'io.micronaut.data:micronaut-data-jdbc'
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'io.micronaut.kafka:micronaut-kafka'
+    implementation 'io.micronaut.redis:micronaut-redis-lettuce'
+    implementation 'io.micronaut:micronaut-http-client'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}

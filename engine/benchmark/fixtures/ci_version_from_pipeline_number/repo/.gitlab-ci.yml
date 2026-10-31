@@ -1,0 +1,3 @@
+build:
+  script:
+    - ./gradlew build -PbuildNumber=${CI_PIPELINE_IID}

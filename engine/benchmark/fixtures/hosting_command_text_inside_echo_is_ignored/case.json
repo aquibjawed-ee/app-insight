@@ -1,0 +1,17 @@
+{
+  "name": "hosting_command_text_inside_echo_is_ignored",
+  "category": "negative",
+  "description": "A deploy command that only appears inside an echo/printf string, and a kubectl command that does not deploy, are not deployments.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

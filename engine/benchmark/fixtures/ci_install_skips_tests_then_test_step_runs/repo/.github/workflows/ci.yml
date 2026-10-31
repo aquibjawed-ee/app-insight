@@ -1,0 +1,8 @@
+name: CI
+on: [push]
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./mvnw -B install -DskipTests=true
+      - run: ./mvnw -B verify

@@ -1,0 +1,21 @@
+{
+  "name": "container_quarkus_prod_profile_enables_the_build",
+  "category": "positive",
+  "description": "%prod.quarkus.container-image.build=true enables the production image build; it wins over an unprefixed false.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": true
+    }
+  ],
+  "criteria": []
+}

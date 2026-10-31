@@ -1,0 +1,5 @@
+jobs:
+  a:
+    steps:
+      - run: echo "never run kubectl apply -f x here"
+      - run: kubectl get pods

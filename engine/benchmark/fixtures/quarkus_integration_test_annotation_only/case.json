@@ -1,0 +1,18 @@
+{
+  "name": "quarkus_integration_test_annotation_only",
+  "category": "positive",
+  "description": "Integration tests that subclass a test and carry only @QuarkusIntegrationTest (no @Test) are test classes.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.integration_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

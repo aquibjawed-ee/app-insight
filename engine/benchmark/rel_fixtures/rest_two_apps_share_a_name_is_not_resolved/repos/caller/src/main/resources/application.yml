@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: caller
+client:
+  url: http://dup:8080

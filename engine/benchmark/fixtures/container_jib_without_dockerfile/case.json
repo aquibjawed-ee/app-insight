@@ -1,0 +1,26 @@
+{
+  "name": "container_jib_without_dockerfile",
+  "category": "positive",
+  "description": "The Jib plugin builds an image without a Dockerfile.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "container-detection",
+      "path": "image_build",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "container-detection",
+      "path": "build_plugins",
+      "value_includes": [
+        "jib"
+      ]
+    }
+  ],
+  "criteria": []
+}

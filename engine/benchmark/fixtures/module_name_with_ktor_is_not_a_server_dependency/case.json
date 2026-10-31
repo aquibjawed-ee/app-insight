@@ -1,0 +1,18 @@
+{
+  "name": "module_name_with_ktor_is_not_a_server_dependency",
+  "category": "negative",
+  "description": "A project reference to a module named ktor-server-core is not a dependency on a Ktor server.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.http_endpoints_present",
+      "rule": "http-endpoints",
+      "path": "controller_files",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

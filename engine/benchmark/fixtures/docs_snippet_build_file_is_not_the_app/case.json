@@ -1,0 +1,25 @@
+{
+  "name": "docs_snippet_build_file_is_not_the_app",
+  "category": "negative",
+  "description": "A documentation snippet declares Spring Boot 3.3.0; the application itself does not use Spring Boot.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.spring_boot_version",
+      "rule": "declared-versions",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": "1.9.22",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

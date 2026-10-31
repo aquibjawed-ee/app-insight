@@ -1,0 +1,40 @@
+{
+  "name": "hosting_kubernetes_helm_kustomize_kubectl_are_one_target",
+  "category": "positive",
+  "description": "Helm, Kustomize, a Deployment manifest and kubectl all say Kubernetes: one target, shown with what names it.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Kubernetes",
+          "role": "deployment target",
+          "via": [
+            "Helm",
+            "Kustomize",
+            "Deployment manifest",
+            "kubectl (pipeline)"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_absent": [
+        {
+          "target": "Helm chart"
+        },
+        {
+          "target": "Kustomize (Kubernetes)"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

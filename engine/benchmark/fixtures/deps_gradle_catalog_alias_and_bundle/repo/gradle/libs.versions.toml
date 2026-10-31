@@ -1,0 +1,7 @@
+[libraries]
+jedis = { module = "redis.clients:jedis", version = "5.1.0" }
+kafka-clients = "org.apache.kafka:kafka-clients:3.7.0"
+junit = { module = "junit:junit", version = "4.13" }
+
+[bundles]
+messaging = ["kafka-clients"]

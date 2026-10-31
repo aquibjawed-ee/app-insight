@@ -1,0 +1,1 @@
+<project><modelVersion>4.0.0</modelVersion><groupId>g</groupId><artifactId>a</artifactId><version>1</version><build><plugins><plugin><artifactId>maven-javadoc-plugin</artifactId><configuration><links><link>http://docs.oracle.com/javase/8/docs/api/</link></links></configuration></plugin></plugins></build></project>

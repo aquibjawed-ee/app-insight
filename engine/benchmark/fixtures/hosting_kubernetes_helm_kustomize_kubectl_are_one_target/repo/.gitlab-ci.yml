@@ -1,0 +1,3 @@
+deploy:
+  script:
+    - kubectl apply -k k8s/

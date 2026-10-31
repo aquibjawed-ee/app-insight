@@ -1,0 +1,30 @@
+{
+  "contract": "remedy-pack.v1",
+  "id": "modernise-plugin",
+  "version": "1.0.0",
+  "title": "app-modernise Claude Code plugin",
+  "note": "Commands generate the change on a working branch; review, push and raise the MR yourself.",
+  "remedies": {
+    "pipeline": {"cmd": "/modernise-pipeline", "title": "Generate the CI/CD pipeline", "does": "Edits .gitlab-ci.yml from the organisation's golden templates: build gate, tests, version tagging, deploy, rollback and security-scan jobs."},
+    "helm": {"cmd": "/modernise-helm-deploy-scaffold", "title": "Scaffold a Helm deployment", "does": "A Helm chart per environment and a pipeline that builds, scans, packages and deploys a containerised application."},
+    "unit": {"cmd": "/modernise-unit-test", "title": "Uplift unit tests to 75% coverage", "does": "Spec-driven unit tests per module with a JaCoCo 75% target and a mutation-testing gate."},
+    "acceptance": {"cmd": "/modernise-acceptance-test", "title": "Generate acceptance tests", "does": "Acceptance test scaffolds for Spring-based JVM applications; extends existing suites."},
+    "contract": {"cmd": "/modernise-contract-test", "title": "Generate consumer contract tests", "does": "Finds outbound API calls and the provider specs, and checks every consumed endpoint exists."},
+    "perf": {"cmd": "/modernise-perf-test", "title": "Generate performance tests", "does": "Performance test runner from Honeycomb data and infrastructure configuration."},
+    "ha": {"cmd": "/modernise-enable-ha", "title": "Enable HA on Kubernetes", "does": "Pod Disruption Budget and pod anti-affinity for a Kubernetes Helm application."},
+    "openapi": {"cmd": "/modernise-swagger-openapi-exposer", "title": "Expose an OpenAPI spec", "does": "Wires Springfox or Springdoc, configures security exclusions and validates the resulting spec."},
+    "spring": {"cmd": "/modernise-spring-migrate", "title": "Upgrade Spring Boot", "does": "Deterministic Spring Boot upgrade for Maven applications, proven green before and after each hop."},
+    "assess": {"cmd": "/modernise-migration-assessment", "title": "Pre-migration assessment", "does": "Cited findings across 13 sections and the questions to settle before a migration starts. Read-only."},
+    "slo": {"cmd": "/modernise-honeycomb-slo", "title": "Generate SLOs and burn alerts", "does": "Honeycomb SLO Terraform for availability, errors and latency with burn alerts."}
+  },
+  "controls": {
+    "delivery.build": ["pipeline"], "delivery.tests_in_ci": ["pipeline"], "delivery.version_tagging": ["pipeline"], "delivery.deploy": ["pipeline", "helm"], "delivery.rollback": ["pipeline"],
+    "testing.unit": ["unit"], "testing.coverage_gate": ["unit", "pipeline"], "testing.acceptance": ["acceptance"], "testing.contract": ["contract"], "testing.performance": ["perf"], "testing.entry_points": ["acceptance", "unit"],
+    "security.secret_scanning": ["pipeline"], "security.dependency_scanning": ["pipeline"], "security.sast": ["pipeline"],
+    "platform.java_support": ["spring", "assess"], "platform.framework_support": ["spring", "assess"],
+    "availability.replicas": ["ha"], "availability.anti_affinity": ["ha"], "availability.zone_spread": ["ha"], "availability.pdb": ["ha"], "availability.rollout": ["pipeline"],
+    "availability.liveness": ["helm"], "availability.readiness": ["helm"], "availability.resources": ["helm"],
+    "observability.alerts_slos": ["slo"],
+    "api.openapi": ["openapi"]
+  }
+}

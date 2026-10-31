@@ -1,0 +1,25 @@
+{
+  "name": "openapi_static_swagger_directory",
+  "category": "positive",
+  "description": "Spec files live in a static/swagger directory with other names than openapi.yaml; the service has a controller.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.openapi_exposure",
+      "rule": "openapi-exposure",
+      "value": "static_spec_only",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "openapi_exposed",
+      "rule": "openapi-exposure",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ]
+}

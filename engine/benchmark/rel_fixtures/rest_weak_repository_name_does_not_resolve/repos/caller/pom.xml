@@ -1,0 +1,9 @@
+<project>
+  <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>2.7.18</version></parent>
+  <groupId>com.shop</groupId><artifactId>caller</artifactId>
+  <properties><java.version>11</java.version></properties>
+  <dependencies>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+  </dependencies>
+  <build><plugins><plugin><artifactId>jacoco-maven-plugin</artifactId></plugin></plugins></build>
+</project>

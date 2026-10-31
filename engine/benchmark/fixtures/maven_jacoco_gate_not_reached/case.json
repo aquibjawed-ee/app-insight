@@ -1,0 +1,51 @@
+{
+  "name": "maven_jacoco_gate_not_reached",
+  "category": "contradictory",
+  "description": "Same project, but CI runs only `mvn test`. Tests run, a coverage minimum is configured, yet the check goal (verify phase) is never reached.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_threshold_pct",
+      "rule": "coverage-gate-wiring",
+      "value": 80.0,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_gate_in_ci",
+      "rule": "coverage-gate-wiring",
+      "value": "not_shown",
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-test-execution",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate-wiring",
+      "result": [
+        "PARTIAL"
+      ]
+    },
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-test-execution",
+      "result": [
+        "MET"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

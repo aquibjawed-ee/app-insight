@@ -1,0 +1,35 @@
+{
+  "name": "one_skipped_module_among_many_is_not_partial",
+  "category": "positive",
+  "description": "One of four modules with unit tests sets skipTests; CI runs verify. Tests run in CI; the skipped module is listed.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.modules_with_tests_disabled",
+      "rule": "ci-skip-detection",
+      "value": [
+        "a"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "container_dockerfile_base_images",
+  "category": "positive",
+  "description": "A multi-stage Dockerfile: both real base images are listed, a stage alias used as a base is not an image.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "container-detection",
+      "path": "image_build",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "container-detection",
+      "path": "base_images",
+      "value_includes": [
+        "maven:3.9-eclipse-temurin-17",
+        "eclipse-temurin:17-jre"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "container-detection",
+      "path": "base_images",
+      "value_absent": [
+        "build"
+      ]
+    }
+  ],
+  "criteria": []
+}

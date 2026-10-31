@@ -1,0 +1,33 @@
+{
+  "name": "coverage_check_goal_in_jacoco_plugin",
+  "category": "positive",
+  "description": "JaCoCo's own plugin block has a check goal with a minimum, and CI runs verify.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "coverage-gate",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_threshold_pct",
+      "rule": "coverage-gate",
+      "value": 80.0,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "container_jib_maven_configured",
+  "category": "positive",
+  "description": "Jib in Maven: base image, target image, ports and main class are read from <configuration>; the base image is also listed among base images, and the target's registry is reported as an image registry.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.base_image",
+      "value": "eclipse-temurin:17-jre",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.target_image",
+      "value": "gcr.io/acme/app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.ports",
+      "value": [
+        "8080",
+        "8443"
+      ]
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "jib.main_class",
+      "value": "com.acme.Main"
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "base_images",
+      "value_includes": [
+        "eclipse-temurin:17-jre"
+      ]
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google Container / Artifact Registry",
+          "role": "image registry",
+          "basis": [
+            "image reference"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,20 @@
+{
+  "name": "contract_tool_pact",
+  "category": "positive",
+  "description": "Pact files in a pacts directory: the tool is Pact.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.contract_tests",
+      "rule": "test-classification",
+      "path": "tools",
+      "value": [
+        "pact"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

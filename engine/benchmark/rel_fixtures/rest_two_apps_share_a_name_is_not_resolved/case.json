@@ -1,0 +1,26 @@
+{
+ "description": "two applications declare the same spring.application.name; the call cannot be attributed to either",
+ "category": "contradictory",
+ "forbid_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "dup-a",
+   "state": "resolved"
+  },
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "dup-b",
+   "state": "resolved"
+  }
+ ],
+ "expect_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "dup",
+   "state": "ambiguous"
+  }
+ ]
+}

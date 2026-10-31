@@ -1,0 +1,32 @@
+{
+  "name": "deps_dev_only_gradle_configuration_is_not_the_application",
+  "category": "negative",
+  "description": "A Testcontainers module on Gradle's developmentOnly configuration is not an application dependency.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "PostgreSQL",
+          "where": "tests only"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

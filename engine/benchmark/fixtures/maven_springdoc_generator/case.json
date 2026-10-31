@@ -1,0 +1,34 @@
+{
+  "name": "maven_springdoc_generator",
+  "category": "positive",
+  "description": "Controllers plus the springdoc-openapi starter: a spec is generated.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.openapi_exposure",
+      "rule": "openapi-provided",
+      "value": "exposed_via_library",
+      "status": [
+        "INFERRED"
+      ]
+    },
+    {
+      "id": "api.http_endpoints_present",
+      "rule": "http-endpoints",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "controller_files"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "openapi_exposed",
+      "rule": "openapi-provided",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

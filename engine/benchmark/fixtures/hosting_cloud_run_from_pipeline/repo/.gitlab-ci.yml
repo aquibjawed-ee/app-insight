@@ -1,0 +1,4 @@
+deploy:
+  stage: deploy
+  script:
+    - gcloud run deploy app --image $IMG --region europe-west1

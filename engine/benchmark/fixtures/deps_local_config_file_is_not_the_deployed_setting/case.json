@@ -1,0 +1,41 @@
+{
+  "name": "deps_local_config_file_is_not_the_deployed_setting",
+  "category": "positive",
+  "description": "A connection string that only appears in a developer-machine file (application-local.properties) is a local setting, not what the deployed application is configured with.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "MySQL",
+          "where": "application",
+          "evidence_strength": "local setting"
+        },
+        {
+          "technology": "MySQL",
+          "at": [
+            "src/main/resources/application-local.properties:1"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "MySQL",
+          "at": [
+            "pom.xml:8"
+          ]
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

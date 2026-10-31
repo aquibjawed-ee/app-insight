@@ -1,0 +1,20 @@
+{
+  "name": "acceptance_selenium_used_in_tests",
+  "category": "positive",
+  "description": "Test code imports org.openqa.selenium: a browser suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "browser_tools",
+      "value_includes": [
+        "selenium"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

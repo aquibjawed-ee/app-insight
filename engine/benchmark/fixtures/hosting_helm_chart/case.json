@@ -1,0 +1,28 @@
+{
+  "name": "hosting_helm_chart",
+  "category": "positive",
+  "description": "A Helm chart describes the deployment.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Kubernetes",
+          "role": "deployment target",
+          "via": [
+            "Helm"
+          ],
+          "basis": [
+            "deployment file"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

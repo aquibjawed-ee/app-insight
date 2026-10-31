@@ -1,0 +1,16 @@
+{
+  "name": "performance_plan_run_by_ci",
+  "category": "positive",
+  "description": "A JMeter plan exists and a CI step runs jmeter.",
+  "setup": {},
+  "facts": [],
+  "criteria": [
+    {
+      "id": "performance_tests",
+      "rule": "performance-tests",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

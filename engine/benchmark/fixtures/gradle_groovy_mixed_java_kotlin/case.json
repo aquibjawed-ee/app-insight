@@ -1,0 +1,49 @@
+{
+  "name": "gradle_groovy_mixed_java_kotlin",
+  "category": "positive",
+  "description": "Groovy-DSL Gradle project with both Java and Kotlin sources.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "java+kotlin",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.java_sources",
+      "rule": "language-from-source-files",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.kotlin_sources",
+      "rule": "language-from-source-files",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "gradle",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": "1.9.0",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

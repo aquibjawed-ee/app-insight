@@ -1,0 +1,12 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>app</artifactId>
+  <version>1.0</version>
+  <packaging>war</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jdbc</artifactId>
+    </dependency>
+  </dependencies>
+</project>

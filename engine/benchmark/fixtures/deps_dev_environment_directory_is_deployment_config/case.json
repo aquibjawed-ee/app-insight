@@ -1,0 +1,23 @@
+{
+  "name": "deps_dev_environment_directory_is_deployment_config",
+  "category": "positive",
+  "description": "A k8s/dev/ directory is an environment's deployment configuration, not a developer's laptop.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

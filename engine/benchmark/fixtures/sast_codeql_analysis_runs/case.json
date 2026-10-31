@@ -1,0 +1,25 @@
+{
+  "name": "sast_codeql_analysis_runs",
+  "category": "positive",
+  "description": "A workflow initialises and runs CodeQL analysis.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "security.sast_in_pipeline",
+      "rule": "scanner-in-pipeline",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "sast",
+      "rule": "scanner-in-pipeline",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

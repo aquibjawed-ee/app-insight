@@ -1,0 +1,20 @@
+{
+  "name": "http4k_service_has_http_endpoints",
+  "category": "positive",
+  "description": "An http4k server dependency means an HTTP service even without annotated controllers.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.http_endpoints_present",
+      "rule": "http-endpoints",
+      "path": "server_frameworks",
+      "value_includes": [
+        "http4k"
+      ],
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

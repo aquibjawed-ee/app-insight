@@ -1,0 +1,17 @@
+{
+  "name": "hosting_deploy_word_in_comment_is_ignored",
+  "category": "negative",
+  "description": "kubectl in a commented pipeline line is not a deployment.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

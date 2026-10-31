@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "relationships.v1.schema.json",
+  "title": "app-discovery relationship graph (relationships.v1)",
+  "description": "Nodes and evidence-backed relationships. Independent of discovery.v1 and of any presentation. Referential and evidence integrity (edge ends exist, file citations re-verify) is checked by graph.model.validate_integrity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "scope", "nodes", "edges", "not_relationships", "meta"],
+  "properties": {
+    "contract": {"const": "relationships.v1"},
+    "scope": {"enum": ["application", "portfolio"]},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "not_relationships": {"type": "array", "items": {"type": "object", "required": ["what", "why", "evidence"],
+      "properties": {"what": {"type": "string"}, "why": {"type": "string"}, "app": {"type": "string"}, "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}}}},
+    "meta": {"type": "object"}
+  },
+  "$defs": {
+    "evidence": {"type": "object", "required": ["kind"], "properties": {
+      "kind": {"enum": ["file", "cmd"]}, "path": {"type": "string"}, "line_start": {"type": "integer", "minimum": 1},
+      "line_end": {"type": "integer", "minimum": 1}, "snippet": {"type": "string"}, "app": {"type": "string"}, "module": {"type": "string"}, "cmd": {"type": "string"}, "external": {"type": "boolean"}}},
+    "node": {"type": "object", "additionalProperties": false, "required": ["id", "type", "name", "attrs", "evidence"], "properties": {
+      "id": {"type": "string"},
+      "type": {"enum": ["Application", "Module", "Service", "ApiEndpoint", "Database", "MessageBroker", "Topic", "ExternalSystem", "InfrastructureResource"]},
+      "name": {"type": "string"}, "app": {"type": ["string", "null"]}, "attrs": {"type": "object"},
+      "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}}},
+    "edge": {"type": "object", "additionalProperties": false,
+      "required": ["id", "type", "source", "target", "mechanism", "basis", "confidence", "status", "resolution", "evidence", "attrs"], "properties": {
+      "id": {"type": "string"},
+      "type": {"enum": ["CONTAINS", "EXPOSES_API", "CALLS_API", "PUBLISHES_TO", "CONSUMES_FROM", "READS_FROM", "WRITES_TO", "DEPENDS_ON", "DEPLOYED_ON"]},
+      "source": {"type": "string"}, "target": {"type": "string"},
+      "mechanism": {"enum": ["source_annotation", "source_call", "configuration", "dependency_declaration", "build_metadata", "deployment_descriptor", "runtime_observation", "cross_repo_resolution"]},
+      "basis": {"enum": ["observed_runtime", "static_configured", "declared", "inferred", "unresolved"]},
+      "confidence": {"enum": ["high", "medium", "low"]},
+      "status": {"enum": ["CONFIRMED", "INFERRED", "UNKNOWN"]},
+      "resolution": {"type": "object", "required": ["state"], "properties": {
+        "state": {"enum": ["resolved", "unresolved", "ambiguous", "not_applicable"]}, "reason": {"type": "string"}, "reasoning": {"type": "string"},
+        "strength": {"type": ["string", "null"]}, "candidates": {"type": "array", "items": {"type": "string"}},
+        "weak_candidates": {"type": "array", "items": {"type": "string"}}, "matched_on": {"type": "array", "items": {"type": "string"}},
+        "matched_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}}},
+      "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}, "attrs": {"type": "object"}, "note": {"type": "string"}}}
+  }
+}

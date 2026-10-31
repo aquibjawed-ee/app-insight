@@ -1,0 +1,63 @@
+{
+  "name": "kotlin_spring_integration_test",
+  "category": "positive",
+  "description": "The only test class is a Spring Boot integration test with an embedded Kafka broker.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.integration_tests",
+      "rule": "integration-tools",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.integration_tests",
+      "rule": "integration-tools",
+      "value": [
+        "embedded-kafka",
+        "spring-boot-test"
+      ],
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "tools"
+    },
+    {
+      "id": "tests.integration_tests",
+      "rule": "integration-tools",
+      "value": false,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "separate_source_set"
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ],
+      "path": "test_classes"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "integration_tests",
+      "rule": "integration-tools",
+      "result": [
+        "MET"
+      ]
+    },
+    {
+      "id": "unit_tests_exist",
+      "rule": "test-classification",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "working_tree_with_uncommitted_change",
+  "category": "contradictory",
+  "description": "The facts describe the working tree; one file differs from the commit and that must be disclosed.",
+  "setup": {
+    "commit": true,
+    "dirty": [
+      "notes.txt"
+    ]
+  },
+  "facts": [
+    {
+      "id": "identity.working_tree_clean",
+      "rule": "working-tree",
+      "value": false,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "clean"
+    },
+    {
+      "id": "identity.working_tree_clean",
+      "rule": "working-tree",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "changed_files"
+    }
+  ],
+  "criteria": []
+}

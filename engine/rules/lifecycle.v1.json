@@ -1,0 +1,25 @@
+{
+  "contract": "lifecycle-reference.v1",
+  "version": "1.0.0",
+  "review": {"status": "unreviewed", "reviewed_by": null, "reviewed_at": null},
+  "as_of": "2026-10-29",
+  "note": "Reference data about vendor support windows, not discovery output. Dates are the vendors' published roadmaps and must be reviewed by a maintainer before they are relied on; other JDK distributions (Temurin, Corretto, Zulu ...) publish their own, usually longer, windows. When a version is not listed the status is `unknown`, never guessed.",
+  "java": {
+    "source": "Oracle Java SE Support Roadmap (premier and extended support, by LTS release)",
+    "lts": {
+      "8":  {"premier_until": "2022-03", "extended_until": "2030-12"},
+      "11": {"premier_until": "2023-09", "extended_until": "2032-01"},
+      "17": {"premier_until": "2026-09", "extended_until": "2029-09"},
+      "21": {"premier_until": "2028-09", "extended_until": "2031-09"}
+    },
+    "non_lts_note": "Non-LTS feature releases are supported until the next release (about six months)."
+  },
+  "spring_boot": {
+    "source": "spring.io/projects/spring-boot#support",
+    "majors": {
+      "1": {"oss_status": "ended", "note": "all 1.x lines are out of open-source support"},
+      "2": {"oss_status": "ended", "oss_ended": "2023-11", "note": "2.7 was the last 2.x line; its open-source support ended in November 2023 (commercial support is offered separately)"},
+      "3": {"oss_status": "line-specific", "note": "each 3.x minor line has its own open-source window; the minor version must be checked against the project's support page"}
+    }
+  }
+}

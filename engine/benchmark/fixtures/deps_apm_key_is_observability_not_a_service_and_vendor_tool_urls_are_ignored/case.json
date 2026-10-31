@@ -1,0 +1,42 @@
+{
+  "name": "deps_apm_key_is_observability_not_a_service_and_vendor_tool_urls_are_ignored",
+  "category": "positive",
+  "description": "apm.* is an APM agent (Observability), es.url is Elasticsearch, and a security-tool URL (CONTRAST_URL) is not a service the application calls.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "APM agent",
+          "group": "Observability"
+        },
+        {
+          "technology": "Elasticsearch / OpenSearch",
+          "group": "Data stores",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "Endpoint: apm.endpoint"
+        },
+        {
+          "technology": "Endpoint: es.url"
+        },
+        {
+          "technology": "Endpoint: CONTRAST_URL"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,7 @@
+plugins { id 'org.springframework.boot' version '3.2.0' }
+
+bootBuildImage {
+    imageName = 'acme/app'
+    builder = 'paketobuildpacks/builder-jammy-base'
+    publish = false
+}

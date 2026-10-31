@@ -1,0 +1,43 @@
+{
+  "name": "deps_plain_spring_xml_oracle_activemq",
+  "category": "positive",
+  "description": "Plain Spring (no Boot) WAR configured in XML: Oracle driver class and thin URL, ActiveMQ failover broker URL.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Oracle",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "ActiveMQ / Artemis",
+          "where": "application",
+          "evidence_strength": "configured",
+          "kind": "Messaging"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application"
+        },
+        {
+          "technology": "JMS broker (not identified)",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

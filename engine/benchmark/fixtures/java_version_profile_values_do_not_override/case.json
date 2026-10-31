@@ -1,0 +1,17 @@
+{
+  "name": "java_version_profile_values_do_not_override",
+  "category": "positive",
+  "description": "jdkVersion=1.5 is unconditional; JDK-activated profiles set other values that only apply under that JDK.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "1.5",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

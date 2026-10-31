@@ -1,0 +1,7 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>service</artifactId>
+  <version>1.0</version>
+  <dependencies>
+  </dependencies>
+</project>

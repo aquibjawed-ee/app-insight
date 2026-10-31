@@ -1,0 +1,80 @@
+{
+  "name": "maven_no_tests_no_ci",
+  "category": "negative",
+  "description": "Maven Java project with production code only: no tests, no CI. Nothing may be reported as in place.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.language",
+      "rule": "language-from-source-files",
+      "value": "java",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "value": 0,
+      "status": [
+        "NOT_FOUND"
+      ],
+      "path": "test_classes"
+    },
+    {
+      "id": "tests.coverage_state",
+      "rule": "coverage-state",
+      "value": "no_tests",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-test-execution",
+      "value": "no_ci",
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "build_ci.ci_system",
+      "rule": "ci-system",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "unit_tests_exist",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    },
+    {
+      "id": "tests_run_in_ci",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    },
+    {
+      "id": "coverage",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    },
+    {
+      "id": "automated_build",
+      "rule": "no-evidence-not-met",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met_all": true
+}

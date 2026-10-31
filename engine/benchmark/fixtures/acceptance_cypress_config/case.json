@@ -1,0 +1,31 @@
+{
+  "name": "acceptance_cypress_config",
+  "category": "positive",
+  "description": "A cypress.config.js and a cypress/e2e spec: a browser end-to-end suite.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "browser_tools",
+      "value_includes": [
+        "cypress"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "styles",
+      "value_includes": [
+        "browser"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

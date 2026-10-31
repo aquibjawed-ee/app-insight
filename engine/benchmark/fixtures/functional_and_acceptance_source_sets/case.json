@@ -1,0 +1,36 @@
+{
+  "name": "functional_and_acceptance_source_sets",
+  "category": "positive",
+  "description": "src/functionalTest holds integration-style tests; src/acceptanceTest holds acceptance tests; src/test holds one unit test.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.unit_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.integration_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

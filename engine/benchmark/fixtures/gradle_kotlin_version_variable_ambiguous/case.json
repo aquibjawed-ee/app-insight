@@ -1,0 +1,17 @@
+{
+  "name": "gradle_kotlin_version_variable_ambiguous",
+  "category": "contradictory",
+  "description": "Two different literals define the Kotlin version variable: the engine must not pick one.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

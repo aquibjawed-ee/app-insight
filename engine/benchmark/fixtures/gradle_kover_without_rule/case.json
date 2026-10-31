@@ -1,0 +1,60 @@
+{
+  "name": "gradle_kover_without_rule",
+  "category": "negative",
+  "description": "Kover plugin applied but no verification rule and no gate: a tool, not a minimum.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.coverage_tool_configured",
+      "rule": "kover-support",
+      "value": "kover",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_enforced",
+      "rule": "kover-support",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.coverage_threshold_pct",
+      "rule": "kover-support",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    },
+    {
+      "id": "tests.coverage_state",
+      "rule": "coverage-state",
+      "value": "coverage_configured_not_enforced",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.coverage_gate_in_ci",
+      "rule": "coverage-gate-wiring",
+      "value": "no_gate",
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "coverage",
+      "rule": "coverage-gate-wiring",
+      "result": [
+        "PARTIAL"
+      ]
+    }
+  ],
+  "never_met": [
+    "coverage"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "gradle_runner_module_tests_disabled",
+  "category": "positive",
+  "description": "test.enabled=false only in the journey runner module; the app module's unit tests run in CI via gradlew build.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "tests_run_in_ci",
+      "rule": "ci-skip-detection",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

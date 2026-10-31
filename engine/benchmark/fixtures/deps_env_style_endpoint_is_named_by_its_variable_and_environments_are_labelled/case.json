@@ -1,0 +1,40 @@
+{
+  "name": "deps_env_style_endpoint_is_named_by_its_variable_and_environments_are_labelled",
+  "category": "positive",
+  "description": "An endpoint set per environment: named by the variable (not its YAML parent), production first, each host labelled with its environment.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Endpoint: LEGACY_BASE_URL",
+          "host_envs": [
+            {
+              "host": "legacy.acme.com",
+              "env": "prod"
+            },
+            {
+              "host": "legacy-int.acme.com",
+              "env": "integration"
+            }
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "Endpoint: data.LEGACY_BASE_URL"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

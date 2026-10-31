@@ -1,0 +1,17 @@
+{
+  "name": "spring_boot_version_placeholder_unresolved",
+  "category": "negative",
+  "description": "The parent version is a placeholder with no definition anywhere: the placeholder must not be reported as the version.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.spring_boot_version",
+      "rule": "declared-versions",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

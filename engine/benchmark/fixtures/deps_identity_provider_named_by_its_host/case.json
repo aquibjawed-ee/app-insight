@@ -1,0 +1,28 @@
+{
+  "name": "deps_identity_provider_named_by_its_host",
+  "category": "positive",
+  "description": "An Auth0 / Okta host in configuration names the identity provider.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Auth0",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "Okta",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

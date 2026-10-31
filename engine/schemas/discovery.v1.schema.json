@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "discovery.v1.schema.json",
+  "title": "discovery.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "identity", "stack", "build_ci", "tests", "api", "resilience", "security", "maturity", "gaps_and_risks", "llm_fill", "run_meta"],
+  "properties": {
+    "contract": {"const": "discovery.v1"},
+    "identity": {"$ref": "#/$defs/section"},
+    "stack": {"$ref": "#/$defs/section"},
+    "build_ci": {"$ref": "#/$defs/section"},
+    "tests": {"$ref": "#/$defs/section"},
+    "api": {"$ref": "#/$defs/section"},
+    "resilience": {"$ref": "#/$defs/section"},
+    "security": {"$ref": "#/$defs/section"},
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criteria", "score", "band", "no_evidence", "unknown"],
+      "properties": {
+        "completeness": {"type": "object", "additionalProperties": false,
+          "required": ["applicable", "determined", "unknown", "no_evidence", "with_evidence", "pct_determined"],
+          "properties": {"applicable": {"type": "integer", "minimum": 0}, "determined": {"type": "integer", "minimum": 0},
+                         "unknown": {"type": "integer", "minimum": 0}, "no_evidence": {"type": "integer", "minimum": 0},
+                         "with_evidence": {"type": "integer", "minimum": 0}, "pct_determined": {"type": "number", "minimum": 0, "maximum": 100}}},
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "no_evidence": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0},
+        "band": {"enum": ["Low", "Medium", "High"]},
+        "criteria": {"type": "array", "items": {"$ref": "#/$defs/criterion"}}
+      }
+    },
+    "gaps_and_risks": {"type": "array", "items": {"$ref": "#/$defs/gap"}},
+    "llm_fill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ambiguities", "narrative", "resolutions"],
+      "properties": {
+        "ambiguities": {"type": "array", "items": {"$ref": "#/$defs/ambiguity"}},
+        "narrative": {"type": ["object", "null"], "additionalProperties": false,
+          "properties": {"source": {"const": "llm"}, "text": {"type": "string"}, "cites": {"type": "array", "items": {"type": "string"}}},
+          "required": ["source", "text", "cites"]},
+        "resolutions": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["source", "ambiguity_id", "answer", "cites"],
+          "properties": {"source": {"const": "llm"}, "ambiguity_id": {"type": "string"}, "answer": {"type": "string"},
+                         "cites": {"type": "array", "items": {"type": "string"}}}}}
+      }
+    },
+    "run_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_version", "generated_at", "fingerprint", "inventory_fingerprint", "detectors", "completeness", "limitations", "failures", "evidence_checked", "evidence_invalid"],
+      "properties": {
+        "tool_version": {"type": "string"},
+        "generated_at": {"type": "string"},
+        "fingerprint": {"type": "string"},
+        "inventory_fingerprint": {"type": "string"},
+        "detectors": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["id", "version"], "properties": {"id": {"type": "string"}, "version": {"type": "string"}}}},
+        "completeness": {"type": "object", "additionalProperties": false,
+          "required": ["static_scan", "build_execution", "tests_executed", "ci_integration", "runtime_integration"],
+          "properties": {"static_scan": {"const": "completed"}, "build_execution": {"const": "not_run"},
+                         "tests_executed": {"const": "not_run"}, "ci_integration": {"const": "not_run"},
+                         "runtime_integration": {"const": "not_run"}}},
+        "limitations": {"type": "array", "items": {"type": "string"}},
+        "failures": {"type": "array", "items": {"type": "string"}},
+        "evidence_checked": {"type": "integer"},
+        "evidence_invalid": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "snippet"],
+      "properties": {
+        "kind": {"enum": ["file", "cmd"]},
+        "path": {"type": "string"},
+        "line_start": {"type": "integer", "minimum": 1},
+        "line_end": {"type": "integer", "minimum": 1},
+        "cmd": {"type": "string"},
+        "snippet": {"type": "string"},
+        "module": {"type": "string"}
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "status", "evidence"],
+      "properties": {
+        "value": {},
+        "status": {"enum": ["CONFIRMED", "INFERRED", "NOT_FOUND", "UNKNOWN"]},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "derivation": {"type": "object", "additionalProperties": false, "required": ["rule", "inputs"],
+          "properties": {"rule": {"type": "string"}, "inputs": {"type": "array", "items": {"type": "string"}}}},
+        "note": {"type": "string"}
+      }
+    },
+    "section": {"type": "object", "additionalProperties": {"$ref": "#/$defs/fact"}},
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "result", "rule", "facts"],
+      "properties": {
+        "id": {"type": "string"},
+        "label": {"type": "string"},
+        "result": {"enum": ["MET", "PARTIAL", "NOT_MET", "NO_EVIDENCE", "UNKNOWN"]},
+        "rule": {"type": "string"},
+        "facts": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "severity", "criterion", "facts"],
+      "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "severity": {"enum": ["BLOCKING", "NON_BLOCKING"]},
+        "criterion": {"type": "string"},
+        "facts": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "ambiguity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "question", "facts"],
+      "properties": {
+        "id": {"type": "string"},
+        "question": {"type": "string"},
+        "facts": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

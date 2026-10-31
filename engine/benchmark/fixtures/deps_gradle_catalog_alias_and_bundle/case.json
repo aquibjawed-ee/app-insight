@@ -1,0 +1,28 @@
+{
+  "name": "deps_gradle_catalog_alias_and_bundle",
+  "category": "positive",
+  "description": "Dependencies declared through a version catalog alias and a bundle resolve to their coordinates.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "declared"
+        },
+        {
+          "technology": "Kafka",
+          "where": "application",
+          "evidence_strength": "declared"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

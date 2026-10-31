@@ -1,0 +1,17 @@
+{
+  "name": "openapi_tag_is_junit_not_openapi",
+  "category": "negative",
+  "description": "@Tag in a test-support class comes from JUnit 5, not OpenAPI.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "api.openapi_annotations",
+      "rule": "openapi-annotations",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

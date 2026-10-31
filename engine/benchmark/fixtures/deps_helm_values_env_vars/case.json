@@ -1,0 +1,34 @@
+{
+  "name": "deps_helm_values_env_vars",
+  "category": "positive",
+  "description": "Environment variables in a deployment values file configure Redis and PostgreSQL for the running application.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "Redis",
+          "where": "application",
+          "evidence_strength": "configured",
+          "basis": [
+            "deployment file"
+          ]
+        },
+        {
+          "technology": "PostgreSQL",
+          "where": "application",
+          "evidence_strength": "configured",
+          "basis": [
+            "deployment file"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

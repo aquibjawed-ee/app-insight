@@ -1,0 +1,13 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>shop-parent</artifactId>
+  <version>1.0</version>
+  <packaging>pom</packaging>
+  <modules>
+    <module>api</module>
+    <module>core</module>
+    <module>web</module>
+  </modules>
+  <dependencies>
+  </dependencies>
+</project>

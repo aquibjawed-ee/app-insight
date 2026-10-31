@@ -1,0 +1,69 @@
+{
+  "name": "container_spring_boot_maven_build_image_configured",
+  "category": "positive",
+  "description": "Spring Boot Maven plugin with an <image> block and a build-image goal: name, builder, run image, publish and the goal bound to the build are read; the run image joins the base images and the name's registry is reported.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.image_name",
+      "value": "eu.gcr.io/acme/app"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.builder",
+      "value": "paketobuildpacks/builder-jammy-base"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.run_image",
+      "value": "paketobuildpacks/run-jammy-base"
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.publish",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "spring-boot-image-detection",
+      "path": "spring_boot.bound_to_build",
+      "value": true
+    },
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "base_images",
+      "value_includes": [
+        "paketobuildpacks/run-jammy-base"
+      ]
+    },
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "items_include": [
+        {
+          "target": "Google Container / Artifact Registry",
+          "role": "image registry",
+          "basis": [
+            "image reference"
+          ]
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

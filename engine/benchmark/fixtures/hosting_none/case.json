@@ -1,0 +1,17 @@
+{
+  "name": "hosting_none",
+  "category": "negative",
+  "description": "A plain library has no deployment descriptor.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

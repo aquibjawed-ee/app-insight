@@ -1,0 +1,27 @@
+{
+  "name": "deps_http4k_client_is_a_client_library",
+  "category": "positive",
+  "description": "http4k's client module is an HTTP client library, not a service.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.http_client_libraries",
+      "rule": "http-client-libraries",
+      "items_include": [
+        {
+          "technology": "http4k client",
+          "where": "application"
+        }
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

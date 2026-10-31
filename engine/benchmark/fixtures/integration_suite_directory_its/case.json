@@ -1,0 +1,35 @@
+{
+  "name": "integration_suite_directory_its",
+  "category": "positive",
+  "description": "A Maven project with its/ integration-test modules: its' fixture pom (release 8) is not the project's level (17); its test classes are integration tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.java_version",
+      "rule": "declared-versions",
+      "value": "17",
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.integration_tests",
+      "rule": "test-classification",
+      "path": "test_classes",
+      "value": 1,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.ci_test_execution",
+      "rule": "ci-skip-detection",
+      "value": "enabled",
+      "status": [
+        "CONFIRMED",
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

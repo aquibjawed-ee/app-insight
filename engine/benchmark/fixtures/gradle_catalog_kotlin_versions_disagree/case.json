@@ -1,0 +1,17 @@
+{
+  "name": "gradle_catalog_kotlin_versions_disagree",
+  "category": "contradictory",
+  "description": "Two Kotlin plugin entries resolve to different versions: the scanner must not pick one.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "version-catalog",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

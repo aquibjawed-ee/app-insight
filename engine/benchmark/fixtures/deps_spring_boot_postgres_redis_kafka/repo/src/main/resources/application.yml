@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+  kafka:
+    bootstrap-servers: ${KAFKA}

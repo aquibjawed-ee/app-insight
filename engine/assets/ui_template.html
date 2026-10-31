@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Application Discovery</title>
+<style>
+:root{
+  --bg:#F5F6F8;--surface:#FFFFFF;--surface-2:#EEF1F4;--raised:#FAFBFC;
+  --ink:#20242B;--ink-soft:#565F6B;--ink-faint:#8A93A0;--line:#E1E5EA;
+  --accent:#5B7DAE;--accent-ink:#3E5C82;--accent-soft:#E8EEF5;
+  --ok:#4C8B6F;--ok-soft:#E3EFE9;--warn:#9C7A3D;--warn-soft:#F2ECDE;--fail:#B4645A;--fail-soft:#F5E6E3;
+  --code-bg:#15181D;--code-ink:#C7CDD5;
+  --shadow:0 1px 2px rgba(20,24,31,.06),0 10px 28px -14px rgba(20,24,31,.16);--radius:12px;
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171B;--surface:#1B1F25;--surface-2:#232830;--raised:#262B33;--ink:#E7E9ED;--ink-soft:#A8B0BB;--ink-faint:#6E7681;--line:#2C323B;
+  --accent:#7C9BC7;--accent-ink:#A9C3E6;--accent-soft:#202A38;--ok:#6EAE8D;--ok-soft:#1C2921;--warn:#C6A264;--warn-soft:#2E2717;--fail:#C97C71;--fail-soft:#2F1F1D;
+  --code-bg:#0E1013;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -14px rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171B;--surface:#1B1F25;--surface-2:#232830;--raised:#262B33;--ink:#E7E9ED;--ink-soft:#A8B0BB;--ink-faint:#6E7681;--line:#2C323B;
+  --accent:#7C9BC7;--accent-ink:#A9C3E6;--accent-soft:#202A38;--ok:#6EAE8D;--ok-soft:#1C2921;--warn:#C6A264;--warn-soft:#2E2717;--fail:#C97C71;--fail-soft:#2F1F1D;
+  --code-bg:#0E1013;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -14px rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);padding-inline:16px}
+h1,h2,h3{margin:0;text-wrap:balance}
+code,.mono{font-family:var(--mono)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.001ms!important}}
+.shell{max-width:1760px;margin:0 auto;padding-block:20px 50px}
+
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:11px}
+.mark{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.mark i{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.9}
+.wordmark{font-weight:700;font-size:1.15rem;letter-spacing:-.01em;line-height:1.1}
+.tagline{font-size:.74rem;color:var(--ink-faint)}
+.hdr-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.meta-pill{font:.68rem var(--mono);letter-spacing:.03em;color:var(--ink-faint);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 12px;white-space:nowrap}
+.btn{font-size:.78rem;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--ink)}
+
+.stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media (max-width:900px){.stat-strip{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.stat-strip{grid-template-columns:1fr}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.stat .n{font-weight:700;font-size:1.6rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-top:2px}
+.stat .sub{font-size:.74rem;color:var(--ink-faint);margin-top:4px}
+.stat.ok .n{color:var(--ok)}.stat.warn .n{color:var(--warn)}.stat.fail .n{color:var(--fail)}.stat.accent .n{color:var(--accent-ink)}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0 12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+select,input.search{background:var(--surface);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:.82rem;padding:7px 12px;border-radius:8px}
+select{font-weight:600;cursor:pointer}
+select:hover,input.search:hover{border-color:var(--accent)}
+input.search{min-width:220px}
+.count{font-size:.78rem;color:var(--ink-faint)}
+.cap{padding:8px 14px 0;font-size:.74rem;color:var(--ink-faint);line-height:1.45}
+
+.tablewrap{container-type:inline-size;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto}
+table.apps{width:100%;border-collapse:collapse;min-width:1240px}
+table.apps thead th{text-align:left;font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:10px 6px;border-bottom:2px solid var(--line);background:var(--surface-2);white-space:nowrap}
+table.apps tbody td{padding:11px 6px;border-bottom:1px solid var(--line);font-size:.84rem;vertical-align:middle;position:relative}
+tr.row{cursor:pointer}
+tr.row:hover td,tr.row.open td{background:var(--accent-soft)}
+tr.row td:first-child::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+tr.row.High td:first-child::before{background:var(--ok)}
+tr.row.Medium td:first-child::before{background:var(--warn)}
+tr.row.Low td:first-child::before{background:var(--fail)}
+tbody tr:last-child td{border-bottom:none}
+.chev{color:var(--ink-faint);font-size:.7rem;display:inline-block;transition:transform .12s;width:12px}
+tr.open .chev{transform:rotate(90deg)}
+.appname{font:600 .8rem var(--mono);overflow-wrap:anywhere;display:inline-block;max-width:118px;vertical-align:top}
+.sub{font-size:.72rem;color:var(--ink-faint)}
+.stack1{font-weight:500}
+.bar{height:5px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden;width:72px}
+.bar i{display:block;height:100%}
+.bar.High i{background:var(--ok)}.bar.Medium i{background:var(--warn)}.bar.Low i{background:var(--fail)}
+
+.pill{font-size:.68rem;font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.fail{background:var(--fail-soft);color:var(--fail)}.pill.neutral{background:var(--surface-2);color:var(--ink-faint)}
+.pill.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.chip{font-size:.66rem;font-weight:600;padding:1px 7px;border-radius:5px;background:var(--ok-soft);color:var(--ok)}
+.chip.none{background:transparent;color:var(--ink-faint);border:1px dashed var(--line);font-weight:500}
+
+tr.detail td{background:var(--raised);padding:0;max-width:0}
+.dwrap{padding:16px 18px 20px;position:sticky;left:0;width:calc(100vw - 80px);width:calc(100cqw - 8px);contain:inline-size}
+.dtitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.dtitle h3{font-size:.95rem;font-weight:600}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{border:0;border-bottom:2px solid transparent;background:none;color:var(--ink-faint);font-size:.8rem;font-weight:600;padding:7px 12px;cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{color:var(--accent-ink);border-color:var(--accent)}
+.tab .n{font-size:.66rem;background:var(--surface-2);border-radius:999px;padding:0 6px;margin-left:4px;color:var(--ink-soft)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;margin-top:14px}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden;min-width:0}
+.ptitle{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.ptitle .pr{text-transform:none;letter-spacing:0;font-weight:500;font-family:var(--mono)}
+.outcome{border-radius:8px;padding:10px 12px;font-size:.86rem;display:flex;gap:9px;align-items:flex-start}
+.outcome.ok{background:var(--ok-soft);color:var(--ok)}.outcome.warn{background:var(--warn-soft);color:var(--warn)}.outcome.fail{background:var(--fail-soft);color:var(--fail)}.outcome.neutral{background:var(--surface-2);color:var(--ink-soft)}
+
+.fact{display:flex;align-items:flex-start;gap:9px;padding:9px 14px;border-top:1px solid var(--line)}
+.fact:first-child{border-top:none}
+.ficon{width:18px;height:18px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;margin-top:1px}
+.ok .ficon{background:var(--ok-soft);color:var(--ok)}.warn .ficon{background:var(--warn-soft);color:var(--warn)}
+.fail .ficon{background:var(--fail-soft);color:var(--fail)}.neutral .ficon{background:var(--surface-2);color:var(--ink-faint)}
+.fbody{flex:1;min-width:0}
+.flabel{font-size:.82rem;font-weight:600}
+.neutral .flabel{font-weight:500;color:var(--ink-soft)}
+.fdetail{font-size:.75rem;color:var(--ink-soft);margin-top:2px;overflow-wrap:anywhere}
+.flink{font-size:.72rem;font-weight:700;color:var(--accent-ink);background:none;border:0;cursor:pointer;white-space:nowrap;padding:1px 0}
+.flink:hover{text-decoration:underline}
+.fright{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.logbox{background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:9px 11px;font:.72rem/1.55 var(--mono);margin-top:8px;overflow-x:auto}
+.logbox .loc{color:#8DB4E8}.logbox div{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.graph{display:flex;align-items:flex-start;overflow-x:auto;padding:18px 16px}
+.node{display:flex;flex-direction:column;align-items:center;text-align:center;width:118px;flex:none}
+.dot2{width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;color:var(--ink-faint)}
+.node.ok .dot2{background:var(--ok);border-color:var(--ok);color:#fff}
+.node.fail .dot2{background:var(--fail);border-color:var(--fail);color:#fff}
+.node.warn .dot2{background:var(--warn);border-color:var(--warn);color:#fff}
+.node.none .dot2{border-style:dashed}
+.node.na .dot2{border-style:dotted;opacity:.6}
+.nlabel{font-size:.78rem;font-weight:600;margin-top:7px}
+.node.none .nlabel,.node.na .nlabel{color:var(--ink-faint);font-weight:500;font-style:italic}
+.nsub{font:.66rem var(--mono);color:var(--ink-faint);margin-top:1px;overflow-wrap:anywhere;max-width:108px}
+.line{flex:none;width:22px;height:2px;background:var(--line);margin-top:13px}
+.line.ok{background:var(--ok)}
+
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:12px 14px}
+.kvi{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.kvi .l{font-size:.64rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:2px}
+.kvi .v{font:.8rem var(--mono);overflow-wrap:anywhere}
+.kvi .cv{display:flex;align-items:center;gap:8px;font:600 .84rem var(--sans)}
+.kvi .s{font-size:.72rem;color:var(--ink-faint);margin-top:4px}
+.list{margin:0;padding:10px 14px 12px 30px;font-size:.8rem;color:var(--ink-soft)}
+.list li{margin:3px 0}
+.crit{width:100%;border-collapse:collapse;font-size:.8rem}
+.crit th,.crit td{text-align:left;padding:8px 14px;border-top:1px solid var(--line);vertical-align:top}
+.crit th{font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);border-top:0}
+.fid{font:.68rem var(--mono);background:var(--surface-2);border-radius:4px;padding:1px 6px;margin:0 3px 3px 0;display:inline-block;color:var(--ink-soft)}
+.empty{text-align:center;padding:50px 20px;color:var(--ink-faint)}
+.empty .big{font-weight:700;font-size:1.3rem;color:var(--ink-soft);margin-bottom:4px}
+.scroll{overflow-x:auto}
+.dt{width:100%;border-collapse:collapse;font-size:.82rem}
+.dt th{text-align:left;font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;padding:9px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+.dt td{padding:9px 14px;border-top:1px solid var(--line);vertical-align:top}
+.dt tr:nth-child(2) td{border-top:0}
+.dt tbody tr:hover td,.dt tr:hover td{background:var(--accent-soft)}
+.dt td.k{font-weight:600;white-space:nowrap}
+.dt td.v{font-family:var(--mono);font-size:.78rem;overflow-wrap:anywhere}
+.dt td.note{color:var(--ink-soft);font-size:.76rem;max-width:380px}
+.tag{display:inline-block;font:600 .72rem var(--mono);background:var(--accent-soft);color:var(--accent-ink);border-radius:5px;padding:1px 7px;margin:0 4px 3px 0}
+.muted{color:var(--ink-faint)}
+
+.progress{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-top:12px}
+.ptop{display:flex;justify-content:space-between;align-items:baseline}
+.plabel{font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
+.pval{font-weight:700;font-size:1.5rem;color:var(--accent-ink)}
+.pbar{height:9px;border-radius:5px;background:var(--surface-2);margin:6px 0 10px;overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:.76rem;color:var(--ink-soft)}.legend span{display:inline-flex;align-items:center;gap:6px}
+.ic{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex:none;background:var(--surface-2);color:var(--ink-faint);border:2px solid transparent}
+.ic.ok{background:var(--ok);color:#fff}.ic.warn{background:var(--warn);color:#fff}.ic.fail{background:var(--fail);color:#fff}
+.ic.none{background:transparent;border:2px dashed var(--warn);color:var(--warn)}
+.ic.unk{background:transparent;border:2px dotted var(--ink-faint);color:var(--ink-faint)}
+.ic.na{background:var(--surface-2);color:var(--ink-faint);opacity:.7}
+.ic.sm{width:20px;height:20px;font-size:.68rem}
+table.apps th.grp{text-align:center;color:var(--accent-ink);border-left:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 4px}
+table.apps th.col{text-align:center;padding:8px 1px;font-size:.54rem;letter-spacing:0}
+table.apps td.cell{text-align:center;padding:10px 0;border-left:1px solid var(--line)}
+table.apps td.cell.first{border-left:1px solid var(--line)}
+.cellsub{font-size:.64rem;color:var(--ink-faint);margin-top:2px}
+.ct td.ci{width:34px;padding-right:0}
+.ct td.k{white-space:normal;min-width:150px}
+.ct td.f{min-width:200px}.ct td.why{color:var(--ink-soft);font-size:.78rem;max-width:420px}
+.ct .sub2{font-size:.72rem;color:var(--ink-faint);margin-top:2px}
+.nap{padding:10px 14px;font-size:.8rem;color:var(--ink-faint);border-top:1px solid var(--line);background:var(--surface-2)}
+.dirty{font-size:.64rem;font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:5px;padding:1px 6px}
+.cd{font-size:.64rem;letter-spacing:-.01em;white-space:nowrap}
+.lowdet{color:var(--warn);font-weight:600}
+.lnks{display:flex;gap:6px;margin:4px 0 0 18px}
+.about{max-width:760px;font-size:.92rem;line-height:1.6;padding:6px 2px}.about p{margin:0 0 8px}
+.ct td.f .cv{display:inline-flex;align-items:center;gap:6px}
+.lnk{font-size:.68rem;font-weight:600;color:var(--accent-ink);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:1px 7px;background:var(--surface)}
+.lnk:hover{border-color:var(--accent)}
+.gtitle{font-weight:600}
+.dt tr.grprow td{background:var(--surface-2);font-size:.66rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--accent-ink)}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div class="hdr-top">
+    <div class="brand"><div class="mark"><i></i></div><div><div class="wordmark">Application Discovery</div><div class="tagline">As-is state of each application, from a static scan</div></div></div>
+    <div class="hdr-right"><span class="meta-pill" id="meta"></span><button class="btn" id="theme" type="button">Theme</button></div>
+  </div>
+  <div class="stat-strip" id="stats"></div>
+  <div class="progress"><div class="ptop"><span class="plabel">Average maturity across shown applications</span><span class="pval" id="avg"></span></div><div class="pbar"><i id="avgbar"></i></div><div class="legend" id="legend"></div></div>
+</header>
+<div class="toolbar">
+  <div class="controls">
+    <input class="search" id="q" type="search" placeholder="Search applications…" aria-label="Search applications">
+    <select id="fband" aria-label="Maturity filter"><option value="">All maturity</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <select id="fcov" aria-label="Coverage filter"><option value="">All coverage states</option></select>
+    <select id="sort" aria-label="Sort"><option value="name">Sort: name</option><option value="score">Sort: maturity, lowest first</option></select>
+  </div>
+  <span class="count" id="count"></span>
+</div>
+<div class="tablewrap"><table class="apps"><thead id="thead"></thead><tbody id="rows"></tbody></table></div>
+</div>
+<script id="data" type="application/json">/*__DATA__*/[]</script>
+<script>
+(function(){
+var APPS=JSON.parse(document.getElementById('data').textContent);
+var $=function(id){return document.getElementById(id)};
+var el=function(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+var EXEC={enabled:['Run on every build','ok'],partially_disabled:['Some test commands are skipped','warn'],disabled_in_pipeline:['Skipped in the pipeline','fail'],disabled_in_build:['Switched off in the build file','fail'],unknown_remote_includes:['Cannot tell: the pipeline uses templates held elsewhere','unk'],no_test_command_found:['No test command found in the pipeline','none'],no_ci:['No pipeline found','none']};
+var COVL={no_tests:'No tests',tests_present_coverage_not_configured:'No coverage tool',tests_disabled_in_pipeline:'Tests disabled',coverage_configured_not_enforced:'Not enforced',coverage_enforced:'Enforced'};
+var IC={MET:['ok','✓','In place'],PARTIAL:['warn','◐','Partly in place'],NOT_MET:['fail','✕','Failing'],NO_EVIDENCE:['none','','Not found or not scanned'],UNKNOWN:['unk','?','Cannot be determined offline'],NA:['na','–','Not applicable']};
+var CRIT={automated_build:'Build',version_tagging:'Tag',automated_deploy:'Deploy',unit_tests_exist:'Unit',tests_run_in_ci:'CI run',coverage:'Cover',acceptance_tests:'Accept',performance_tests:'Perf',contract_tests:'Contr.',zero_downtime:'HA',rollback:'Rollback',openapi_exposed:'API',secret_scanning:'Secrets',dependency_scanning:'Libs',sast:'Code',dependency_updates:'Updates',integration_tests:'Integ.',vulnerabilities:'Vulns'};
+var FULL={automated_build:'Automated build',version_tagging:'Automated version tagging',automated_deploy:'Automated deploy',unit_tests_exist:'Unit tests exist',tests_run_in_ci:'Tests run in the pipeline',coverage:'Coverage minimum configured and run in the pipeline',acceptance_tests:'Acceptance tests',performance_tests:'Performance tests',contract_tests:'Contract tests',zero_downtime:'Zero-downtime / HA configuration',rollback:'Automatic rollback',openapi_exposed:'API specification (OpenAPI) provided',secret_scanning:'Secret scanning',dependency_scanning:'Dependency (library) scanning',sast:'Code scanning (SAST)',dependency_updates:'Automated dependency updates',integration_tests:'Integration tests',vulnerabilities:'Known vulnerabilities'};
+var GROUPS=[['Build & release',['automated_build','version_tagging','automated_deploy']],['Tests',['unit_tests_exist','integration_tests','tests_run_in_ci','coverage','acceptance_tests','performance_tests','contract_tests']],['Operations',['zero_downtime','rollback']],['API',['openapi_exposed']],['Security',['secret_scanning','dependency_scanning','sast','dependency_updates','vulnerabilities']]];
+var FIXED=['Application','Type','Language','Framework','Owner','Maturity'];
+var NCOL=FIXED.length+GROUPS.reduce(function(n,g){return n+g[1].length},0);
+var TABS=[['about','About'],['stack','Stack'],['tests','Tests'],['build','Build & release'],['operations','Operations'],['security','Security'],['notes','Scan info']];
+function F(a,id){var p=id.split('.');return (a[p[0]]||{})[p[1]]||{value:null,status:'UNKNOWN',evidence:[]}}
+function V(a,id){return F(a,id).value}
+function pill(t,k,dot){var p=el('span','pill '+k);if(dot)p.appendChild(el('i','dot'));p.appendChild(document.createTextNode(t));return p}
+function human(k){return k.replace(/_/g,' ')}
+function icon(kind,sm){var d=IC[kind]||IC.UNKNOWN;return el('span','ic '+d[0]+(sm?' sm':''),d[1])}
+function cr(a,id){var l=a.maturity.criteria.filter(function(c){return c.id===id});return l[0]||null}
+function panel(title,right){var p=el('div','panel'),t=el('div','ptitle');t.appendChild(el('span',null,title));if(right!=null)t.appendChild(el('span','pr',right));p.appendChild(t);return p}
+function tags(list){var s=el('span');list.forEach(function(x){s.appendChild(el('span','tag',x))});return s}
+function plain(a,id){return V(a,id)}
+function pct(x){return x==null?null:(Math.round(x*10)/10)+'%'}
+function measured(a){var m=F(a,'tests.coverage_measured'),run=V(a,'tests.coverage_run')||{};return m.value?{line:m.value.LINE,branch:m.value.BRANCH,stale:m.status==='INFERRED',partial:run.representative===false,run:run}:null}
+function avgOf(xs){return xs.length?Math.round(xs.reduce(function(n,a){return n+a.maturity.score},0)/xs.length):0}
+
+function nap(txt){return el('div','nap',txt)}
+function langName(l){return l?String(l).split('+').map(function(x){return x.charAt(0).toUpperCase()+x.slice(1)}).join(' + '):null}
+var ICONCH={ok:'✓',warn:'◐',fail:'✕',none:'',unk:'?',na:'–',info:''};
+/* every tab is made of tables: optional status icon column, then fixed columns. Empty cells stay empty. */
+function dtable(title,heads,rows,right,top){var p=panel(title,right),s=el('div','scroll'),t=el('table','dt ct'),h=el('tr'),hi=rows.some(function(r){return r.k&&r.k!=='info'});if(hi)h.appendChild(el('th'));heads.forEach(function(x){h.appendChild(el('th',null,x))});t.appendChild(h);
+ rows.forEach(function(r){var tr=el('tr');if(hi){var c=el('td','ci');if(r.k&&r.k!=='info')c.appendChild(el('span','ic sm '+r.k,ICONCH[r.k]));tr.appendChild(c)}
+  r.c.forEach(function(x,i){var td=el('td',i===0?'k':'f');if(x!=null&&x!=='')typeof x==='string'?td.textContent=x:td.appendChild(x);tr.appendChild(td)});t.appendChild(tr)});
+ s.appendChild(t);p.appendChild(s);if(top)p.style.marginTop='14px';return p}
+function yn(a,id){var f=F(a,id);return f.status==='UNKNOWN'?'unk':f.value?'ok':'none'}
+function irow(a,id,label,value){return {k:yn(a,id),c:[label,value||'']}}
+function present(a,id){return F(a,id).status==='CONFIRMED'}
+
+function about(a){var f=F(a,'identity.about'),v=f.value;if(!v||!v.length)return el('div','empty','No description found in the README.');
+ var d=el('div','about');v.forEach(function(x){d.appendChild(el('p',null,x))});return d}
+
+function containerText(a){var c=F(a,'stack.container').value;if(!c||!(c.image_build||(c.compose_files||[]).length))return 'No';
+ var how=[],n=(c.dockerfiles||[]).length;if(n)how.push(n>1?n+' Dockerfiles':'Dockerfile');(c.build_plugins||[]).forEach(function(x){if(x==='jib')how.push('Jib')});
+ var t=c.image_build?(how.length?'Yes · '+how.join(' + '):'Yes'):'No image build found';var j=c.jib,b=(c.base_images||[]).filter(function(x){return !j||x!==j.base_image});
+ if(j){t+=' · base: '+(j.base_image||(j.base_image_env?'set by environment variable '+j.base_image_env:j.base_image_set_by_variable?'set by a build variable':'not set in the build (Jib default)'));
+  t+=' · pushes to: '+(j.target_image||(j.target_image_env?'image named by environment variable '+j.target_image_env:j.target_image_set_by_variable?'set by a build variable':'not set in the build'));
+  if((j.ports||[]).length)t+=' · ports '+j.ports.join(', ');if(j.run_by)t+=' · run by '+j.run_by}
+var sb=c.spring_boot,qk=c.quarkus,x=[];
+ if(sb){var sn=sb.image_name||(sb.image_name_env?'image named by environment variable '+sb.image_name_env:sb.image_name_variable?'set by a build variable':'name not set in the build');
+  x.push('Spring Boot build-image · image: '+sn+(sb.builder?' · builder: '+sb.builder:sb.builder_variable?' · builder set by a variable':'')+(sb.publish===true?' · publishes':sb.publish===false?' · does not publish':'')+(sb.run_by?' · run by '+sb.run_by:sb.bound_to_build?' · bound to the build':' · not run by a pipeline file'))}
+ if(qk){var qn=qk.image||[qk.registry,qk.group,qk.name].filter(Boolean).join('/')+(qk.tag?':'+qk.tag:'');
+  x.push('Quarkus container-image ('+(qk.builder||'?')+') · '+(qk.enabled===true?'build enabled by '+qk.enabled_by:qk.enabled===false?'build switched off':'extension present, build not enabled in the build files')
+   +(qn?' · image: '+qn:'')+(qk.base_image?' · base: '+qk.base_image:'')+((qk.ports||[]).length?' · ports '+qk.ports.join(', '):'')+(qk.push===true?' · pushes':'')+((qk.set_by_variable||[]).length?' · set by expression: '+qk.set_by_variable.join(', '):''))}
+ if(x.length)t+=' · '+x.join(' · ');
+ if(b.length)t+=' · '+((j||sb||qk)?'other bases: ':'base: ')+b.slice(0,3).join(', ')+(b.length>3?' (+'+(b.length-3)+' more)':'');
+ return t}
+var DATASTORE=/^(postgresql|mysql|oracle|mongodb|redis|kafka|jms\/activemq|rabbitmq|ignite)$/;
+function det(summary,body){var d=el('details','cap');d.appendChild(el('summary',null,summary));d.appendChild(document.createTextNode(body));return d}
+function capLine(p,txt){p.insertBefore(el('div','cap',txt),p.children[1]);return p}
+function capMore(p,short,summary,body){var w=el('div');w.appendChild(el('div','cap',short));w.appendChild(det(summary,body));p.insertBefore(w,p.children[1]);return p}
+function stack(a){var w=el('div'),rows=[],ak=V(a,'stack.artifact_kind'),ml=V(a,'stack.module_list')||[];
+ function add(label,v){if(v==null||v===''||v==='unknown'||(Array.isArray(v)&&!v.length))return;rows.push({c:[label,Array.isArray(v)?tags(v):String(v)]})}
+ add('Type',ak&&ak!=='unknown'?ak.charAt(0).toUpperCase()+ak.slice(1):'Unknown (no publish step or service signal found)');add('Language',langName(V(a,'stack.language')));add('Java version',V(a,'stack.java_version'));add('Kotlin version',V(a,'stack.kotlin_version'));
+ add('Framework',V(a,'stack.spring_boot_version')?'Spring Boot '+V(a,'stack.spring_boot_version'):null);
+ var bt=V(a,'stack.build_tool'),bw=V(a,'stack.build_wrapper')||[];add('Build tool',bt?bt+(bw.length?' (wrapper)':''):null);
+ var pk=V(a,'stack.packaging');if(!(pk==='pom'&&ml.length>1))add('Packaging',pk);
+ rows.push({c:['Container image',containerText(a)]});var cf=(F(a,'stack.container').value||{}).compose_files||[];rows.push({c:['docker-compose',cf.length?'Yes · '+cf.slice(0,2).join(', ')+(cf.length>2?' (+'+(cf.length-2)+' more)':'')+' · how it runs locally; says nothing about where it is deployed':'No']});
+ if(ml.length<=1)rows.splice(rows.length-2,0,{c:['Modules',ml.length?(ml[0].name+' · '+(ml[0].role||'role not stated')):'No build file found']});
+ add('Frameworks and libraries',(V(a,'stack.notable_dependencies')||[]).filter(function(x){return !DATASTORE.test(x)}));add('Owners',V(a,'identity.owners'));
+ w.appendChild(dtable('Stack',['Item','Value'],rows));
+ if(ml.length>1)w.appendChild(modulesPanel(ml));
+ w.appendChild(depsTable(a));w.appendChild(hostingTable(a));var to=testOnlyTable(a);if(to)w.appendChild(to);return w}
+var ROLEORD=['application','web application (war)','library','jar','aggregator','parent / BOM','tests'];
+function modulesPanel(ml){var cnt={};ml.forEach(function(m){var r=m.role||'unspecified';cnt[r]=(cnt[r]||0)+1});
+ var order=ROLEORD.concat(['unspecified']),sm=order.filter(function(r){return cnt[r]}).map(function(r){return cnt[r]+' '+r});
+ var sorted=ml.slice().sort(function(x,y){var i=order.indexOf(x.role||'unspecified'),j=order.indexOf(y.role||'unspecified');return i-j||(x.path<y.path?-1:1)});
+ var rows=sorted.slice(0,200).map(function(m){return {c:[m.name,m.role?cap1(m.role):'Not stated in the build file',m.path==='.'?'(repository root)':m.path]}});
+ if(sorted.length>200)rows.push({c:['…and '+(sorted.length-200)+' more','','']});
+ var p=dtable('Modules',['Module','Role','Path'],rows,String(ml.length),true);
+ capMore(p,'Looks for: pom.xml and build.gradle(.kts) files, and projects included by settings.gradle.','What the role means','A role is read from the build file: an application plugin or Spring Boot / Quarkus / Micronaut plugin, a war, an aggregating or BOM pom, a java-library plugin, or test sources with no production sources. A plain jar module is shown as jar; "not stated" means the build file does not say.');
+ var sc=p.querySelector('.scroll');if(ml.length>12&&sc){var d=el('details');d.appendChild(el('summary',null,'Show all '+ml.length+' modules'));p.replaceChild(d,sc);d.appendChild(sc)}
+ var sw=el('div','cap');sw.appendChild(tags(sm));p.insertBefore(sw,p.children[2]);return p}
+var STAT={configured:['ok','Configured'],'local setting':['warn','Local setting only'],declared:['warn','Declared only'],'named in source':['warn','Mentioned in code'],compose:['none','docker-compose only']};
+function depStatus(d){if(d.where==='a build profile only')return res('warn','Build profile only');if(d.where==='docker-compose only')return res('none','docker-compose only');var s=STAT[d.evidence_strength]||['unk','?'];return res(s[0],s[1])}
+function hostText(d){var he=d.host_envs||[],h=d.hosts||[];if(!h.length)return '';var f=he[0]||{host:h[0],env:null};
+ var t='→ '+f.host+(f.env?' ('+f.env+')':'');if(h.length>1){var rest=he.slice(1).map(function(x){return x.env}).filter(Boolean);t+=' (+'+(h.length-1)+' more: '+(rest.length?rest.join(', '):'other environments')+')'}return t}
+function evCell(d,multi){var s=el('span');if(d.hosts&&d.hosts.length)s.appendChild(document.createTextNode(hostText(d)+'  '));var f=(d.at||[])[0];if(f){var m0=el('span','mono',f);m0.style.overflowWrap='anywhere';s.appendChild(m0)}
+ var m=(d.modules||[]).filter(function(x){return x!=='.'});if(multi&&m.length)s.appendChild(document.createTextNode(' · module '+m.join(', ')));return s}
+function isTestSide(d){return d.where==='tests only'||d.where==='tests and docker-compose only'||d.group==='Stubs and emulators'}
+function hostingTable(a){var f=F(a,'stack.hosting'),items=f.value||[],lib=V(a,'stack.artifact_kind')==='library',rows=[];
+ var tg=items.filter(function(x){return x.role==='deployment target'}),rg=items.filter(function(x){return x.role!=='deployment target'});
+ tg.forEach(function(x,i){var how=(x.via||[]).join(' + ');rows.push(row(i?'':'Runs on',  'ok',x.target,how))});
+ if(!tg.length){if(lib)rows.push(row('Runs on','na','Not applicable','This is a library: it is published, not deployed'));
+  else if(f.status==='UNKNOWN')rows.push(row('Runs on','unk','Can’t tell offline',f.note||''));
+  else rows.push(row('Runs on','none','Not in this repository','No deployment descriptor or pipeline deploy command for a known platform here; it may be defined in another repository'))}
+ rg.forEach(function(x,i){rows.push(row(i?'':'Image registry','warn','Registry only',x.target+' · only says where images are stored, not where they run'))});
+ var p=dtable('Hosting and runtime',['Check','Result','What we found'],rows,null,true);
+ return capMore(p,'Looks for: deployment descriptors and pipeline deploy commands. A descriptor in a repository with several modules may not belong to this module; Kubernetes does not say which cloud it runs on; a cloud SDK dependency is not a deployment target.','Which platforms','Kubernetes manifests, Helm charts and Kustomize; Nomad jobs; AWS (ECS, Lambda via SAM or Serverless, Elastic Beanstalk); Google App Engine and Cloud Run; Azure; Heroku; Cloud Foundry; Fly.io. A pipeline command only counts when it is the command a line runs, not text inside echo or a string.')}
+var GHELP={'Data stores':'databases, caches, search, object storage, schema migration tools','Messaging':'Kafka, RabbitMQ, ActiveMQ, SQS/SNS, Pub/Sub','Services it calls':'services named by a declared client (Feign, REST client, Micronaut @Client) and endpoints named in configuration','Identity and access':'OAuth2 / OIDC providers, Auth0, Okta, LDAP','Configuration, secrets and discovery':'Config Server, Vault, secret managers, Eureka / Consul','Observability':'Prometheus, New Relic, Datadog, Sentry, OpenTelemetry, Zipkin','Notifications':'email, SMS'};
+var GORD=['Data stores','Messaging','Services it calls','Identity and access','Configuration, secrets and discovery','Observability','Notifications'];
+function depsTable(a){var f=F(a,'stack.external_dependencies'),all=f.value||[],lib=V(a,'stack.artifact_kind')==='library',rows=[],multi=(V(a,'stack.module_list')||[]).length>1;
+ var real=all.filter(function(d){return !isTestSide(d)});
+ var libs=((F(a,'stack.http_client_libraries').value)||[]).filter(function(x){return x.where==='application'}).map(function(x){return x.technology});
+ var groups=[];real.forEach(function(d){if(groups.indexOf(d.group)<0)groups.push(d.group)});groups.sort(function(x,y){return GORD.indexOf(x)-GORD.indexOf(y)});
+ groups.forEach(function(g){var its=real.filter(function(d){return d.group===g}),LIM=6,shown=its,rest=[];
+   if(g==='Services it calls'&&its.length>LIM+2){var named=its.filter(function(d){return !/^Endpoint: /.test(d.technology)}),ends=its.filter(function(d){return /^Endpoint: /.test(d.technology)});shown=named.concat(ends.slice(0,Math.max(0,LIM-named.length)));rest=ends.slice(Math.max(0,LIM-named.length))}
+   shown.forEach(function(d,i){
+   var emb=d.embedded&&!/embedded/.test(d.technology),t=el('span');t.appendChild(document.createTextNode(d.technology+(emb?' (embedded)':'')));
+   if(g==='Data stores')t.appendChild(el('span','tag',d.kind==='Cache and data grid'?'Cache':d.kind));
+   rows.push({c:[i?'':g,t,depStatus(d),evCell(d,multi)]})});
+   if(rest.length){var dt=el('details'),ul=el('ul');dt.appendChild(el('summary',null,'Show the other '+rest.length+' endpoints'));
+    rest.forEach(function(d){var li=el('li');li.appendChild(document.createTextNode(d.technology.replace(/^Endpoint: /,'')+'  '+hostText(d)+'  '));var m1=el('span','mono',(d.at||[])[0]||'');m1.style.overflowWrap='anywhere';li.appendChild(m1);ul.appendChild(li)});dt.appendChild(ul);
+    rows.push({c:['',el('span',null,rest.length+' more endpoints'),res('ok','Configured'),dt]})}});
+ if(!rows.length)rows.push({c:['None found','','',f.note||'']});
+ var title=lib?'What this library integrates with':'Depends on';
+ var p=dtable(title,['Group','Technology','Status','Evidence'],rows,real.length?String(real.length):null,true);
+ var short='Looks for what the '+(lib?'library':'application')+' needs in order to run. Configured = a connection setting names it; Local setting only = named only in a developer-machine file; Declared only = a dependency exists but no connection setting was found; Mentioned in code = only a string in source. Hosts are not resolved.'+(libs.length?' Calls services using: '+libs.join(', ')+'.':'');
+ return capMore(p,short,'What is looked for',Object.keys(GHELP).map(function(k){return k+' ('+GHELP[k]+')'}).join('; ')+'. “Configured” means a connection setting, deployment value or declared client names it; “Declared only” means a dependency exists but no connection setting was found; “Mentioned in code” means only a string in source. A service reached only at run time, or through a client built in code, is not visible.')}
+function testOnlyTable(a){var all=(F(a,'stack.external_dependencies').value)||[],t=all.filter(isTestSide);
+ var rows;if(!t.length)rows=[{c:['Test and local tools','None found','No stub, emulator or test-only service named in test scope, test modules or local setup']}];else rows=t.map(function(d,i){return {c:[i?'':'Test and local tools',d.technology,d.group==='Stubs and emulators'?'Stub or emulator'+(d.where==='application'?' (the build declares it outside test scope)':''):'Test scope or a test module']}});
+ return capLine(dtable('Test and local tools',['Group','Technology','Why it is here'],rows,String(t.length),true),'Stubs, emulators and anything declared only for tests: the application itself does not depend on them.')}
+
+/* ---- one layout for every detail tab: sections of  Check | Result | What we found ---- */
+var RESW={ok:'In place',warn:'Partly',fail:'Failing',none:'Not found',unk:'Can’t tell offline',na:'Not applicable'};
+var YNW={ok:'Yes',warn:'Partly',fail:'No',none:'Not found',unk:'Can’t tell',na:'Not applicable'};
+function res(k,label){var s=el('span','cv');s.appendChild(el('span','ic sm '+k,ICONCH[k]));s.appendChild(document.createTextNode(' '+(label||RESW[k])));return s}
+function row(check,k,label,found){return {c:[check,res(k,label),found==null?'':found]}}
+function ck(a,id){var c=cr(a,id);return c?(IC[c.result]||IC.UNKNOWN)[0]:'unk'}
+function crow(a,id,label,found,k0){var k=k0||ck(a,id);return row(label,k,YNW[k],found)}
+function ybool(a,id,label,found,yes){var k=yn(a,id);return row(label,k,k==='ok'?(yes||'Yes'):k==='unk'?YNW.unk:'Not found',found)}
+function section(title,looks,kind,rows,top){var p=dtable(title,['Check','Result','What we found'],rows,kind?RESW[kind]:null,top);
+ if(looks){p.insertBefore(el('div','cap','Looks for: '+looks),p.children[1])}return p}
+function cap1(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s}
+function join(){var s=el('span');Array.prototype.forEach.call(arguments,function(x,i){if(x==null||x==='')return;if(i&&s.childNodes.length)s.appendChild(document.createTextNode(' · '));typeof x==='string'?s.appendChild(document.createTextNode(x)):s.appendChild(x)});return s}
+var TOOLN=[[/gitguardian|ggshield/i,'GitGuardian'],[/gitleaks/i,'Gitleaks'],[/trufflehog/i,'TruffleHog'],[/secret-?detection|secrets-auditor/i,'Secret detection'],[/snyk[-_ ]code/i,'Snyk Code'],[/snyk/i,'Snyk'],[/dependency-?check|owasp/i,'OWASP Dependency-Check'],[/trivy/i,'Trivy'],[/osv-scanner/i,'OSV-Scanner'],[/fossa/i,'FOSSA'],[/dependency-review/i,'GitHub Dependency Review'],[/codeql/i,'CodeQL'],[/sonar/i,'SonarQube / SonarCloud'],[/semgrep/i,'Semgrep'],[/spotbugs|find-sec-bugs/i,'SpotBugs'],[/wiz/i,'Wiz'],[/checkov/i,'Checkov'],[/prisma/i,'Prisma Cloud'],[/dependabot/i,'Dependabot'],[/renovate/i,'Renovate']];
+function toolsOf(a,id){var seen=[];(F(a,id).evidence||[]).forEach(function(e){var t=(e.path||'')+' '+(e.snippet||'');for(var i=0;i<TOOLN.length;i++){if(TOOLN[i][0].test(t)){if(seen.indexOf(TOOLN[i][1])<0)seen.push(TOOLN[i][1]);break}}});return seen}
+
+/* ---- Tests ---- */
+var EXECK={enabled:['ok','Yes'],partially_disabled:['warn','Partly'],disabled_in_pipeline:['fail','Skipped'],disabled_in_build:['fail','Switched off'],unknown_remote_includes:['unk','Can’t tell'],no_test_command_found:['none','Not found'],no_ci:['none','No pipeline']};
+var EXECW={enabled:'',partially_disabled:'At least half of the modules with unit tests switch them off',disabled_in_pipeline:'Every test command in the pipeline skips the tests',disabled_in_build:'Switched off in the build file',unknown_remote_includes:'The pipeline uses templates held elsewhere',no_test_command_found:'No command in the pipeline runs the tests',no_ci:'No pipeline found'};
+var STYLEL={gherkin:'Gherkin feature files',test_classes:'Test classes in e2e / acceptance modules',postman:'Postman collections',browser:'Browser suites',external:'Triggered from another project'};
+function presentRow(a,id,label,val,found){var k=ck(a,id),x=(val&&val.external)||[];
+ if(k==='warn'&&x.length&&!found)found='Run from another project: '+x.map(function(y){return y.target_project?y.target_project.split('/').pop():y.job}).join(', ');
+ return row(label,k,YNW[k],found)}
+function runsRow(a,kind,val){var ex=V(a,'tests.ci_test_execution'),e=EXECK[ex]||['unk',String(ex)],inf=F(a,'tests.ci_test_execution').status==='INFERRED',L='Runs in the pipeline';
+ if(kind==='unit'||kind==='integration'){
+  if(kind==='integration'&&val&&val.separate_source_set)return row(L,'warn','Not shown','Kept in a separate source set that the ordinary test task may not run');
+  if(inf&&e[0]==='ok')return row(L,'warn','Probably','Found only inside a script the pipeline calls');
+  return row(L,e[0],e[1],EXECW[ex]||'')}
+ var x=(val&&val.external)||[],real=val&&(val.test_classes||val.feature_files||val.contract_files||val.artefacts||val.postman_collections);
+ if(val&&val.not_run_reason)return row(L,'warn','Not shown',cap1(val.not_run_reason));
+ if(x.length&&!real)return row(L,'warn','Triggered','Runs from another project');
+ if(kind==='performance')return row(L,'ok','Yes','A pipeline file or script mentions running it');
+ if(val&&val.styles&&val.styles.length&&val.styles.every(function(s){return s==='postman'||s==='browser'}))return row(L,'unk','Can’t tell','Runs through its own tool; the pipeline was not traced');
+ return row(L,e[0]==='ok'?'ok':e[0],e[0]==='ok'?'With the build':e[1],e[0]==='ok'?(x.length?'The part kept in this repository runs with the build; the rest is triggered from another project: '+x.map(function(y){return y.target_project?y.target_project.split('/').pop():y.job}).join(', '):''):EXECW[ex]||'')}
+function toolRow(list,label){list=list||[];return row(label||'Tools',list.length?'ok':'none',list.length?'Found':'Not found',tags(list))}
+
+function testsTab(a){var w=el('div'),it=V(a,'tests.integration_tests')||{},ac=V(a,'tests.acceptance_tests')||{},ct=V(a,'tests.contract_tests')||{},pf=V(a,'tests.performance_tests')||{},
+  itools=it.tools||[],fw=(V(a,'tests.frameworks')||[]).filter(function(x){return itools.indexOf(x)<0}),ex=V(a,'tests.ci_test_execution');
+ var un=[presentRow(a,'unit_tests_exist','Unit tests present',null),toolRow(fw,'Frameworks'),runsRow(a,'unit')],sk=V(a,'tests.ci_skip_flags')||[],md=V(a,'tests.modules_with_tests_disabled')||[];
+ if(sk.length)un.push(row('Commands that skip tests',ex==='enabled'?'warn':'fail','Found',ex==='enabled'?'Packaging or install steps skip them; another step runs them':'In the pipeline'));
+ if(md.length)un.push(row('Modules with tests switched off','warn','Found',tags(md)));
+ else if(V(a,'tests.build_level_test_skip'))un.push(row('Tests switched off in a build file',ex==='enabled'?'warn':'fail','Yes',''));
+ w.appendChild(section('Unit tests','test classes with @Test, JUnit 3, Spock or Kotest specs in the application’s own test source sets',ck(a,'unit_tests_exist'),un));
+ var ir=[presentRow(a,'integration_tests','Integration tests present',it),toolRow(itools),runsRow(a,'integration',it)];
+ w.appendChild(section('Integration tests','classes named *IT / *IntegrationTest, in integration source sets or modules, or using @SpringBootTest, @QuarkusIntegrationTest or Testcontainers',ck(a,'integration_tests'),ir,true));
+ var st=(ac.styles||[]).map(function(s){return STYLEL[s]||s}),at=(ac.libraries||[]).concat(ac.browser_tools||[]).filter(function(x,i,l){return l.indexOf(x)===i}),
+  ar=[presentRow(a,'acceptance_tests','Acceptance tests present',ac),row('Kind found',st.length?'ok':'none',st.length?'Found':'Not found',tags(st)),toolRow(at),runsRow(a,'acceptance',ac)];
+ w.appendChild(section('Acceptance / end-to-end tests','Gherkin .feature files with Cucumber, Karate or Serenity · test classes in e2e, acceptance, journey or functional modules or acceptanceTest source sets · Postman collections · Cypress, Playwright or Selenium suites · a pipeline job that triggers a suite in another project',ck(a,'acceptance_tests'),ar,true));
+ var cr_=[presentRow(a,'contract_tests','Contract tests present',ct),toolRow(ct.tools),runsRow(a,'contract',ct)];
+ w.appendChild(section('Contract tests','Pact or Spring Cloud Contract: pact / contract files or test classes in contract modules, or a pipeline job that triggers contract verification',ck(a,'contract_tests'),cr_,true));
+ var pr=[presentRow(a,'performance_tests','Performance tests present',pf),toolRow(pf.tools),runsRow(a,'performance',pf)];
+ w.appendChild(section('Performance tests','JMeter plans, Gatling simulations, k6 scripts, JMH or Caliper benchmarks, or a pipeline job that triggers a performance suite',ck(a,'performance_tests'),pr,true));
+ var tool=V(a,'tests.coverage_tool_configured'),thr=V(a,'tests.coverage_threshold_pct'),gate=V(a,'tests.coverage_gate_in_ci'),me=measured(a),sc=V(a,'tests.coverage_scope')||{},sv=V(a,'tests.coverage_service'),
+  GL={invoked_in_ci:'The pipeline runs the check',wired_into_build:'Wired to a task the pipeline runs',maven_lifecycle:'Reached by the pipeline’s Maven command',not_shown:'A gate is configured, but nothing shows the pipeline running it',unknown_remote_includes:'The pipeline uses templates held elsewhere'},c=[];
+ c.push(row('Coverage tool',tool?'ok':'none',tool?'Found':'Not found',tool?tags(String(tool).split('+')):''));
+ c.push(row('Minimum configured',thr?'ok':tool?'none':'none',thr?'Yes':'Not found',thr?'At least '+thr+'% (line or branch, as the tool defines it)':''));
+ if(V(a,'tests.coverage_thresholds_declared'))c.push(row('Threshold properties declared','unk','Declared','The rule that uses them is not in this repository, so enforcement is not shown'));
+ var gk=!gate||gate==='no_gate'?'none':/^(invoked|wired|maven)/.test(gate)?'ok':gate==='unknown_remote_includes'?'unk':'warn';
+ c.push(row('Checked by the pipeline',gk,gk==='none'?'Not found':gk==='ok'?'Yes':gk==='unk'?'Can’t tell':'Not shown',GL[gate]||''));
+ if(me&&me.partial)c.push(row('Measured result','unk','Not usable','The report on disk comes from a run of '+me.run.executed_test_classes+' of '+me.run.discovered_test_classes+' test classes'));
+ else if(me)c.push(row('Measured result',me.stale?'warn':'ok',me.stale?'Stale':'Found',[me.line!=null?'Line '+pct(me.line):'',me.branch!=null?'Branch '+pct(me.branch):'',me.stale?'older than the last commit':''].filter(Boolean).join(' · ')));
+ else c.push(row('Measured result','unk','No report','No coverage report on disk to read'));
+ if(sv&&sv.service)c.push(row('External coverage service','unk','Declared',cap1(sv.service)+(sv.target_pct!=null?' target '+sv.target_pct+'%':'')+' — applied outside the repository, not verifiable here'));
+ if(sc.partial)c.push(row('Where it is configured','warn','Few modules','Configured in some modules only, not in a parent or root build'));
+ w.appendChild(section('Coverage','a coverage tool (JaCoCo, Kover, Cobertura, Clover), a minimum, whether the pipeline runs the check, a report already on disk',ck(a,'coverage'),c,true));
+ return w}
+
+/* ---- Build & release ---- */
+function verSource(a){var t=[];if(V(a,'build_ci.version_from_git_tag'))t.push('taken from the git tag');if(V(a,'build_ci.artifact_version_from_ci'))t.push('built from the CI build number');if(V(a,'build_ci.release_triggered_by_tag'))t.push('release runs when a tag is pushed');return t.join(' · ')}
+function buildTab(a){var w=el('div'),lib=V(a,'stack.artifact_kind')==='library',ci=V(a,'build_ci.ci_system')||[],bt=V(a,'stack.build_tool'),bw=V(a,'stack.build_wrapper')||[],ur=V(a,'build_ci.unresolved_includes')||0;
+ w.appendChild(section('Build tooling','pom.xml, build.gradle(.kts) or build.xml at the repository root, and wrapper scripts',bt?'ok':'none',[row('Build tool',bt?'ok':'none',bt?'Found':'Not found',bt?tags(String(bt).split('+')):''),row('Wrapper (mvnw / gradlew)',bw.length?'ok':'none',bw.length?'Yes':'Not found','')]));
+ var p=[row('Pipeline system',ci.length?'ok':'none',ci.length?'Found':'Not found',tags(ci))];
+ if(ur>0)p.push(row('Shared pipeline templates','unk','Can’t tell',ur+' held elsewhere and unreadable offline; jobs defined there are invisible'));
+ p.push(crow(a,'automated_build','Automated build',F(a,'build_ci.build_step').status==='INFERRED'?'Found only inside a script the pipeline calls':''));
+ p.push(crow(a,'tests_run_in_ci','Tests run in the pipeline',''));
+ w.appendChild(section('Pipeline','GitLab CI, GitHub Actions, Jenkins, CircleCI, Azure and Bitbucket files, and the repository scripts they call',ci.length?'ok':'none',p,true));
+ var vs=verSource(a),pub=F(a,'build_ci.publish_step'),r=[row('How the version is set',vs?'ok':'none',vs?'Found':'Not found',vs),
+  crow(a,'version_tagging','The pipeline creates version tags',ck(a,'version_tagging')==='warn'?'Releases are tag-driven, but nothing shows the pipeline creating the tag':''),
+  row('Publishes an artefact',pub.status==='UNKNOWN'?'unk':pub.value?(pub.status==='INFERRED'?'warn':'ok'):'none',pub.status==='UNKNOWN'?YNW.unk:pub.value?'Yes':'Not found',pub.value?(pub.status==='INFERRED'?'Found only inside a script the pipeline calls':''):'')];
+ r.push(lib?row('Deploys to an environment','na','Not applicable','This is a library: it is published, not deployed'):crow(a,'automated_deploy','Deploys to an environment',''));
+ w.appendChild(section('Versioning and release','how the version is set, tag creation, publishing, deploy jobs or tools (Nomad, kubectl, Helm)',null,r,true));return w}
+
+/* ---- Operations ---- */
+var OXL={exposed_via_library:'Generated by a library',static_spec_only:'A spec file is present; whether it is served is not known',not_exposed:'Not found',library_present_but_disabled:'A library is present but switched off',disabled:'Switched off',no_http_endpoints:'No HTTP endpoints found'};
+function depKinds(a){var d=V(a,'resilience.deploy_descriptors')||[],k=[];d.forEach(function(f){var t=/Chart\.ya?ml|values[^/]*\.ya?ml|(^|\/)(charts?|helm)\//i.test(f)?'Helm':/docker-compose/i.test(f)?'Docker Compose':/\.(nomad|hcl)$/.test(f)?'Nomad':'Kubernetes';if(k.indexOf(t)<0)k.push(t)});return k}
+function operations(a){var w=el('div'),lib=V(a,'stack.artifact_kind')==='library';
+ if(lib){w.appendChild(section('Running in production','',null,[row('Runtime configuration','na','Not applicable','This is a library: it is published and used by other applications, not run on its own')]));return w}
+ var img=V(a,'resilience.container_image')||[],dk=depKinds(a);
+ w.appendChild(section('Packaging','a Dockerfile for the application, and Kubernetes, Helm, Nomad or Docker Compose descriptors',img.length||dk.length?'ok':'none',[row('Container image',img.length?'ok':'none',img.length?'Yes':'Not found',''),row('Deployment descriptors',dk.length?'ok':'none',dk.length?'Found':'Not found',tags(dk))]));
+ w.appendChild(section('Resilience','more than one instance (replicas or autoscaler minimum), health probes, rolling updates, rollback, a health endpoint',ck(a,'zero_downtime'),[ybool(a,'resilience.multiple_instances','More than one instance'),ybool(a,'resilience.health_probes','Health probes'),ybool(a,'resilience.rolling_or_zero_downtime_strategy','Rolling updates'),ybool(a,'resilience.rollback','Automatic rollback'),ybool(a,'resilience.health_endpoint','Health endpoint')],true));
+ var ox=V(a,'api.openapi_exposure'),ep=V(a,'api.http_endpoints_present')||{},hk=F(a,'api.http_endpoints_present'),
+  ak=ox==='no_http_endpoints'?'na':ck(a,'openapi_exposed'),fw=(ep.server_frameworks||[]);
+ w.appendChild(section('API','HTTP controllers (Spring, JAX-RS) or an HTTP server framework (http4k, Ktor, Vert.x, Javalin), and an OpenAPI generator or spec file',ak==='na'?null:ak,[
+  row('Serves HTTP',hk.value&&(hk.value.controller_files||fw.length)?'ok':'none',hk.value&&(hk.value.controller_files||fw.length)?'Yes':'Not found',fw.length?tags(fw):''),
+  row('API specification (OpenAPI)',ak==='na'?'na':ak,ak==='na'?'Not applicable':YNW[ak],OXL[ox]||'')],true));return w}
+
+/* ---- Security ---- */
+function scanRow(a,label,cat,hasPipe){var f=F(a,'security.'+cat),t=toolsOf(a,'security.'+cat);
+ if(f.status==='UNKNOWN')return row(label,'unk','Can’t tell','May be defined in pipeline templates held elsewhere');
+ if(!f.value)return row(label,'none','Not found','');
+ if(!hasPipe)return row(label,'ok','Found',tags(t));
+ return F(a,'security.'+cat+'_in_pipeline').value?row(label,'ok','In the pipeline',tags(t)):row(label,'warn','Configured only',join(tags(t),'no pipeline file runs it'))}
+function security(a){var w=el('div'),own=V(a,'identity.owners')||[];
+ w.appendChild(section('Scans','GitGuardian, Gitleaks, TruffleHog · Snyk, OWASP Dependency-Check, Trivy, FOSSA, GitHub Dependency Review · CodeQL, SonarQube, Semgrep, SpotBugs, Snyk Code · Wiz, Checkov, Prisma — in pipeline files, and whether a pipeline file runs them',null,[scanRow(a,'Secret scanning','secret_scanning',true),scanRow(a,'Library (dependency) scanning','dependency_scanning',true),scanRow(a,'Code scanning (SAST)','sast',true),scanRow(a,'Cloud scanning','cloud_scanning',false)]));
+ var du=toolsOf(a,'security.dependency_updates');
+ w.appendChild(section('Keeping dependencies current','a Dependabot or Renovate configuration file in the repository',null,[ybool(a,'security.dependency_updates','Automated dependency updates',du.length?tags(du):'','Found')],true));
+ var rows=[],sc=F(a,'security.vulnerability_scan').value,reps=F(a,'security.vulnerability_reports').value||[];
+ function sev(r){return [r.critical,r.high,r.medium,r.low,r.total].map(String)}
+ function k(r){return r.critical||r.high?'fail':r.medium?'warn':'ok'}
+ reps.forEach(function(r){rows.push({k:k(r),c:[r.tool].concat(sev(r),[r.stale?'Stale report':'Report on disk'])})});
+ if(sc){if(sc.state==='scanned')rows.push({k:k(sc),c:['Trivy'].concat(sev(sc),[String(sc.scanned_at).slice(0,10)])});else rows.push({k:'unk',c:['Trivy','','','','','',sc.reason||'Scan failed']})}
+ if(!rows.length)w.appendChild(section('Known vulnerabilities','a vulnerability report already on disk (Trivy, Snyk, OWASP, npm audit) or an opt-in Trivy scan (scan.py)',null,[row('Vulnerability scan','unk','Not scanned','No report on disk and scan.py was not run. A static scan does not look up vulnerabilities by itself')],true));
+ else w.appendChild(dtable('Known vulnerabilities',['Source','Critical','High','Medium','Low','Total','Note'],rows,null,true));
+ w.appendChild(section('Ownership','a CODEOWNERS file',null,[row('Code owners',own.length?'ok':'none',own.length?'Found':'Not found',tags(own))],true));return w}
+
+function trust(a){var c=a.maturity.completeness||{},ap=c.applicable||0,wi=c.with_evidence||0,un=c.unknown||0,ne=c.no_evidence||0;
+ var p=section('How far to trust this page','',null,[row('Checks with evidence',wi?'ok':'none',wi?'Found':'Not found',wi+' of '+ap+' applicable checks have something this scan could point to'),
+  row('Searched, nothing found',ne?'none':'ok',ne?'Not found':'None',ne+' checks: the scan looked and found nothing, which is not proof that it is absent'),
+  row('Cannot be determined offline',un?'unk':'ok',un?'Can\u2019t tell':'None',un+' checks depend on things a static scan cannot see, such as remote pipeline templates or hosted settings')]);
+ var ul=el('ul','list');['In place: the scan found it in the files.','Partly: found, but not shown to run, only in some modules, or only inferred from a script the pipeline calls.','Not found: the scan looked and found nothing; it may exist somewhere the scan cannot see.','Can\u2019t tell offline: depends on remote templates or hosted settings.','Not applicable: does not apply to this kind of application (for example, deploy for a library).'].forEach(function(t){ul.appendChild(el('li',null,t))});
+ p.appendChild(ul);return p}
+function notes(a){var w=el('div'),rm=a.run_meta,p=panel('What this scan did and did not do','static only');var kv=el('div','kv');w.appendChild(trust(a));p.style.marginTop='14px';
+ Object.keys(rm.completeness).forEach(function(k){var i=el('div','kvi');i.appendChild(el('div','l',human(k)));i.appendChild(el('div','v',human(rm.completeness[k])));kv.appendChild(i)});p.appendChild(kv);
+ var ul=el('ul','list');rm.limitations.forEach(function(l){ul.appendChild(el('li',null,l))});p.appendChild(ul);w.appendChild(p);
+ var n=a.llm_fill.narrative,np=panel('Narrative','model-written, never used for scoring');np.style.marginTop='14px';
+ if(n){var b=el('div','fdetail',n.text);b.style.padding='12px 14px';np.appendChild(b)}else{var e=el('div','fdetail','No narrative supplied.');e.style.padding='12px 14px';np.appendChild(e)}
+ a.llm_fill.ambiguities.forEach(function(q){var r=a.llm_fill.resolutions.filter(function(x){return x.ambiguity_id===q.id})[0],f=el('div','fact warn');f.appendChild(el('div','ficon','?'));var b=el('div','fbody');b.appendChild(el('div','flabel',q.question));b.appendChild(el('div','fdetail',r?'Model answer: '+r.answer:'Unanswered'));f.appendChild(b);np.appendChild(f)});w.appendChild(np);
+ var rp=panel('Scanned','reproducibility');rp.style.marginTop='14px';var k2=el('div','kv');
+ [['repository',V(a,'identity.git_remote')||'no remote'],['working tree',V(a,'identity.working_tree_clean')?(V(a,'identity.working_tree_clean').clean?'clean':V(a,'identity.working_tree_clean').changed_files+' uncommitted changes'):'not a git repository'],['branch',V(a,'identity.git_head')?V(a,'identity.git_branch')+' @ '+V(a,'identity.git_head').slice(0,10):'no git history'],['tool',rm.tool_version],['generated',rm.generated_at],['facts fingerprint',rm.fingerprint.slice(0,16)],['inputs fingerprint',rm.inventory_fingerprint.slice(0,16)],['citations re-verified',rm.evidence_checked+' ('+rm.evidence_invalid.length+' invalid)']].forEach(function(x){var i=el('div','kvi');i.appendChild(el('div','l',x[0]));i.appendChild(el('div','v',x[1]));k2.appendChild(i)});rp.appendChild(k2);
+ if(rm.failures.length){var fl=el('div','fdetail','Checks that failed to run: '+rm.failures.join('; '));fl.style.padding='0 14px 12px';rp.appendChild(fl)}w.appendChild(rp);return w}
+function tabBody(a,id){return ({about:about,stack:stack,tests:testsTab,build:buildTab,operations:operations,security:security,notes:notes}[id]||about)(a)}
+
+function link(url,label,st){if(!url||!/^https:\/\//.test(url))return null;var x=el('a','lnk',label+' ↗');x.href=url;x.target='_blank';x.rel='noopener noreferrer';x.onclick=function(e){e.stopPropagation()};if(st==='INFERRED')x.title='Worked out from the git remote';return x}
+function detail(a,startTab){var td=el('td');td.colSpan=NCOL;var w=el('div','dwrap');
+ var tabs=el('div','tabs');tabs.setAttribute('role','tablist');var body=el('div');
+ function show(id){Array.prototype.forEach.call(tabs.children,function(b){b.setAttribute('aria-selected',String(b.dataset.id===id))});body.textContent='';body.appendChild(tabBody(a,id));try{history.replaceState(null,'','#app='+encodeURIComponent(a.identity.app_id.value)+'&tab='+id)}catch(e){}}
+ TABS.forEach(function(x){var b=el('button','tab',x[1]);b.type='button';b.dataset.id=x[0];b.setAttribute('role','tab');
+  b.onclick=function(){show(x[0])};tabs.appendChild(b)});
+ w.appendChild(tabs);w.appendChild(body);td.appendChild(w);show(startTab||'about');return td}
+
+function buildHead(){var th=$('thead');th.textContent='';var r1=el('tr'),r2=el('tr');
+ var blank=function(t){var h=el('th',null,t);h.rowSpan=2;return h};FIXED.forEach(function(x){r1.appendChild(blank(x))});
+ GROUPS.forEach(function(g){var h=el('th','grp',g[0]);h.colSpan=g[1].length;r1.appendChild(h);g[1].forEach(function(id){var c=el('th','col',CRIT[id]);c.title=FULL[id];r2.appendChild(c)})});
+ th.appendChild(r1);th.appendChild(r2)}
+function vstate(a){var sc=F(a,'security.vulnerability_scan').value,reps=F(a,'security.vulnerability_reports').value||[],src=[],unk=false;
+ reps.forEach(function(r){src.push(r)});if(sc){if(sc.state==='scanned')src.push(sc);else unk=true}
+ if(!src.length)return {r:unk?'UNKNOWN':'NO_EVIDENCE',text:unk?'Could not scan: '+sc.reason:'Not scanned'};
+ var n={critical:0,high:0,medium:0,low:0};src.forEach(function(x){Object.keys(n).forEach(function(k){n[k]+=x[k]||0})});
+ var tot=n.critical+n.high+n.medium+n.low,txt=tot?['critical','high','medium','low'].filter(function(k){return n[k]}).map(function(k){return n[k]+' '+k}).join(', '):'None found';
+ return {r:n.critical||n.high?'NOT_MET':tot?'PARTIAL':'MET',text:txt,n:n}}
+function cell(a,id,first){if(id==='vulnerabilities'){var v=vstate(a),td0=el('td','cell'+(first?' first':'')),i0=icon(v.r);i0.title=FULL[id]+': '+v.text;td0.appendChild(i0);return td0}
+ var c=cr(a,id),td=el('td','cell'+(first?' first':'')),k=c?c.result:'NA',d=IC[k]||IC.UNKNOWN,i=icon(k);
+ i.title=FULL[id]+': '+d[2];td.appendChild(i);
+ if(id==='coverage'){var m=measured(a);if(m&&!m.partial){var v=m.branch!=null?m.branch:m.line;td.appendChild(el('div','cellsub',Math.round(v)+'%'+(m.stale?' stale':'')))}}return td}
+function rowFor(a,startTab){var tr=el('tr','row '+a.maturity.band),m=a.maturity;
+ var c1=el('td');c1.appendChild(el('span','chev','▶'));c1.appendChild(document.createTextNode(' '));c1.appendChild(el('span','appname',a.identity.app_id.value));var lk=el('div','lnks'),wt=V(a,'identity.working_tree_clean');if(wt&&wt.clean===false){var dt=el('span','dirty','uncommitted');dt.title=wt.changed_files+' changed files';lk.appendChild(dt)}var l1=link(V(a,'identity.repository_url'),'Repo',F(a,'identity.repository_url').status),l2=link(V(a,'identity.pipeline_url'),'Pipeline',F(a,'identity.pipeline_url').status);if(l1)lk.appendChild(l1);if(l2)lk.appendChild(l2);if(lk.childNodes.length)c1.appendChild(lk);tr.appendChild(c1);
+ var ak=V(a,'stack.artifact_kind'),c2=el('td',null,ak&&ak!=='unknown'?ak.charAt(0).toUpperCase()+ak.slice(1):'—');tr.appendChild(c2);
+ var lang=(V(a,'stack.language')||'').split('+'),c3=el('td'),jv=V(a,'stack.java_version'),kv=V(a,'stack.kotlin_version'),ls=[];
+ var hasJ=lang.indexOf('java')>=0,hasK=lang.indexOf('kotlin')>=0;
+ if(hasJ&&jv)ls.push('Java '+jv);else if(hasJ)ls.push('Java');if(hasK)ls.push(kv?'Kotlin '+kv:'Kotlin');
+ if(!hasJ&&jv)ls.push('JVM '+jv);if(!ls.length&&lang[0]&&lang[0]!=='unknown')ls.push(langName(lang.join('+')));
+ c3.appendChild(el('div','stack1',ls[0]||'—'));if(ls[1])c3.appendChild(el('div','sub',ls[1]));tr.appendChild(c3);
+ var sb=V(a,'stack.spring_boot_version'),c4=el('td',null,sb?'Spring Boot '+sb:'—');c4.style.maxWidth='96px';tr.appendChild(c4);
+ var ow=V(a,'identity.owners')||[],c4b=el('td');if(ow.length){c4b.appendChild(el('div','stack1',ow[0]));if(ow.length>1){var mo=el('div','sub','+'+(ow.length-1)+' more');mo.title=ow.join(', ');c4b.appendChild(mo)}}else c4b.textContent='\u2014';c4b.style.maxWidth='84px';c4b.style.overflowWrap='anywhere';tr.appendChild(c4b);
+ var c5=el('td');c5.appendChild(pill(m.band+' · '+Math.round(m.score)+'%',m.band==='High'?'ok':m.band==='Medium'?'warn':'fail',true));var bar=el('div','bar '+m.band),bi=el('i');bi.style.width=m.score+'%';bar.appendChild(bi);c5.appendChild(bar);var cp=m.completeness;if(cp){var we=cp.with_evidence!=null?cp.with_evidence:cp.determined-cp.no_evidence,cs2=el('div','sub cd'+(we*2<cp.applicable?' lowdet':''),'evidence for '+we+' of '+cp.applicable+' checks');cs2.title=cp.no_evidence+' searched for and not found; '+cp.unknown+' cannot be determined offline';c5.appendChild(cs2)}tr.appendChild(c5);
+ GROUPS.forEach(function(g){g[1].forEach(function(id,i){tr.appendChild(cell(a,id,i===0))})});
+ var dr=null;tr.onclick=function(){var o=tr.classList.toggle('open');if(o){dr=el('tr','detail');dr.appendChild(detail(a,startTab));tr.parentNode.insertBefore(dr,tr.nextSibling)}else if(dr){dr.remove();dr=null}};
+ return tr}
+
+function stat(cls,n,l,sub){var s=el('div','stat '+cls);s.appendChild(el('div','n',n));s.appendChild(el('div','l',l));s.appendChild(el('div','sub',sub));return s}
+function stats(xs){var T=xs.length,c=function(f){return xs.filter(f).length},b={High:0,Medium:0,Low:0};xs.forEach(function(a){b[a.maturity.band]++});
+ var ci=c(function(a){return V(a,'tests.ci_test_execution')==='enabled'}),cov=c(function(a){return V(a,'tests.coverage_state')==='coverage_enforced'}),sec=c(function(a){return F(a,'security.secret_scanning').value===true}),
+ secu=c(function(a){return F(a,'security.secret_scanning').status==='UNKNOWN'}),vc=c(function(a){var r=vstate(a).r;return r==='MET'||r==='PARTIAL'}),vn=c(function(a){var r=vstate(a).r;return r==='NO_EVIDENCE'||r==='UNKNOWN'});
+ var s=$('stats');s.textContent='';
+ s.appendChild(stat('accent',String(T),'Applications',b.High+' high \u00b7 '+b.Medium+' medium \u00b7 '+b.Low+' low maturity'));
+ s.appendChild(stat(ci===T&&T?'ok':'warn',ci+'/'+T,'Tests run automatically','applications whose tests run in the pipeline'));
+ s.appendChild(stat(cov===T&&T?'ok':'warn',cov+'/'+T,'Coverage minimum enforced','the build fails if coverage drops'));
+ s.appendChild(stat(sec===T&&T?'ok':'warn',sec+'/'+T,'Secret scanning',secu?secu+' unknown (pipeline templates held elsewhere)':'found in the pipeline or tools'));
+ s.appendChild(stat(vc===T&&T?'ok':'warn',vc+'/'+T,'No critical or high vulnerabilities',vn?vn+' not scanned':'from a scan or a report on disk'));
+ var av=avgOf(xs);$('avg').textContent=av+'%';$('avgbar').style.width=av+'%'}
+
+function render(){var q=$('q').value.toLowerCase(),fb=$('fband').value,fc=$('fcov').value,so=$('sort').value;
+ var xs=APPS.filter(function(a){return (!fb||a.maturity.band===fb)&&(!fc||V(a,'tests.coverage_state')===fc)&&(!q||JSON.stringify([a.identity.app_id.value,a.stack.build_tool.value,V(a,'stack.spring_boot_version')]).toLowerCase().indexOf(q)>=0)});
+ xs.sort(function(a,b){if(so==='score')return a.maturity.score-b.maturity.score;return String(a.identity.app_id.value).localeCompare(b.identity.app_id.value)});
+ var R=$('rows');R.textContent='';var h=new URLSearchParams((location.hash||'').slice(1));
+ xs.forEach(function(a){var tr=rowFor(a,h.get('tab'));R.appendChild(tr);if(h.get('app')===a.identity.app_id.value)tr.onclick()});
+ if(!xs.length){var tr=el('tr'),td=el('td');td.colSpan=NCOL;var e=el('div','empty');e.appendChild(el('div','big','No applications match'));e.appendChild(el('div',null,'Adjust the search or filters.'));td.appendChild(e);tr.appendChild(td);R.appendChild(tr)}
+ $('count').textContent=xs.length+' of '+APPS.length+' shown';stats(xs.length?xs:APPS);
+ var tw=document.querySelector('.tablewrap');if(tw){document.body.dataset.fit=tw.scrollWidth<=tw.clientWidth+1?'fits':'overflows';document.body.dataset.fitpx=tw.scrollWidth+'/'+tw.clientWidth}}
+
+var lg=$('legend');['MET','PARTIAL','NOT_MET','NO_EVIDENCE','UNKNOWN','NA'].forEach(function(k){var s=el('span');s.appendChild(icon(k,true));s.appendChild(document.createTextNode(IC[k][2]));lg.appendChild(s)});
+buildHead();
+var seen={};APPS.forEach(function(a){seen[V(a,'tests.coverage_state')]=1});
+Object.keys(seen).sort().forEach(function(k){var o=el('option',null,COVL[k]||k);o.value=k;$('fcov').appendChild(o)});
+$('meta').textContent=APPS.length+' application'+(APPS.length===1?'':'s')+(APPS[0]&&APPS[0].run_meta.tool_version?' \u00b7 engine '+APPS[0].run_meta.tool_version:'');
+['q','fband','fcov','sort'].forEach(function(id){$(id).addEventListener(id==='q'?'input':'change',render)});
+$('theme').onclick=function(){var r=document.documentElement,d=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches);r.dataset.theme=d?'light':'dark'};
+render();
+})();
+</script>
+</body>
+</html>

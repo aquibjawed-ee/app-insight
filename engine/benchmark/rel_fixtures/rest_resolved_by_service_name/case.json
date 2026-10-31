@@ -1,0 +1,17 @@
+{
+ "description": "plain RestTemplate call to a host equal to another app's spring.application.name",
+ "category": "positive",
+ "expect_edges": [
+  {
+   "type": "CALLS_API",
+   "source": "caller",
+   "target": "callee",
+   "method": "GET",
+   "path": "/api/items/1",
+   "state": "resolved"
+  }
+ ],
+ "exhaustive": [
+  "CALLS_API"
+ ]
+}

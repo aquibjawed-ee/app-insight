@@ -1,0 +1,36 @@
+{
+  "name": "working_tree_clean",
+  "category": "positive",
+  "description": "Everything is committed.",
+  "setup": {
+    "commit": true
+  },
+  "facts": [
+    {
+      "id": "identity.working_tree_clean",
+      "rule": "working-tree",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "clean"
+    },
+    {
+      "id": "identity.working_tree_clean",
+      "rule": "working-tree",
+      "value": 0,
+      "status": [
+        "CONFIRMED"
+      ],
+      "path": "changed_files"
+    },
+    {
+      "id": "identity.git_head",
+      "rule": "working-tree",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

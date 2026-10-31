@@ -1,0 +1,23 @@
+{
+  "name": "deps_source_literal_is_named_in_source_only",
+  "category": "positive",
+  "description": "A connection string that only appears in a source literal is reported as named in source, not as configured.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "MongoDB",
+          "where": "application",
+          "evidence_strength": "named in source"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

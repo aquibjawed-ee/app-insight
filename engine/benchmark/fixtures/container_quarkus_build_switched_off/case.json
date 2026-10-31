@@ -1,0 +1,21 @@
+{
+  "name": "container_quarkus_build_switched_off",
+  "category": "negative",
+  "description": "quarkus.container-image.build=false is an image build that is switched off.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.container",
+      "rule": "jib-detection",
+      "path": "image_build",
+      "value": false
+    },
+    {
+      "id": "stack.container",
+      "rule": "quarkus-image-detection",
+      "path": "quarkus.enabled",
+      "value": false
+    }
+  ],
+  "criteria": []
+}

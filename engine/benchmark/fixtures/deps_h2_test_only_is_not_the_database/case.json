@@ -1,0 +1,49 @@
+{
+  "name": "deps_h2_test_only_is_not_the_database",
+  "category": "negative",
+  "description": "H2 is declared with test scope and JPA at runtime: no production database type is stated.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "H2 (embedded)",
+          "where": "tests only"
+        },
+        {
+          "technology": "SQL database (type not stated)",
+          "where": "application",
+          "evidence_strength": "declared"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "H2 (embedded)",
+          "where": "application"
+        },
+        {
+          "technology": "PostgreSQL",
+          "where": "application"
+        },
+        {
+          "technology": "MySQL",
+          "where": "application"
+        },
+        {
+          "technology": "Oracle",
+          "where": "application"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

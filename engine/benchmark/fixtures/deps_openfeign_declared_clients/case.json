@@ -1,0 +1,50 @@
+{
+  "name": "deps_openfeign_declared_clients",
+  "category": "positive",
+  "description": "@FeignClient declarations name the services the application calls; a placeholder name is not reported.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_include": [
+        {
+          "technology": "HTTP service: inventory",
+          "where": "application",
+          "evidence_strength": "configured"
+        },
+        {
+          "technology": "HTTP service: pricing",
+          "where": "application",
+          "evidence_strength": "configured"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "stack.http_client_libraries",
+      "rule": "http-client-libraries",
+      "items_include": [
+        {
+          "technology": "OpenFeign",
+          "where": "application"
+        }
+      ]
+    },
+    {
+      "id": "stack.external_dependencies",
+      "rule": "dependency-detection",
+      "items_absent": [
+        {
+          "technology": "HTTP service: ${other.name}"
+        },
+        {
+          "technology": "OpenFeign"
+        }
+      ]
+    }
+  ],
+  "criteria": []
+}

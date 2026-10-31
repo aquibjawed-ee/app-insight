@@ -1,0 +1,39 @@
+{
+  "name": "acceptance_gherkin_with_cucumber",
+  "category": "positive",
+  "description": "Gherkin feature files with Cucumber declared: behaviour-driven acceptance tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "styles",
+      "value_includes": [
+        "gherkin"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "test-classification",
+      "path": "libraries",
+      "value_includes": [
+        "cucumber"
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "test-classification",
+      "result": [
+        "MET"
+      ]
+    }
+  ]
+}

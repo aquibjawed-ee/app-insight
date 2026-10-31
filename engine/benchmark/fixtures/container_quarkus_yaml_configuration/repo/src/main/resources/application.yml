@@ -1,0 +1,5 @@
+quarkus:
+  container-image:
+    build: true
+    group: acme
+    name: app

@@ -1,0 +1,17 @@
+{
+  "name": "gradle_kotlin_version_in_variable",
+  "category": "positive",
+  "description": "Kotlin version held in an ext variable and referenced by the plugin classpath line.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": "1.3.50",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

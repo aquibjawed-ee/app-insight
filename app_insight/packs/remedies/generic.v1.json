@@ -1,0 +1,23 @@
+{
+  "contract": "remedy-pack.v1",
+  "id": "generic",
+  "version": "1.0.0",
+  "title": "Generic guidance (no tooling assumed)",
+  "note": "Tool-neutral next steps. Organisations replace or extend this pack with their own automation.",
+  "remedies": {
+    "ci": {"title": "Extend the CI pipeline", "does": "Add the missing stage or job to the existing CI system and make it a required check."},
+    "tests": {"title": "Add the missing tests", "does": "Write the tests in the team's existing framework and run them in CI."},
+    "scan": {"title": "Run a vulnerability scan", "does": "Run the organisation's approved scanner against the repository and record the result."},
+    "upgrade": {"title": "Plan a platform upgrade", "does": "Run change impact for the target version, then upgrade behind the test safety net."},
+    "deploy_config": {"title": "Change the deployment configuration", "does": "Update the Kubernetes, Helm or Nomad files (or the platform repository that owns them)."},
+    "app_config": {"title": "Change the application configuration", "does": "Update the application's configuration and verify in a non-production environment."},
+    "docs": {"title": "Document it in the repository", "does": "Add the missing file (README, CODEOWNERS, ADR) next to the code."},
+    "deps_bot": {"title": "Turn on dependency update pull requests", "does": "Add a Renovate or Dependabot configuration so outdated dependencies arrive as reviewed pull requests."},
+    "alias": {"title": "Resolve unmatched calls", "does": "Add the missing repositories to the analysis, or supply an alias file (host: application), then re-run."}
+  },
+  "aspects": {
+    "delivery": ["ci"], "testing": ["tests"], "security": ["ci"], "platform": ["upgrade"], "runtime": ["app_config"], "availability": ["deploy_config"],
+    "observability": ["app_config"], "api": ["app_config"], "data": ["app_config"], "knowledge": ["docs"], "config": ["app_config"], "code": ["tests"]
+  },
+  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "architecture.calls_matched": ["alias"]}
+}

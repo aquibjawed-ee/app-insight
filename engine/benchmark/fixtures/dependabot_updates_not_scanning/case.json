@@ -1,0 +1,43 @@
+{
+  "name": "dependabot_updates_not_scanning",
+  "category": "contradictory",
+  "description": "Only a Dependabot config exists. It automates dependency updates; it is not a vulnerability scanner.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "security.dependency_updates",
+      "rule": "dependency-updates-vs-scanning",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    },
+    {
+      "id": "security.dependency_scanning",
+      "rule": "dependency-updates-vs-scanning",
+      "value": false,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "dependency_updates",
+      "rule": "dependency-updates-vs-scanning",
+      "result": [
+        "MET"
+      ]
+    },
+    {
+      "id": "dependency_scanning",
+      "rule": "dependency-updates-vs-scanning",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met": [
+    "dependency_scanning"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "kotlin_version_maven_property",
+  "category": "positive",
+  "description": "kotlin.version is a pom property.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.kotlin_version",
+      "rule": "declared-versions",
+      "value": "2.4.20",
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

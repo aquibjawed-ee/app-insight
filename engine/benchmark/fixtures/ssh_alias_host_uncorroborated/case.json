@@ -1,0 +1,28 @@
+{
+  "name": "ssh_alias_host_uncorroborated",
+  "category": "insufficient",
+  "description": "Remote host jl.github.com is an alias of github.com by convention, but nothing in the repository confirms it. The link must be labelled an assumption.",
+  "setup": {
+    "remote": "git@jl.github.com:Org/app.git"
+  },
+  "facts": [
+    {
+      "id": "identity.repository_url",
+      "rule": "repo-link-alias",
+      "value": "https://github.com/Org/app",
+      "status": [
+        "INFERRED"
+      ],
+      "note_contains": "assumed"
+    },
+    {
+      "id": "identity.pipeline_url",
+      "rule": "repo-link-alias",
+      "value": "https://github.com/Org/app/actions",
+      "status": [
+        "INFERRED"
+      ]
+    }
+  ],
+  "criteria": []
+}

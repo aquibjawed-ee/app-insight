@@ -1,0 +1,17 @@
+{
+  "name": "health_endpoint_smallrye",
+  "category": "positive",
+  "description": "quarkus-smallrye-health exposes health endpoints.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "resilience.health_endpoint",
+      "rule": "resilience",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

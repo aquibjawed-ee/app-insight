@@ -1,0 +1,12 @@
+<project>
+  <groupId>com.acme</groupId>
+  <artifactId>parent</artifactId>
+  <version>1.0</version>
+  <packaging>pom</packaging>
+  <modules>
+    <module>app</module>
+    <module>integration-tests</module>
+  </modules>
+  <dependencies>
+  </dependencies>
+</project>

@@ -1,0 +1,17 @@
+{
+  "name": "readme_prerequisites_only",
+  "category": "negative",
+  "description": "README starts with a title and a Prerequisites list; there is no description, and wrapped list lines must not be mistaken for one.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "identity.about",
+      "rule": "readme-about",
+      "value": null,
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}

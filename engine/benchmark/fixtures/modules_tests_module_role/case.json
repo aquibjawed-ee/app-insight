@@ -1,0 +1,26 @@
+{
+  "name": "modules_tests_module_role",
+  "category": "positive",
+  "description": "A module whose name says it only holds tests is listed with the role tests.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "path": "acceptance-tests",
+          "role": "tests"
+        },
+        {
+          "path": "service",
+          "role": "jar"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

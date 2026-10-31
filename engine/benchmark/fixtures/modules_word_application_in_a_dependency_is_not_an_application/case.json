@@ -1,0 +1,26 @@
+{
+  "name": "modules_word_application_in_a_dependency_is_not_an_application",
+  "category": "negative",
+  "description": "A module that depends on 'application-core' is not an application; only an application plugin or block is.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.module_list",
+      "rule": "module-listing",
+      "items_include": [
+        {
+          "path": "lib",
+          "role": "jar"
+        },
+        {
+          "path": "cli",
+          "role": "application"
+        }
+      ],
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": []
+}

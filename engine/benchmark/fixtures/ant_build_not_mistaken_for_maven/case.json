@@ -1,0 +1,18 @@
+{
+  "name": "ant_build_not_mistaken_for_maven",
+  "category": "insufficient",
+  "description": "Ant repository with a nested publishing pom and no root pom: the build tool is Ant, and the engine says it does not analyse Ant.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.build_tool",
+      "rule": "build-tool",
+      "value": "ant",
+      "status": [
+        "CONFIRMED"
+      ],
+      "note_contains": "not analysed"
+    }
+  ],
+  "criteria": []
+}

@@ -1,0 +1,7 @@
+name: CI
+on: [push]
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: mvn -B package

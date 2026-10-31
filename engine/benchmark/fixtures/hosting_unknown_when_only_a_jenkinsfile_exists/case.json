@@ -1,0 +1,17 @@
+{
+  "name": "hosting_unknown_when_only_a_jenkinsfile_exists",
+  "category": "insufficient",
+  "description": "Jenkins job definitions held on the server may deploy the application: unknown, not 'not found'.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.hosting",
+      "rule": "hosting-detection",
+      "value": [],
+      "status": [
+        "UNKNOWN"
+      ]
+    }
+  ],
+  "criteria": []
+}

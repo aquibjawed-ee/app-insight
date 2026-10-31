@@ -1,0 +1,20 @@
+{
+  "name": "secrets_never_echoed",
+  "category": "negative",
+  "description": "Build and CI files contain a literal password. It may be cited as evidence only with the value masked.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "build_ci.build_step",
+      "rule": "ci-build-step",
+      "value": true,
+      "status": [
+        "CONFIRMED"
+      ]
+    }
+  ],
+  "criteria": [],
+  "forbid_in_output": [
+    "hunter2hunter2"
+  ]
+}

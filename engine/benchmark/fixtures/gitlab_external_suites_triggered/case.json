@@ -1,0 +1,72 @@
+{
+  "name": "gitlab_external_suites_triggered",
+  "category": "insufficient",
+  "description": "Acceptance and performance suites live in other projects and are only triggered by CI jobs. That is evidence the pipeline invokes them, not of their content. A deploy job in the same stage is not a test.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "tests.acceptance_tests",
+      "rule": "external-suite-trigger",
+      "value": [
+        {
+          "job": "acceptance-tests",
+          "target_project": "grp/app-acceptance-tests"
+        }
+      ],
+      "status": [
+        "INFERRED"
+      ],
+      "path": "external"
+    },
+    {
+      "id": "tests.performance_tests",
+      "rule": "external-suite-trigger",
+      "value": [
+        {
+          "job": "performance-tests",
+          "target_project": "grp/app-performance-tests"
+        }
+      ],
+      "status": [
+        "INFERRED"
+      ],
+      "path": "external"
+    },
+    {
+      "id": "tests.contract_tests",
+      "rule": "external-suite-trigger",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ],
+      "path": "external"
+    }
+  ],
+  "criteria": [
+    {
+      "id": "acceptance_tests",
+      "rule": "external-suite-trigger",
+      "result": [
+        "PARTIAL"
+      ]
+    },
+    {
+      "id": "performance_tests",
+      "rule": "external-suite-trigger",
+      "result": [
+        "PARTIAL"
+      ]
+    },
+    {
+      "id": "contract_tests",
+      "rule": "external-suite-trigger",
+      "result": [
+        "NO_EVIDENCE"
+      ]
+    }
+  ],
+  "never_met": [
+    "acceptance_tests",
+    "performance_tests"
+  ]
+}

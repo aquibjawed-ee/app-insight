@@ -1,0 +1,6 @@
+[versions]
+kotlin = "1.9.22"
+kotlinOld = "1.8.0"
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinOld" }

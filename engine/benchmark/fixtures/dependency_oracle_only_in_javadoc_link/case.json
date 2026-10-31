@@ -1,0 +1,17 @@
+{
+  "name": "dependency_oracle_only_in_javadoc_link",
+  "category": "negative",
+  "description": "oracle appears only in a javadoc <link> URL: no Oracle dependency is declared.",
+  "setup": {},
+  "facts": [
+    {
+      "id": "stack.notable_dependencies",
+      "rule": "dependency-declarations",
+      "value": [],
+      "status": [
+        "NOT_FOUND"
+      ]
+    }
+  ],
+  "criteria": []
+}
