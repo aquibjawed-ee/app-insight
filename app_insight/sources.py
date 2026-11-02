@@ -27,7 +27,7 @@ class Source:
     def __init__(self, spec, name=None, branch=None, team=None, criticality=None, row=None):
         self.spec, self.name, self.branch, self.team, self.criticality, self.row = spec.strip(), name or None, branch or None, team or None, criticality or None, row
         self.remote = bool(REMOTE.match(self.spec))
-        self.path, self.status, self.error, self.commit = None, "pending", None, None
+        self.path, self.status, self.error, self.commit, self.changed_files = None, "pending", None, None, None
 
     def slug(self):
         if self.name:
@@ -38,7 +38,7 @@ class Source:
 
     def as_dict(self):
         return {"spec": self.spec, "name": self.name, "branch": self.branch, "team": self.team, "criticality": self.criticality, "remote": self.remote,
-                "path": self.path, "status": self.status, "error": self.error, "commit": self.commit, "row": self.row}
+                "path": self.path, "status": self.status, "error": self.error, "commit": self.commit, "changed_files": self.changed_files, "row": self.row}
 
 
 def _rows_to_sources(rows, origin):
@@ -141,6 +141,11 @@ def _head(path):
     return r.stdout.strip() if r.returncode == 0 else None
 
 
+def _changed(path):
+    r = _git(["status", "--porcelain"], cwd=path, timeout=30)
+    return len([l for l in r.stdout.splitlines() if l.strip()]) if r.returncode == 0 else None
+
+
 def fetch(src, repos_dir, update=True):
     """Make one source available on disk. Local paths are used where they are; remote ones are cloned or refreshed."""
     try:
@@ -150,6 +155,7 @@ def fetch(src, repos_dir, update=True):
                 src.status, src.error = "failed", "local path not found"
                 return src
             src.path, src.status, src.commit = p, "local", _head(p)
+            src.changed_files = _changed(p)  # the scan reads the working tree: uncommitted changes mean it is not exactly the commit
             return src
         dest = os.path.join(repos_dir, src.slug())
         if os.path.isdir(os.path.join(dest, ".git")):

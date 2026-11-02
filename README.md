@@ -63,6 +63,12 @@ A client can supply its own pack file path.
 
 ## Status
 
-Step 1 of the plan: the trace contract, the product shell (ingestion, workspaces, CLI) and the report on top of it.
-Next: detectors for runtime resilience (HTTP timeouts and retries, Kafka/JMS error handling, DB pools, graceful
-shutdown), observability, code health and git-history signals; additional language adapters.
+- **Step 1**: the trace contract, the product shell (ingestion, workspaces, CLI) and the report on top of it.
+- **Step 2 (runtime resilience)**: HTTP client timeouts, retries and circuit breakers, message-consumer error handling
+  (Kafka, RabbitMQ, JMS, SQS), database query/transaction timeouts and pools, graceful shutdown and structured logging
+  are read from `application*.properties|yml`, logging configuration and main source code
+  (`engine/scripts/detectors/runtime.py`). A setting supplied only by the platform or the environment at deploy time
+  is not visible: those cases report `UNKNOWN`, not a gap.
+
+Still `NOT_ASSESSED`: code health and hotspots, git-history signals, ADRs, secrets in configuration, backup/DR, alerts
+and SLOs. Other language adapters come after.

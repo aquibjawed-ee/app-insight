@@ -18,6 +18,7 @@ from . import engine_path  # noqa: F401
 from . import aspects as A
 from . import report as R
 from . import sources as SRC
+from . import verify as V
 
 VERSION = "0.1.0"
 DEFAULT_PACKS = ["generic"]
@@ -74,7 +75,7 @@ def summarise(run_dir):
         c = {}
         for st in apps.values():
             c[st.get(asp["id"])] = c.get(st.get(asp["id"]), 0) + 1
-        per_aspect.append({"aspect": asp["title"], "issues": c.get("issues", 0), "gaps": c.get("gaps", 0), "in_place": c.get("in_place", 0), "not_assessed": c.get("not_assessed", 0), "not_applicable": c.get("not_applicable", 0)})
+        per_aspect.append({"aspect": asp["title"], "issues": c.get("issues", 0), "gaps": c.get("gaps", 0), "in_place": c.get("in_place", 0) + c.get("in_place_partly_checked", 0), "not_assessed": c.get("not_assessed", 0), "not_applicable": c.get("not_applicable", 0)})
     top = {}
     for app in apps:
         doc = _read(os.path.join(out, app, "aspects.json"))
@@ -148,9 +149,12 @@ def cmd_scan(a):
     _write(os.path.join(run_dir, "run.json"), run)
     with open(os.path.join(ws, "latest"), "w") as fh:
         fh.write(stamp)
+    ver = V.write(run_dir)
     s = summarise(run_dir)
     print_summary(s) if not a.json else print(json.dumps(s, indent=1))
-    return 0 if rc == 0 else 1
+    if not a.json:
+        V.print_result(ver)
+    return 0 if rc == 0 and ver["ok"] else 1
 
 
 def cmd_sources(a):
@@ -168,6 +172,7 @@ def _rebuild(run_dir, packs_override=None):
     out = os.path.join(run_dir, "analysis")
     A.build(out, A.load_catalogue(), packs)
     R.build(out, os.path.join(run_dir, "report.html"), A.load_catalogue(), packs, run["sources"], run["client"])
+    V.write(run_dir)
     return run_dir
 
 
@@ -187,6 +192,12 @@ def cmd_summary(a):
     s = summarise(resolve_run(a.run))
     print(json.dumps(s, indent=1)) if a.json else print_summary(s)
     return 0
+
+
+def cmd_verify(a):
+    res = V.write(resolve_run(a.run))
+    print(json.dumps(res, indent=1)) if a.json else V.print_result(res)
+    return 0 if res["ok"] else 1
 
 
 def cmd_doctor(a):
@@ -231,6 +242,10 @@ def main(argv=None):
     p.add_argument("run")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_summary)
+    p = sub.add_parser("verify", help="re-check a run: every cited line against the repositories, every count against every other place it appears")
+    p.add_argument("run")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_verify)
     p = sub.add_parser("doctor", help="check the local prerequisites")
     p.set_defaults(fn=cmd_doctor)
     a = ap.parse_args(argv)

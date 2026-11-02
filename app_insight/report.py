@@ -15,7 +15,7 @@ UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 UI_JS = ["icons.js", "core.js", "shell.js", "aspects.js", "applications.js", "dashboard.js", "discovery.js", "assessment.js", "architecture.js", "findings.js",
          "roadmap.js", "impact.js", "about.js", "main.js"]
 FULL_MAP_MAX = 12
-KEEP = ("identity", "stack", "build_ci", "tests", "api", "resilience", "security", "maturity", "gaps_and_risks")
+KEEP = ("identity", "stack", "build_ci", "tests", "api", "resilience", "security", "runtime", "maturity", "gaps_and_risks")
 
 
 def _read(p):
@@ -55,7 +55,8 @@ def collect(out, catalogue, packs, sources=None, client=None):
 
 
 def render(data):
-    blob = json.dumps(data, sort_keys=True).replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    import evidence  # engine: the page never carries a secret, whatever the analysis files hold
+    blob = json.dumps(evidence.redact_tree(data), sort_keys=True).replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
     tpl = _ui("template.html")
     if "/*__DATA__*/null" not in tpl:
         raise ValueError("template has no data placeholder")

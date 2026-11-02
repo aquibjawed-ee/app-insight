@@ -1,7 +1,7 @@
 {
   "contract": "remedy-pack.v1",
   "id": "generic",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "title": "Generic guidance (no tooling assumed)",
   "note": "Tool-neutral next steps. Organisations replace or extend this pack with their own automation.",
   "remedies": {
@@ -9,15 +9,31 @@
     "tests": {"title": "Add the missing tests", "does": "Write the tests in the team's existing framework and run them in CI."},
     "scan": {"title": "Run a vulnerability scan", "does": "Run the organisation's approved scanner against the repository and record the result."},
     "upgrade": {"title": "Plan a platform upgrade", "does": "Run change impact for the target version, then upgrade behind the test safety net."},
-    "deploy_config": {"title": "Change the deployment configuration", "does": "Update the Kubernetes, Helm or Nomad files (or the platform repository that owns them)."},
+    "deploy_config": {"title": "Change the deployment configuration", "does": "Update the deployment definition that runs the application: Kubernetes or Helm files, a Nomad job, Ansible inventories and roles, or the platform repository that owns them."},
     "app_config": {"title": "Change the application configuration", "does": "Update the application's configuration and verify in a non-production environment."},
-    "docs": {"title": "Document it in the repository", "does": "Add the missing file (README, CODEOWNERS, ADR) next to the code."},
+    "docs": {"title": "Document it in the repository", "does": "Add or complete the file next to the code: a README that says what the application does, a CODEOWNERS file, an ADR."},
     "deps_bot": {"title": "Turn on dependency update pull requests", "does": "Add a Renovate or Dependabot configuration so outdated dependencies arrive as reviewed pull requests."},
-    "alias": {"title": "Resolve unmatched calls", "does": "Add the missing repositories to the analysis, or supply an alias file (host: application), then re-run."}
+    "alias": {"title": "Resolve unmatched calls", "does": "Add the missing repositories to the analysis, or supply an alias file (host: application), then re-run."},
+    "http_timeouts": {"title": "Set HTTP client timeouts", "does": "Give every outbound HTTP client a connect and a read (response) timeout shorter than the caller's own deadline, in configuration (e.g. spring.http.client.*, feign.client.config.*) or on the client builder."},
+    "resilience_lib": {"title": "Add retries and circuit breakers", "does": "Wrap each remote dependency in a circuit breaker and retry only idempotent calls, with bounded attempts and backoff (e.g. Resilience4j)."},
+    "dead_letter": {"title": "Handle failing messages", "does": "Configure the consumer's error handler with bounded retries and a dead-letter topic or queue, and alert on messages arriving there."},
+    "db_timeouts": {"title": "Bound database calls", "does": "Set a query or transaction timeout (and size the connection pool) so a slow query cannot hold a connection indefinitely."},
+    "graceful_shutdown_upgrade": {"title": "Upgrade, then enable graceful shutdown", "requires": {"boot_graceful": ["no"]}, "does": "This Spring Boot line has no graceful shutdown setting: upgrade to a supported line (2.3 or later is the minimum), then set server.shutdown=graceful and a shutdown phase timeout."},
+    "graceful_shutdown": {"title": "Enable graceful shutdown", "requires": {"boot_graceful": ["yes"]}, "does": "Set server.shutdown=graceful (or the framework's equivalent) and a shutdown phase timeout below the platform's termination grace period. On Spring Boot older than 2.3 the property does not exist: upgrade first."},
+    "secrets": {"title": "Rotate and externalise the secrets", "does": "Rotate every exposed secret first (it is in the history), then load it at runtime from the platform's secret store (Vault, AWS Secrets Manager, Kubernetes Secrets) or the CI credential store; add secret scanning so it does not happen again."},
+    "json_logs": {"title": "Log as JSON", "does": "Switch the log output to JSON (logging.structured.format.console on Spring Boot 3.4+, or a JSON encoder) and include trace and correlation identifiers."}
   },
   "aspects": {
     "delivery": ["ci"], "testing": ["tests"], "security": ["ci"], "platform": ["upgrade"], "runtime": ["app_config"], "availability": ["deploy_config"],
     "observability": ["app_config"], "api": ["app_config"], "data": ["app_config"], "knowledge": ["docs"], "config": ["app_config"], "code": ["tests"]
   },
-  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "architecture.calls_matched": ["alias"]}
+  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "architecture.calls_matched": ["alias"],
+    "runtime.http_timeouts": ["http_timeouts"],
+    "runtime.retries_breakers": ["resilience_lib"],
+    "runtime.messaging_errors": ["dead_letter"],
+    "runtime.db_timeouts": ["db_timeouts"],
+    "runtime.graceful_shutdown": ["graceful_shutdown", "graceful_shutdown_upgrade"],
+    "security.secrets_in_code": ["secrets"],
+    "config.secrets_externalised": ["secrets"],
+    "observability.structured_logging": ["json_logs"]}
 }
