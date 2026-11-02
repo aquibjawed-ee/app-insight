@@ -339,3 +339,51 @@ class SixthAuditTest(unittest.TestCase):
                                  "README.md": "# Svc\n\nBuilt by the jenkins job svc-build.\n\n## Deploy\n\n    ansible-playbook -i inventory/prod site.yml\n"}))
         res = {c["id"]: c["result"] for c in d["maturity"]["criteria"]}
         self.assertEqual((res["automated_build"], res["automated_deploy"]), ("UNKNOWN", "NO_EVIDENCE"))
+
+
+class ScopeTest(unittest.TestCase):
+    """What the scan read, and what the repository names that it cannot read: a setting may live there, so "not found" is not a gap."""
+
+    def spots(self, files):
+        return {b["id"]: b for b in discover.build(repo(files))["scope"]["blind_spots"]["value"]}
+
+    def test_an_organisation_parent_pom_outside_the_repository_is_a_blind_spot(self):
+        pom = F.pom("svc", "3.2.4", "17", []).replace("<groupId>org.springframework.boot</groupId>", "<groupId>com.acme.platform</groupId>", 1)
+        s = self.spots({"pom.xml": pom})
+        self.assertEqual(s["build.parent_pom"]["area"], "build")
+        self.assertIn("com.acme.platform", s["build.parent_pom"]["what"])
+
+    def test_the_spring_boot_parent_and_a_parent_in_the_repository_are_not(self):
+        self.assertNotIn("build.parent_pom", self.spots({"pom.xml": F.pom("svc", "3.2.4", "17", [])}))
+
+    def test_remote_ci_shared_libraries_and_reusable_workflows_are_blind_spots(self):
+        s = self.spots({"build.gradle": "plugins { id 'java' }\n",
+                        ".gitlab-ci.yml": "include:\n  - project: acme/ci-templates\n    file: java.yml\n",
+                        "Jenkinsfile": "@Library('acme-pipeline') _\nstandardBuild()\n",
+                        ".github/workflows/ci.yml": "on: push\njobs:\n  build:\n    uses: acme/workflows/.github/workflows/java.yml@v2\n"})
+        self.assertTrue({"ci.remote_include", "ci.shared_library", "ci.reusable_workflow"} <= set(s))
+        self.assertTrue(all(b["area"] == "ci" for b in s.values()))
+
+    def test_a_ci_system_or_build_tool_not_parsed_is_a_blind_spot(self):
+        s = self.spots({"build.sbt": "name := \"svc\"\n", ".travis.yml": "language: scala\n"})
+        self.assertIn("sbt", s["build.unread_tool"]["what"])
+        self.assertIn("Travis", s["ci.unread_system"]["what"])
+
+    def test_a_config_server_is_a_blind_spot_for_configuration(self):
+        s = self.spots({"build.gradle": "plugins { id 'java' }\n", "src/main/resources/application.yml": "spring:\n  config:\n    import: optional:configserver:http://config:8888\n"})
+        self.assertEqual(s["config.external"]["area"], "config")
+
+    def test_classpath_config_location_is_not_a_blind_spot(self):
+        s = self.spots({"build.gradle": "plugins { id 'java' }\n", "Dockerfile": "FROM eclipse-temurin:17\nCMD java -Dspring.config.location=classpath:/app.yml -jar a.jar\n"})
+        self.assertNotIn("config.external", s)
+
+    def test_deployment_in_terraform_is_named(self):
+        s = self.spots({"build.gradle": "plugins { id 'java' }\n", "infra/main.tf": "resource \"aws_ecs_service\" \"svc\" {\n  desired_count = 2\n}\n"})
+        self.assertIn("Terraform", s["deploy.unread_tool"]["what"])
+
+    def test_an_ordinary_repository_has_none_and_records_what_was_read(self):
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n", ".github/workflows/ci.yml": "on: push\njobs:\n  b:\n    steps:\n      - run: ./gradlew build\n",
+                                 "src/main/resources/application.yml": "server:\n  port: 8080\n"}))
+        self.assertEqual(d["scope"]["blind_spots"]["value"], [])
+        read = d["scope"]["files_read"]["value"]
+        self.assertEqual((read["build"]["count"], read["ci"]["count"], read["config"]["count"]), (1, 1, 1))

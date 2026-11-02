@@ -2,7 +2,8 @@
 against every other place the same number appears. Runs at the end of every scan and on demand (`app-insight verify`).
 
 Accuracy: a cited line still reads what was cited; "in place" cites at least one line; "enforced" cites a CI file;
-a control about the build or pipeline does not cite test code; a result is a verdict, not the control's description.
+a control about the build or pipeline does not cite test code; a result is a verdict, not the control's description;
+"not found" says where it searched, and is never claimed where the repository points outside the scan.
 Consistency: coverage and status recompute from the controls; findings are exactly the gap controls; the portfolio
 summary and the report carry the same states as the per-application files.
 """
@@ -29,6 +30,7 @@ RULES = {
     "ACC-7": "an in-place result rests on an unknown (version or reference data not known)",
     "ACC-8": "a cited line about a secret shows the secret instead of [REDACTED]",
     "ACC-9": "a file written by the run holds a secret-looking value that is not redacted",
+    "ACC-10": "a 'not found' result does not say where it searched and what for",
     "CON-1": "coverage does not recompute from the controls",
     "CON-2": "aspect status does not recompute from the controls",
     "CON-3": "findings are not exactly the controls in a gap state",
@@ -36,6 +38,7 @@ RULES = {
     "CON-5": "a state or level outside the catalogue vocabulary",
     "CON-6": "the report shows different data from the analysis",
     "CON-7": "two controls of one application contradict each other",
+    "CON-8": "a 'not found' result in an area the scan recorded as partly outside its reach",
 }
 UNKNOWN_WORDS = re.compile(r"(?i)\bunknown\b|line-specific|not in the reference data|cannot be decided|not recognised")
 # (what one control says is not there, the controls whose result shows it is there)
@@ -118,6 +121,15 @@ def check(run_dir, catalogue=None):
                     bad("ACC-5", app, cid, c["summary"][:90])
                 if (st in A.GAP_STATES and not c["severity"]) or (st in ("NOT_ASSESSED", "UNKNOWN") and not c["summary"]):
                     bad("ACC-6", app, cid, st)
+                if st == "ABSENT" and (by_id.get(cid) or {}).get("search"):
+                    s = c.get("searched") or {}
+                    if not s.get("for") or not s.get("in"):
+                        bad("ACC-10", app, cid, "no search record")
+                    srch = (by_id.get(cid) or {}).get("search") or {}
+                    areas = set(srch["blind_to"] if "blind_to" in srch else srch.get("in") or [])
+                    blind = [b for b in (doc.get("scope") or {}).get("blind_spots") or [] if b["area"] in areas]
+                    if blind and not (by_id.get(cid) or {}).get("negative_scan"):
+                        bad("CON-8", app, cid, "%s, but %s" % (c["summary"][:60], blind[0]["what"][:60]))
                 if st in A.GAP_STATES:
                     gaps.append(c["finding"])
             status, _, cov = A.rollup(asp["controls"])

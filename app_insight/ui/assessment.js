@@ -1,7 +1,7 @@
 /* assessment: one application's aspect trace, in the order of the v2 "Assessment" mock: scorecard of aspects -> each aspect's controls
    (state, evidence level, what was found, evidence, finding, remedy) -> recommendations and missing proof -> deployment and test detail.
    No score and no weighting: an aspect's status is the worst of its controls, and "not assessed" never counts as in place. */
-const ACOLOR = {red: ["#ffeff1", "#ff5365"], yellow: ["#fff7e7", "#d98c04"], green: ["#e7f9f1", "#0b8a5e"], gray: ["#eef2f7", "#6a7f9a"]};
+const ACOLOR = {red: ["#ffeff1", "#ff5365"], yellow: ["#fff7e7", "#d98c04"], green: ["#e7f9f1", "#0b8a5e"], teal: ["#e3f5f1", "#1d7f6c"], gray: ["#eef2f7", "#6a7f9a"]};
 function aspectTile(name, a) {
   const c = ACOLOR[(ASTATUS[a.status] || ASTATUS.not_assessed)[0]], asp = ASP[a.id];
   return `<a class="score-tile" href="#/assessment/${encodeURIComponent(name)}/${a.id}"><div class="score-top"><span class="iconwrap" style="background:${c[0]};color:${c[1]}">${icon(asp.icon)}</span>${statusTag(a.status)}</div><h3>${esc(a.title)}</h3><p>${esc(a.question)}</p><div class="dimension-meta"><span>${esc(coverageText(a))}</span></div></a>`;
@@ -9,7 +9,7 @@ function aspectTile(name, a) {
 const LEVEL = {declared: "declared", configured: "configured", enforced: "enforced in CI", verified: "verified"};
 function controlRow(name, c) {
   const ev = (c.evidence || []).length, fid = c.finding;
-  return `<tr class="ctl-${c.state.toLowerCase()}"><td><b>${esc(c.title)}</b>${c.severity ? `<div style="margin-top:3px">${sevTag(SEVL[c.severity])}</div>` : ""}</td><td>${cstateTag(c.state)}${c.level ? `<div class="tiny" style="margin-top:3px">${esc(LEVEL[c.level] || c.level)}</div>` : ""}</td><td class="ctl-summary">${esc(c.summary || "")}</td>
+  return `<tr class="ctl-${c.state.toLowerCase()}"><td><b>${esc(c.title)}</b>${c.severity ? `<div style="margin-top:3px">${sevTag(SEVL[c.severity])}</div>` : ""}</td><td>${cstateTag(c.state)}${c.level ? `<div class="tiny" style="margin-top:3px">${esc(LEVEL[c.level] || c.level)}</div>` : ""}</td><td class="ctl-summary">${esc(c.summary || "")}${c.searched ? `<div class="tiny" style="margin-top:3px">${esc(searchedText(c.searched))}</div>` : ""}</td>
 <td>${ev ? `<button class="mini" data-ctl="${esc(c.id)}">${ev} line${ev === 1 ? "" : "s"}</button>` : c.facts.length ? `<button class="mini" data-ctl="${esc(c.id)}">facts</button>` : '<span class="tiny">—</span>'}</td>
 <td>${fid ? `<a class="linkbtn" href="#/finding/${encodeURIComponent(fid)}">Finding ${icon("arrow-right")}</a><div class="chips" style="margin-top:4px">${(c.remedies || []).map(normR).slice(0, 2).map(remedyChip).join("")}</div>` : ""}</td></tr>`;
 }
@@ -20,11 +20,26 @@ function aspectSection(name, a) {
 ${live.length ? `<table class="simple-table trace"><thead><tr><th>Control</th><th>State</th><th>What was found</th><th>Evidence</th><th>Finding and remedy</th></tr></thead><tbody>${live.map(c => controlRow(name, c)).join("")}</tbody></table>` : ""}
 ${na.length ? `<div class="tiny na-line">Not applicable: ${na.map(c => `${esc(c.title)} (${esc(c.summary)})`).join("; ")}</div>` : ""}</details>`;
 }
+const AREA = {build: ["build file", "build files"], ci: ["CI file", "CI files"], config: ["configuration file", "configuration files"], deploy: ["deployment file", "deployment files"],
+  main_source: ["source file", "source files"], test_source: ["test source file", "test source files"], docs: ["documentation file", "documentation files"]};
+/* where a "not found" looked: "searched 3 build files and 1 CI file" or "the whole repository"; an area with no files says none exist */
+function searchedText(s) {
+  const parts = s.in.map(x => x.area === "repo" ? "the whole repository" : x.count ? `${x.count} ${AREA[x.area][x.count === 1 ? 0 : 1]}` : `no ${AREA[x.area][1]} (none exist)`);
+  return "Searched " + (parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0]);
+}
+function searchedEl(s) {
+  return h("div", {}, h("h3", {style: "margin-top:12px"}, "Where it looked"), h("p", {class: "tiny"}, "For " + s.for + "."),
+    ...s.in.map(x => h("div", {class: "tiny", style: "margin-top:4px"}, x.area === "repo" ? "The whole repository" : x.count ? `${x.count} ${AREA[x.area][x.count === 1 ? 0 : 1]}: ${x.files.join(", ")}${x.count > x.files.length ? ", …" : ""}` : `No ${AREA[x.area][1]} exist in the repository`)));
+}
+function blindSpots(a) {
+  const b = ((a.aspects.scope || {}).blind_spots) || [];
+  return b.length ? `<section class="card overview-card" style="margin-top:12px"><div class="section-heading"><div><h2>Outside this scan</h2><p>The repository names these, but their content is not in it. A control that would be read there is shown as undecided, not missing.</p></div></div><table class="simple-table"><tbody>${b.map(x => `<tr><td>${esc(x.what)}</td><td class="tiny">${x.at.map(esc).join(", ")}</td></tr>`).join("")}</tbody></table></section>` : "";
+}
 function showControl(a, c) {
   openDrawer(c.title, h("div", {class: "chips", style: "margin:6px 0"}, htmlEl(cstateTag(c.state)), c.level ? h("span", {class: "tag blue"}, LEVEL[c.level] || c.level) : null), h("p", {class: "sub"}, c.summary),
     h("p", {class: "tiny"}, D.catalogue.states[c.state] || ""), c.facts.length ? h("div", {}, h("h3", {style: "margin-top:12px"}, "Facts it was read from"),
       ...c.facts.map(p => { const f = p.split(".").reduce((o, x) => o && o[x], a.discovery) || {}; return h("div", {}, h("div", {class: "tiny", style: "margin-top:8px"}, p), f.status ? pill(f.status) : null, f.note ? h("p", {class: "tiny"}, f.note) : null); })) : null,
-    h("h3", {style: "margin-top:12px"}, "Evidence"), evList(c.evidence), c.fix ? h("div", {}, h("h3", {style: "margin-top:12px"}, "Fix"), h("p", {}, c.fix)) : null);
+    c.searched ? searchedEl(c.searched) : null, h("h3", {style: "margin-top:12px"}, "Evidence"), evList(c.evidence), c.fix ? h("div", {}, h("h3", {style: "margin-top:12px"}, "Fix"), h("p", {}, c.fix)) : null);
 }
 /* one row per remedy for this application, merged across aspects, main remedies first */
 function recommendations(fs) {
@@ -43,6 +58,7 @@ function pAssessment(m, name, focus) {
   put(m, `<div class="view-intro"><div><p>How it is doing in every aspect that matters for production readiness, and what to do about it. Read from files only: configured is not tested, enforced or observed.</p><div class="chips" style="margin-top:8px"><span class="tag blue">${esc(prof.kind)}</span>${Object.values(ctx).map(c => `<span class="tag gray" title="${esc(c.headline)}">${esc(c.title)}: ${esc(c.state.replace("_", " "))}</span>`).join("")}${a.source && a.source.team ? `<span class="tag gray">team: ${esc(a.source.team)}</span>` : ""}</div></div><div class="last-updated">Assessed on<br><b>${esc(fmtDate(D.generated))}</b><br><span class="tiny">catalogue ${esc(D.catalogue.version)}</span></div></div>`);
   const counts = [[st("issues"), "red", "with issues"], [st("gaps"), "yellow", "with gaps"], [st("in_place"), "green", "in place"], [st("in_place_partly_checked"), "teal", "in place where checked"], [st("not_assessed"), "gray", "not assessed"], [st("not_applicable"), "gray", "not applicable"]].filter(x => x[0]).map(([n, c, l]) => `<span class="tag ${c}">${n} ${l}</span>`).join("");
   put(m, `<section class="card overview-card"><div class="section-heading"><div><h2>Aspect scorecard</h2><p>${asps.length} aspects, each the worst of its own controls. There is no combined score.</p></div><div class="tinyrow">${counts}</div></div><div class="score-grid">${asps.map(x => aspectTile(name, x)).join("")}</div></section>`);
+  put(m, blindSpots(a));
   put(m, `<section class="card overview-card" style="margin-top:12px"><div class="section-heading"><div><h2>Controls by aspect</h2><p>The trace: each control's state, how strongly it was shown, what was read, the evidence lines, and the finding and remedy when it is not in place.</p></div></div>${asps.map(x => aspectSection(name, x)).join("")}</section>`);
   const recs = recommendations(fs), miss = asps.flatMap(x => x.controls.filter(c => ["NOT_ASSESSED", "UNKNOWN"].includes(c.state)).map(c => [x.title, c]));
   put(m, `<div class="grid-2eq" style="margin-top:12px"><section class="card overview-card"><div class="section-heading"><div><h2>Recommendations</h2><p>From the client's remedy packs (${esc(D.remedy_packs.map(p => p.title).join(", "))}). No effort or value is estimated.</p></div><a class="linkbtn" href="#/roadmap">Roadmap ${icon("arrow-right")}</a></div>${recs.length ? `<table class="simple-table recs"><thead><tr><th>#</th><th>Recommendation</th><th>Aspect</th><th>Addresses</th></tr></thead><tbody>${recs.map((r, i) => `<tr><td>${i + 1}</td><td><b>${esc(r.t)}</b><div style="margin-top:4px">${remedyChip(r)}</div></td><td class="tiny">${r.ws.map(esc).join(", ")}</td><td><div class="tinyrow">${sevTag(r.sev)}<span class="tiny">${r.issues.size} control${r.issues.size === 1 ? "" : "s"}</span></div><div class="tiny" style="margin-top:4px">${[...r.issues].slice(0, 3).map(esc).join("; ")}${r.issues.size > 3 ? "; …" : ""}</div></td></tr>`).join("")}</tbody></table>` : emptyState("Nothing to recommend", "Every applicable control that was assessed is in place.")}</section>

@@ -107,6 +107,44 @@ class VerifyTest(unittest.TestCase):
         cx = A.Context("x", {"stack": {"spring_boot_version": {"value": "1.5.10.RELEASE"}}}, None, None, None, None, {"nodes": [], "edges": []})
         self.assertEqual([r["key"] for r in A.remedies_for(ctl, A.load_remedy_packs(["generic"]), cx)], ["graceful_shutdown_upgrade"])
 
+    def absent(self, d):
+        hide = {c["id"] for c in A.load_catalogue()["controls"] if c.get("search", {}).get("blind_to", c.get("search", {}).get("in"))}
+        return next(c for a in d["aspects"] for c in a["controls"] if c["state"] == "ABSENT" and c.get("searched") and c["id"] in hide)
+
+    def test_every_not_found_says_where_it_looked(self):
+        cs = [c for a in self.clean["aspects"] for c in a["controls"] if c["state"] == "ABSENT"]
+        self.assertTrue(cs)
+        self.assertTrue(all(c["searched"]["for"] and c["searched"]["in"] for c in cs), [c["id"] for c in cs if not c.get("searched")])
+
+    def test_a_not_found_without_a_search_record_is_caught(self):
+        self.assertIn("ACC-10", self.tamper(lambda d: self.absent(d).update(searched=None)))
+
+    def test_a_not_found_in_an_area_outside_the_scan_is_caught(self):
+        def f(d):
+            area = next(a for c in A.load_catalogue()["controls"] if c["id"] == self.absent(d)["id"] for a in c["search"].get("blind_to", c["search"]["in"]))
+            d["scope"]["blind_spots"] = [{"id": "x", "area": area, "what": "something held elsewhere", "at": ["pom.xml:3"]}]
+        self.assertIn("CON-8", self.tamper(f))
+
+    def test_a_blind_spot_turns_not_found_into_undecided(self):
+        ctl = next(c for c in A.load_catalogue()["controls"] if c["id"] == "security.sast")
+        spot = {"id": "build.parent_pom", "area": "build", "what": "a parent POM from outside this repository (com.acme:parent)", "at": ["pom.xml:5"]}
+        disc = {"maturity": {"criteria": [{"id": "sast", "result": "NO_EVIDENCE", "facts": ["security.sast"]}]},
+                "scope": {"blind_spots": {"value": [spot], "status": "CONFIRMED", "evidence": [{"kind": "file", "path": "pom.xml", "line_start": 5, "snippet": "<groupId>com.acme</groupId>"}]},
+                          "files_read": {"value": {"build": {"count": 1, "files": ["pom.xml"]}, "ci": {"count": 0, "files": []}}}}}
+        r = A.evaluate(ctl, A.Context("x", disc, None, None, None, None, {"nodes": [], "edges": []}))
+        self.assertEqual(r["state"], "UNKNOWN")
+        self.assertIn("pom.xml:5", r["summary"])
+        disc["scope"]["blind_spots"]["value"] = []
+        r = A.evaluate(ctl, A.Context("x", disc, None, None, None, None, {"nodes": [], "edges": []}))
+        self.assertEqual((r["state"], [x["count"] for x in r["searched"]["in"]]), ("ABSENT", [0, 1]))
+
+    def test_a_blind_spot_only_hides_what_it_could_hold(self):
+        ctl = next(c for c in A.load_catalogue()["controls"] if c["id"] == "testing.integration")  # a parent POM cannot add test classes
+        spot = {"id": "build.parent_pom", "area": "build", "what": "a parent POM from outside this repository (com.acme:parent)", "at": ["pom.xml:5"]}
+        disc = {"maturity": {"criteria": [{"id": "integration_tests", "result": "NO_EVIDENCE", "facts": ["tests.integration_tests"]}]},
+                "scope": {"blind_spots": {"value": [spot], "evidence": []}, "files_read": {"value": {"build": {"count": 1, "files": ["pom.xml"]}, "test_source": {"count": 2, "files": []}}}}}
+        self.assertEqual(A.evaluate(ctl, A.Context("x", disc, None, None, None, None, {"nodes": [], "edges": []}))["state"], "ABSENT")
+
     def test_findings_that_drift_from_the_gap_controls_are_caught(self):
         self.assertIn("CON-3", self.tamper(lambda d: d["findings"].append("made.up@" + self.app)))
 

@@ -15,6 +15,7 @@
     "resilience": {"$ref": "#/$defs/section"},
     "security": {"$ref": "#/$defs/section"},
     "runtime": {"$ref": "#/$defs/section"},
+    "scope": {"$ref": "#/$defs/section"},
     "maturity": {
       "type": "object",
       "additionalProperties": false,

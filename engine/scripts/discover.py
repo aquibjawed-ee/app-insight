@@ -40,10 +40,11 @@ LIMITATIONS = [
     "Suites that the pipeline triggers from another project are INFERRED from the CI job; their content and results are not visible.",
     "Facts are repository-wide. File citations carry the module they came from; per-module assessment is not performed.",
     "Dependencies and hosting are read from files (deployment descriptors and pipeline commands name the platform; nothing is queried): hosts are not resolved, a service reached only at run time, through a client built in code or through a URL held in a property is not named, and a declared dependency with no connection setting is reported as declared only.",
+    "Places the repository names but does not contain (a parent POM or Gradle plugin from outside it, CI templates or shared libraries, a CI system or build tool not parsed, a config server, deployment in Terraform, ECS, CloudFormation and similar) are listed in scope.blind_spots; a check that reads those areas does not report a missing control there.",
     "Evidence snippets are redacted for secret-looking literals; review before sharing outside the organisation.",
     "Runtime resilience (timeouts, retries, circuit breakers, consumer error handling, shutdown, log format) is read from application*.properties|yml, logback/log4j2 files and main code; values set by the platform, environment variables, a config server or a shared library are not visible, and a client built through an in-house wrapper is not recognised.",
 ]
-ORDER = ["identity", "stack", "build_ci", "tests", "api", "resilience", "security", "runtime"]
+ORDER = ["identity", "stack", "build_ci", "tests", "api", "resilience", "security", "runtime", "scope"]
 
 
 def build(repo: str) -> dict:

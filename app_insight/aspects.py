@@ -199,6 +199,10 @@ def coverage_gap(cx):
 
 def eval_ha(hid, cx):
     if not cx.res or cx.res.get("state") != "assessed":
+        other = [b for b in _fact(cx.disc, "scope.blind_spots").get("value") or [] if b["area"] == "deploy"]
+        if other:
+            return _r("NOT_ASSESSED", "Deployment is defined with %s (%s), which these checks do not read" % (other[0]["what"].split("defined with ", 1)[-1].split(",")[0], other[0]["at"][0]),
+                      facts=["scope.blind_spots"])
         return _r("NOT_ASSESSED", (cx.res or {}).get("reason") or "no deployment files read")
     c = cx.ha.get(hid)
     if not c:
@@ -369,14 +373,55 @@ def eval_graph(which, cx):
     return _r("NOT_ASSESSED", "unknown graph check " + which)
 
 
+AREA_LABEL = {"build": "build file", "ci": "CI file", "config": "configuration file", "deploy": "deployment file", "main_source": "source file",
+              "test_source": "test source file", "docs": "documentation file"}
+
+
+def searched(ctl, cx):
+    """Where a check looked and what for, from the files the scan read: a "not found" says where it was not found."""
+    s = ctl.get("search") or {}
+    read = _fact(cx.disc, "scope.files_read").get("value") or {}
+    where = [{"area": a, "count": None, "files": []} if a == "repo" else
+             {"area": a, "count": (read.get(a) or {}).get("count", 0), "files": (read.get(a) or {}).get("files", [])[:5]} for a in s.get("in", [])]
+    return {"for": s.get("for"), "in": where} if s and read else None
+
+
+def blind_for(ctl, cx):
+    """Blind spots in an area this check searches: something the repository names, outside this scan, that may hold the setting."""
+    s = ctl.get("search") or {}
+    areas = set(s["blind_to"] if "blind_to" in s else s.get("in") or [])  # blind_to: the areas a place outside the repository could fill
+    return [b for b in _fact(cx.disc, "scope.blind_spots").get("value") or [] if b["area"] in areas]
+
+
+def _blind_ev(cx, spots):
+    at = {a for b in spots for a in b["at"]}
+    return [dict(e, status="INFERRED") for e in _fact(cx.disc, "scope.blind_spots").get("evidence") or [] if "%s:%s" % (e["path"], e["line_start"]) in at][:4]
+
+
 def evaluate(ctl, cx):
     r = _evaluate(ctl, cx)
+    if r["state"] in ("ABSENT", "PARTIAL") and not ctl.get("negative_scan") and not r.get("pending"):
+        spots = blind_for(ctl, cx)
+        if spots and r["state"] == "ABSENT":  # nothing found here, but the repository points to a place this scan cannot read
+            r = _r("UNKNOWN", "Not found in the files read, but the repository uses %s (%s): it may be set there" % (spots[0]["what"], spots[0]["at"][0]),
+                   None, _blind_ev(cx, spots), r["facts"] + ["scope.blind_spots"])
+        elif spots:  # a partial result stands for what was read; what lies outside may complete it
+            r["summary"] += "; %s (%s) may complete it" % (spots[0]["what"], spots[0]["at"][0])
+            r["evidence"] = (r["evidence"] + _blind_ev(cx, spots))[:12]
+    r = _understood(ctl, cx, r)
+    if r["state"] == "ABSENT":
+        r["searched"] = searched(ctl, cx)
+    return r
+
+
+def _understood(ctl, cx, r):
     # a detector that reads one framework's conventions cannot say "missing" for another: that is "not recognised", not a gap
     knows = ctl.get("understands")
     # (applicability from outbound HTTP or a database is read the same framework-bound way, so it is not trusted either)
-    if knows and cx.framework and cx.framework not in knows and not r.get("pending") and (
+    # a service whose framework is not recognised at all is outside every check's conventions too
+    if knows and (cx.framework or cx.kind == "service") and cx.framework not in knows and not r.get("pending") and (
             r["state"] == "ABSENT" or (r["state"] == "NOT_APPLICABLE" and (ctl.get("applies") or {}).get("needs") in ("outbound_http", "database"))):
-        return _r("UNKNOWN", "Not recognised for %s: this check reads %s conventions, so absence here proves nothing" % (cx.framework_label, " / ".join(LABEL.get(k, k) for k in knows)),
+        return _r("UNKNOWN", "Not recognised for %s: this check reads %s conventions, so absence here proves nothing" % (cx.framework_label or "an unrecognised framework", " / ".join(LABEL.get(k, k) for k in knows)),
                   facts=r["facts"])
     return r
 
@@ -457,7 +502,7 @@ def build_app(app, disc, rel, res, sn, dims, portfolio, catalogue, packs, genera
         r = evaluate(ctl, cx)
         pending = r.pop("pending", False)
         sev = r.pop("severity") or ctl.get("severity", "medium")
-        c = {"id": ctl["id"], "aspect": ctl["aspect"], "title": ctl["title"], "state": r["state"], "level": r["level"], "summary": r["summary"],
+        c = {"id": ctl["id"], "aspect": ctl["aspect"], "title": ctl["title"], "state": r["state"], "level": r["level"], "summary": r["summary"], "searched": r.get("searched"),
              "severity": sev if r["state"] in GAP_STATES else None, "facts": r["facts"], "evidence": r["evidence"], "fix": ctl.get("fix"),
              "remedies": remedies_for(ctl, packs, cx) if r["state"] in GAP_STATES else [], "finding": None, "pending": pending}
         if r["state"] in GAP_STATES:
@@ -473,7 +518,8 @@ def build_app(app, disc, rel, res, sn, dims, portfolio, catalogue, packs, genera
     ctx = {k: {"title": dd[k]["title"], "state": dd[k]["state"], "headline": dd[k]["headline"]} for k in ("business_criticality", "change_complexity", "evidence_completeness", "architecture_coupling") if k in dd}
     return {"contract": CONTRACT, "app": app, "generated_at": generated_at, "catalogue": {"version": catalogue["version"], "status": catalogue.get("status")},
             "remedy_packs": [{"id": p["id"], "version": p["version"]} for p in packs], "profile": {"kind": cx.kind, "has": cx.needs},
-            "context": ctx, "aspects": aspects, "findings": findings}
+            "context": ctx, "aspects": aspects, "findings": findings,
+            "scope": {"files_read": _fact(disc, "scope.files_read").get("value"), "blind_spots": _fact(disc, "scope.blind_spots").get("value") or []}}
 
 
 def _redact(doc):
