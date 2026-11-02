@@ -18,7 +18,16 @@ def detect(ctx) -> dict:
     spec_files = [f for f in ctx.files if (re.search(r"(^|/)(openapi|swagger)[^/]*\.(ya?ml|json)$", f)
                                            or re.search(r"(^|/)(openapi|swagger)/.+\.(ya?ml|json)$", f))
                   and "/node_modules/" not in f and not ctx._aux(f)]
-    spec_ev = [file_ev(f, 1, (read_lines(r, f) or [""])[0]) for f in spec_files[:5]]
+    # a spec is recognised by what it says, not only by its name: contracts/swaggerSpecs/index.yaml is a Swagger 2.0 document
+    for f in ctx.files:
+        if f in spec_files or "/node_modules/" in f or ctx._aux(f) or not re.search(r"\.(ya?ml|json|apib|md)$", f):
+            continue
+        head = (read_lines(r, f) or [])[:6]
+        if any(re.match(r"\s*[\"']?(?:swagger|openapi)[\"']?\s*:\s*[\"']?[23]", l) for l in head) or \
+                (re.search(r"\.(apib|md)$", f) and any(re.match(r"\s*FORMAT:\s*1A", l) for l in head)):
+            spec_files.append(f)
+    spec_ev = [file_ev(f, i, l) for f in spec_files[:5] for ls in [read_lines(r, f) or [""]]
+               for i, l in [next(((k, x) for k, x in enumerate(ls[:6], 1) if re.search(r"swagger|openapi|FORMAT:\s*1A", x)), (1, ls[0]))]]
     ctrl = grep_files(r, ctx.src_main_java, r"@RestController|@Controller\b|@Path\(", 5)
     n_ctrl = len({e["path"] for e in grep_files(r, ctx.src_main_java, r"@RestController|@Controller\b|@Path\(", 10_000)})
     off = grep_files(r, ctx.props, r"springdoc\.api-docs\.enabled\s*[:=]\s*false|springdoc\.swagger-ui\.enabled\s*[:=]\s*false", 3)
@@ -45,6 +54,8 @@ def detect(ctx) -> dict:
         state, st, ev = "static_spec_only", "CONFIRMED", spec_ev
     else:
         state, st, ev = "not_exposed", "NOT_FOUND", (ctrl or fw)[:1]
-    out["openapi_exposure"] = fact(state, st, ev, "exposed_via_library is INFERRED: the dependency is "
-                                   "present and not disabled, but no running app was queried")
+    note = {"exposed_via_library": "the library is a dependency and not disabled; no running application was queried",
+            "static_spec_only": "a specification file is in the repository (%s); whether the running service serves it is not visible here"
+            % ", ".join(sorted({"API Blueprint" if f.endswith((".md", ".apib")) else "OpenAPI/Swagger" for f in spec_files}))}.get(state)
+    out["openapi_exposure"] = fact(state, st, ev, note)
     return out

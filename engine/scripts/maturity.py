@@ -112,14 +112,15 @@ def _present_ext(fid):
 
 
 def _tagging(doc):
-    """MET: the pipeline creates version tags. PARTIAL: releases are driven by tags (triggered by, or versioned from, a tag)
-    but nothing shows the pipeline creating them."""
+    """MET: the pipeline creates version tags. PARTIAL: releases are driven by tags (triggered by, or versioned from, a tag), or
+    each build is tagged with its commit, but nothing shows the pipeline creating release tags."""
     base = _ci("build_ci.version_tagging")(doc)
     if base[0] in ("MET", "UNKNOWN"):
         return base
-    ids = ["build_ci.release_triggered_by_tag", "build_ci.version_from_git_tag"]
-    if any(_f(doc, i)["value"] for i in ids):
-        return "PARTIAL", ["build_ci.version_tagging"] + ids
+    ids = ["build_ci.release_triggered_by_tag", "build_ci.version_from_git_tag", "build_ci.artifact_tag_from_commit", "build_ci.release_plugin_tags"]
+    hit = [i for i in ids if _f(doc, i)["value"]]
+    if hit:
+        return "PARTIAL", ["build_ci.version_tagging"] + hit
     return base
 
 

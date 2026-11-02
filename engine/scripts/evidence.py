@@ -24,9 +24,23 @@ COMMENT_PREFIXES = ("#", "//", "*", "/*")
 # keys: a bare "pass"/"token" followed by a word is left alone; only key=value / key: value pairs are masked.
 _SECRET_KV = re.compile(
     r"(?i)(pass(?:word|wd)|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)([\w-]*\s*[:=]\s*)"
-    r"(?![\$\{<*\[])[\"']?[^\s\"',;]{6,}")
+    r"(?![\$\{<*\[])[\"']?[^\s\"',;]{4,}")
 _SECRET_AUTH = re.compile(
     r"(?i)\b(authorization|bearer)(\s*[:=]\s*|\s+)(?:bearer\s+|basic\s+)?(?![\$\{<*\[])[^\s\"',;]{6,}")
+# Groovy / Gradle call style: password "example1", token 'abc123'
+_SECRET_CALL = re.compile(r"(?i)\b(pass(?:word|wd)|secret|token|api[_-]?key|access[_-]?key)(\s+)([\"'])(?![\$\{<])[^\"'\s]{4,}\3")
+# credentials passed positionally to a basic-auth constructor: BasicAuthRequestInterceptor("user", "pass")
+_SECRET_BASIC = re.compile(r"(BasicAuth\w*\s*\(\s*[\"'][^\"']*[\"']\s*,\s*[\"'])[^\"']+([\"'])")
+# a default committed inside a reference: ${JWT_SECRET:the-default}
+_SECRET_DEFAULT = re.compile(r"(?i)((?:pass(?:word|wd)|secret|token|api[_-]?key)[\w-]*\s*[:=]\s*[\"']?\$\{[\w.\-]+:)[^}]+")
+# webhook URLs carry their credential in the path; query parameters named like a credential carry it in the value
+_SECRET_HOOK = re.compile(r"(?i)((?:hooks\.slack\.com/(?:services|workflows|triggers)/|discord(?:app)?\.com/api/webhooks/|webhook\.office\.com/webhookb2/|"
+                          r"outlook\.office(?:365)?\.com/webhook/|chat\.googleapis\.com/v1/spaces/))[^\s\"'<>)\\]+")
+_SECRET_QUERY = re.compile(r"(?i)([?&](?:access_token|token|api_?key|apikey|key|sig|signature|secret|password|pwd|auth)=)[^&\s\"'<>]+")
+# property "sonar.jdbc.password", "the-value"
+_SECRET_PROP = re.compile(r"(?i)(\bproperty\s*\(?\s*[\"'][^\"']*(?:pass(?:word|wd)|secret|token|key)[^\"']*[\"']\s*,\s*[\"'])[^\"']+([\"'])")
+# long hex or base64 values held under a key, secret or token name: key.current=04e...
+_SECRET_LONG = re.compile(r"(?i)((?:key|secret|token|sig|salt)[\w.\-]*\s*[:=]\s*[\"']?)(?:[A-Fa-f0-9]{32,}|[A-Za-z0-9+/_\-]{40,}={0,2})")
 _SECRET_TOK = re.compile(r"\b(ghp_|gho_|glpat-|AKIA|xox[abp]-|sk-)[A-Za-z0-9_\-]{8,}")
 # credentials embedded in a connection URL: postgres://user:pw@host, redis://:pw@host, amqp://guest:guest@host
 _SECRET_URL = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)(?![\$\{<])[^/\s:@]*:(?![\$\{<])[^/\s@]+@")
@@ -35,9 +49,28 @@ _SECRET_URL = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)(?![\$\{<])[^/\s:@]*:(?![
 def redact(text: str) -> str:
     """Mask secret-looking literals. $VAR / ${VAR} / <placeholder> references are kept: they are not secrets."""
     text = _SECRET_KV.sub(lambda m: m.group(1) + m.group(2) + "[REDACTED]", text)
+    text = _SECRET_HOOK.sub(lambda m: m.group(1) + "[REDACTED]", text)
+    text = _SECRET_QUERY.sub(lambda m: m.group(1) + "[REDACTED]", text)
+    text = _SECRET_PROP.sub(lambda m: m.group(1) + "[REDACTED]" + m.group(2), text)
+    text = _SECRET_LONG.sub(lambda m: m.group(1) + "[REDACTED]", text)
+    text = _SECRET_BASIC.sub(lambda m: m.group(1) + "[REDACTED]" + m.group(2), text)
+    text = _SECRET_DEFAULT.sub(lambda m: m.group(1) + "[REDACTED]", text)
+    text = _SECRET_CALL.sub(lambda m: m.group(1) + m.group(2) + m.group(3) + "[REDACTED]" + m.group(3), text)
     text = _SECRET_AUTH.sub(lambda m: m.group(1) + m.group(2) + "[REDACTED]", text)
     text = _SECRET_URL.sub(lambda m: m.group(1) + "[REDACTED]@", text)
     return _SECRET_TOK.sub(lambda m: m.group(1) + "[REDACTED]", text)
+
+
+def redact_tree(obj):
+    """Every string in a document, keys included, passed through redact(): nothing the engine writes can carry a secret,
+    whether it came from an evidence line, a relationship target, a URL attribute or a summary."""
+    if isinstance(obj, str):
+        return redact(obj)
+    if isinstance(obj, list):
+        return [redact_tree(x) for x in obj]
+    if isinstance(obj, dict):
+        return {(redact(k) if isinstance(k, str) else k): redact_tree(v) for k, v in obj.items()}
+    return obj
 
 
 def snip(text: str) -> str:
@@ -179,7 +212,7 @@ def verify(repo: str, ev: dict) -> Optional[str]:
 
 def iter_facts(doc: dict):
     """Yield (fact_id, fact) for every fact-shaped dict in the section maps."""
-    for sec in ("identity", "stack", "build_ci", "tests", "api", "resilience", "security"):
+    for sec in ("identity", "stack", "build_ci", "tests", "api", "resilience", "security", "runtime"):
         for k, f in sorted((doc.get(sec) or {}).items()):
             if isinstance(f, dict) and "status" in f and "evidence" in f:
                 yield "%s.%s" % (sec, k), f

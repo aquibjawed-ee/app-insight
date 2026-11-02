@@ -99,6 +99,44 @@ def _is_dependency(rx, line):
     return False
 
 
+# application frameworks other than Spring Boot: (id, label, coordinate pattern of the core artefact)
+FRAMEWORKS = [("dropwizard", "Dropwizard", r"io\.dropwizard\W+(?:name\s*:\s*)?['\"]?dropwizard-core"), ("micronaut", "Micronaut", r"io\.micronaut\W"),
+              ("quarkus", "Quarkus", r"io\.quarkus\W"), ("helidon", "Helidon", r"io\.helidon\W"), ("ktor", "Ktor", r"io\.ktor\W+(?:name\s*:\s*)?['\"]?ktor-server"),
+              ("vertx", "Vert.x", r"io\.vertx\W+(?:name\s*:\s*)?['\"]?vertx-core"), ("javalin", "Javalin", r"io\.javalin\W")]
+
+
+def _resolve_version(ctx, snippet):
+    """The version on a dependency line, with a $var / ${var} looked up in gradle.properties or the build files."""
+    m = re.search(r"version\s*[:=]\s*['\"]?([$\w.{}-]+)|:[\w.-]+:([$\w.{}-]+)['\"]|<version>\s*([$\w.{}-]+)\s*<", snippet)
+    v = next((g for g in (m.groups() if m else ()) if g), None)
+    if v and "$" in v:
+        name = re.sub(r"[${}]", "", v)
+        props = [f for f in ctx.files if os.path.basename(f) == "gradle.properties"] + list(ctx.build_files)
+        hit = grep_files(ctx.repo, props, r"\b%s\s*[:=]\s*['\"]?\d" % re.escape(name), 1) or \
+            grep_files(ctx.repo, ctx.poms, r"<%s>\s*\d" % re.escape(name), 1)
+        if not hit:
+            return None, []
+        vm = re.search(r"[:=>]\s*['\"]?(\d[\w.-]*)", hit[0]["snippet"])
+        return (vm.group(1) if vm else None), hit
+    return (v if v and v[:1].isdigit() else None), []
+
+
+def _framework(ctx, sbv, sb_ev):
+    """The application framework and its version: Spring Boot from its own fact, otherwise the first core artefact declared."""
+    if sbv:
+        return fact({"name": "spring_boot", "label": "Spring Boot", "version": sbv}, "CONFIRMED", sb_ev[:1])
+    files = [f for f in ctx.build_files if not ctx._test_module(f)]
+    for fid, label, rx in FRAMEWORKS:
+        hits = grep_files(ctx.repo, files, rx, 1)
+        if hits:
+            v, vev = _resolve_version(ctx, hits[0]["snippet"])
+            return fact({"name": fid, "label": label, "version": v}, "CONFIRMED", hits[:1] + vev[:1])
+    spring = grep_files(ctx.repo, files, r"org\.springframework\W+(?:name\s*:\s*)?['\"]?spring-(?:webmvc|context|web)\b", 1)
+    if spring:
+        return fact({"name": "spring", "label": "Spring Framework (no Spring Boot)", "version": None}, "CONFIRMED", spring)
+    return fact(None, "NOT_FOUND", [], "no application framework recognised in the build files")
+
+
 def detect(ctx) -> dict:
     r = ctx.repo
     out = {}
@@ -278,6 +316,7 @@ def detect(ctx) -> dict:
         sbv, sb = (vals.pop(), sb + d[:1]) if len(vals) == 1 else (None, sb)
     out["spring_boot_version"] = fact(sbv, "CONFIRMED", sb) if sbv else \
         fact(None, "NOT_FOUND", sb, "no Spring Boot parent/plugin version found")
+    out["app_framework"] = _framework(ctx, sbv, sb)
     pk = grep_files(r, ctx.poms, r"<packaging>\s*\w+\s*<", 1)
     pv = re.search(r">\s*(\w+)\s*<", pk[0]["snippet"]).group(1) if pk else None
     out["packaging"] = fact(pv, "CONFIRMED", pk) if pv else fact("jar", "INFERRED", [], "no <packaging>; Maven default")

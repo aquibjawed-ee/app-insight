@@ -68,6 +68,36 @@ class ResilienceTest(unittest.TestCase):
         self.assertTrue(all(s["state"] == "not_assessed" for s in self.empty["summary"]))
         self.assertIn("GitOps", self.empty["reason"])
 
+    def test_test_harness_and_third_party_compose_files_are_not_the_deployment(self):
+        pom = {"pom.xml": F.pom("orders-service", "3.2.4", "17", [])}
+        harness = dict(pom, **{"contracts/docker-compose.yml": "version: '2'\nservices:\n  orders:\n    build:\n      context: ../\n  mock-server:\n    image: node:boron\n"})
+        r = resilience.assess(F.make_repo(tempfile.mkdtemp(), "orders-service", harness))
+        self.assertEqual((r["state"], r["workloads"]), ("not_assessed", []))
+        self.assertEqual(r["ignored"][0]["file"], "contracts/docker-compose.yml")
+        stack = dict(pom, **{"docker-compose.yaml": "services:\n  prometheus:\n    image: prom/prometheus:v2.45.0\n    restart: unless-stopped\n"
+                                                    "  orders:\n    image: acme/orders-service:${TAG}\n    restart: always\n"})
+        r = resilience.assess(F.make_repo(tempfile.mkdtemp(), "orders-service", stack))
+        self.assertEqual([w["name"] for w in r["workloads"]], ["orders"])  # prometheus is what it runs next to
+        self.assertEqual([x.get("service") for x in r["ignored"]], ["prometheus"])
+        self.assertEqual(r["workloads"][0]["checks"]["image_pinned"]["state"], "unknown")  # tag set at deploy time
+        rr = r["workloads"][0]["checks"]["restart_recovery"]
+        self.assertNotIn("roll back without", rr["note"])  # a restart policy is not a rollback
+
+    def test_codename_and_moving_tags_are_not_pinned(self):
+        self.assertEqual(resilience._pinned("node:boron")[0], "absent")
+        self.assertEqual(resilience._pinned("nginx:stable")[0], "absent")
+        self.assertEqual(resilience._pinned("nginx")[0], "absent")
+        self.assertEqual(resilience._pinned("nginx:1.25.3-alpine")[0], "present")
+        self.assertEqual(resilience._pinned("nginx@sha256:" + "a" * 64)[0], "present")
+
+    def test_a_deployment_this_check_cannot_read_is_named_not_failed(self):
+        files = {"pom.xml": F.pom("orders-service", "3.2.4", "17", []),
+                 "Jenkinsfile": "pipeline {\n  stages {\n    stage('Deploy') {\n      steps { sh 'ansible-playbook -i inventory/prod site.yml' }\n    }\n  }\n}\n"}
+        r = resilience.assess(F.make_repo(tempfile.mkdtemp(), "orders-service", files))
+        self.assertEqual(r["state"], "not_assessed")
+        self.assertEqual((r["unread"]["mechanism"], r["unread"]["evidence"][0]["path"]), ("Ansible", "Jenkinsfile"))
+        self.assertIn("Ansible", r["reason"])
+
     def test_deterministic(self):
         import json
         root = tempfile.mkdtemp()

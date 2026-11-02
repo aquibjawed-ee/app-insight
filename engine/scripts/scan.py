@@ -93,7 +93,7 @@ def main(argv=None) -> int:
         print("\n".join("INVALID: " + e for e in errs), file=sys.stderr)
         return 2
     with open(path + ".tmp", "w", encoding="utf-8") as fh:
-        json.dump(doc, fh, indent=2, sort_keys=True)
+        json.dump(evidence.redact_tree(doc), fh, indent=2, sort_keys=True)
         fh.write("\n")
     os.replace(path + ".tmp", path)
     print("━━ APP-DISCOVERY-SCAN ━━\nstate: %s\n%s" % (res["state"], summary))

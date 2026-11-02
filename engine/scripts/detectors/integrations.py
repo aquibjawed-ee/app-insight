@@ -128,6 +128,7 @@ _e(HTTP, "OpenFeign", r"org\.springframework\.cloud:spring-cloud-starter-openfei
 _e(HTTP, "MicroProfile / Quarkus REST client", r"io\.quarkus:quarkus-rest-client[\w-]*", r"org\.eclipse\.microprofile\.rest\.client:microprofile-rest-client-api")
 _e(HTTP, "Micronaut HTTP client", r"io\.micronaut:micronaut-http-client")
 _e(HTTP, "Ktor client", r"io\.ktor:ktor-client-[\w-]+")
+_e(HTTP, "Dropwizard client (Jersey / Apache)", r"io\.dropwizard:dropwizard-client")
 _e(HTTP, "http4k client", r"org\.http4k:http4k-client-[\w-]+")
 _e(HTTP, "OkHttp", r"com\.squareup\.okhttp3:okhttp")
 _e(HTTP, "Retrofit", r"com\.squareup\.retrofit2:retrofit")
@@ -138,6 +139,7 @@ _e(MON, "New Relic", r"io\.micrometer:micrometer-registry-new-?relic", r"com\.ne
 _e(MON, "Sentry", r"io\.sentry:sentry[\w-]*")
 _e(MON, "OpenTelemetry collector (OTLP)", r"io\.opentelemetry:opentelemetry-exporter-otlp", r"io\.micrometer:micrometer-registry-otlp")
 _e(MON, "Zipkin", r"io\.zipkin\.[\w.]+:[\w-]+", r"io\.opentelemetry:opentelemetry-exporter-zipkin")
+_e(MON, "PCP metrics (Parfait)", r"com\.custardsource\.parfait:parfait-(?:pcp|dropwizard|core)", r"io\.pcp\.parfait:[\w-]+", r"[\w.]+:[\w-]*pcp-monitoring")
 _e(MON, "Prometheus (metrics endpoint exposed)", r"io\.micrometer:micrometer-registry-prometheus", r"io\.prometheus:simpleclient[\w-]*")
 
 # connection strings: the scheme is the evidence; family/embedded as in the catalogue

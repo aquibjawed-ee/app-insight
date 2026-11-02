@@ -33,7 +33,10 @@ def detect(ctx) -> dict:
     for f in ctx.ci_files[:10]:
         ls = read_lines(r, f) or [""]
         ev.append(file_ev(f, 1, ls[0]))
+    named = [] if systems else grep_files(r, [f for f in ("README.md", "README", "README.adoc", "README.rst") if f in ctx.fileset],
+                                          r"(?i)\b(?:jenkins|teamcity|bamboo|circleci|travis|buildkite|github actions|gitlab ci)\b", 1)
     out["ci_system"] = fact(systems, "CONFIRMED", ev) if systems else \
+        fact(["external"], "INFERRED", named, "no CI definition in the repository; the README names a CI server outside it") if named else \
         fact([], "NOT_FOUND", [], "no CI definition (.gitlab-ci.yml, Jenkinsfile, .github/workflows, ...) found")
     out["ci_files"] = fact(ctx.ci_files, "CONFIRMED" if ctx.ci_files else "NOT_FOUND", ev)
     # Jobs: top-level keys (GitLab) or keys indented 2 under a top-level `jobs:` (CircleCI, GitHub Actions)
@@ -121,6 +124,14 @@ def detect(ctx) -> dict:
     vtag = grep_files(r, ctx.ci_files + ctx.build_files, r"git\s+describe|GITHUB_REF(?:_NAME)?\b[^\n]*(?:tags|:10|#refs)|\bBUILD_TAG\b|\bshipkit\b|axion-release|nebula\.release|\bgitversion\b|CI_COMMIT_TAG", 4)
     out["version_from_git_tag"] = fact(bool(vtag), "CONFIRMED" if vtag else "NOT_FOUND", vtag,
                                        "the artefact version is taken from the git tag or `git describe`")
+    # an image or artefact named after the commit: every build is traceable, but no release tag is created
+    sha = grep_files(r, ctx.ci_files, r"git\s+rev-parse(?:\s+--short)?\s+HEAD|\$\{?(?:GIT_COMMIT|CI_COMMIT_SHORT_SHA|CI_COMMIT_SHA|GITHUB_SHA|BITBUCKET_COMMIT|CIRCLE_SHA1)\b", 3)
+    out["artifact_tag_from_commit"] = fact(bool(sha), "CONFIRMED" if sha else "NOT_FOUND", sha,
+                                           "the image or artefact is tagged with the commit; no release tag is created")
+    # a release plugin in the build creates the tag when its task runs; who runs it (a person, an external job) is not visible
+    rel = grep_files(r, ctx.build_files, r"net\.researchgate\.release|['\"]pl\.allegro\.tech\.build\.axion-release['\"]|maven-release-plugin|tagTemplate", 2)
+    out["release_plugin_tags"] = fact(bool(rel), "CONFIRMED" if rel else "NOT_FOUND", rel,
+                                      "a release plugin creates the version tag when its release task runs; nothing here shows the pipeline running it")
     tag = grep_files(r, ctx.ci_files, r"git\s+tag|semantic-release|release-please|versioning|\bgitversion\b|standard-version", 3)
     out["version_tagging"] = fact(bool(tag), "CONFIRMED" if tag else ("UNKNOWN" if unres else "NOT_FOUND"), tag)
     return out

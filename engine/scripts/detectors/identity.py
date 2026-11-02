@@ -42,13 +42,18 @@ def _about(ctx):
     if not name:
         return fact(None, "NOT_FOUND", [], "no README in the repository root")
     lines = read_lines(ctx.repo, name) or []
-    out, first, fence, headings = [], None, False, 0
+    # a setext heading is a line underlined with === or ---: "Office Integration" over "=====" is a title, not a description
+    setext = {i for i in range(1, len(lines)) if lines[i - 1].strip() and re.match(r"^\s*(=+|-{3,})\s*$", lines[i])}
+    out, first, fence, headings, titles = [], None, False, 0, []
     for i, raw in enumerate(lines, 1):
         t = raw.strip()
+        if i in setext and not fence:
+            raw, t = "# " + t, "# " + t
         if raw[:1] in (" ", "\t") and t:
             continue  # indented: list continuation or code, never the description
         if t.startswith("#") and not fence:
             headings += 1
+            titles.append((i, re.sub(r"^#+\s*", "", t)))
             if headings > 1 and not re.match(r"^#+\s*(about|overview|introduction|description|summary|what is)\b", t, re.I):
                 break  # first section after the title: the intro is over (or there never was one)
             if out:
@@ -71,6 +76,10 @@ def _about(ctx):
         if len(out) >= ABOUT_LINES or sum(map(len, out)) >= ABOUT_CHARS:
             break
     if not out:
+        # no paragraph, but a title that is a sentence ("Micro service for uploading files into babylon") describes the application
+        said = next(((i, _clean(h)) for i, h in titles[:2] if len(h.split()) >= 4 and _clean(h)), None)
+        if said:
+            return fact([said[1]], "CONFIRMED", [file_ev(name, said[0], lines[said[0] - 1])], "the README's heading describes the application; it has no intro paragraph")
         return fact(None, "NOT_FOUND", [file_ev(name, 1, lines[0] if lines else "")], "README has no descriptive text")
     return fact(out, "CONFIRMED", [file_ev(name, first, lines[first - 1])], "first lines of %s, markup removed" % name)
 

@@ -36,5 +36,7 @@ def detect(ctx) -> dict:
     out["rollback"] = fact(bool(rb), "CONFIRMED" if rb else "NOT_FOUND", rb)
     act = grep_files(r, ctx.build_files, r"spring-boot-starter-actuator|quarkus-smallrye-health|micronaut-management|smallrye-health", 1) + \
         grep_files(r, ctx.props, r"management\.(endpoint|endpoints)\.", 2)
+    if not act:  # Dropwizard and MicroProfile register health checks in code, not in build files
+        act = grep_files(r, ctx.src_main_java, r"healthChecks\(\)\.register\(|extends\s+(?:com\.codahale\.metrics\.health\.)?HealthCheck\b|@(?:Readiness|Liveness)\b", 2)
     out["health_endpoint"] = fact(bool(act), "CONFIRMED" if act else "NOT_FOUND", act)
     return out

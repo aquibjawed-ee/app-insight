@@ -2,6 +2,7 @@
 distinguishes `assessed`, `partial`, `not_assessed` (nothing looked), `unknown` (looked, cannot tell) and `not_applicable`."""
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -38,6 +39,25 @@ def _ym(s):
     return int(y) * 12 + int(m)
 
 
+def _framework_support(fw, row, today, evidence):
+    """Support status of a non-Spring-Boot framework from its published end-of-life table; no table or no version is `unknown`."""
+    out = {"name": fw["name"], "label": fw["label"], "version": fw.get("version"), "evidence": evidence}
+    m = re.match(r"(\d+)\.(\d+)", fw.get("version") or "")
+    if not row or not m:
+        return dict(out, status="unknown", headline="%s %s: support window unknown (%s)" % (fw["label"], fw.get("version") or "", "no version read" if row else "no reference data"))
+    line = "%s.%s" % m.groups()
+    hit = row["lines"].get(line)
+    before = False
+    if hit is None and row.get("before") and tuple(map(int, m.groups())) < tuple(map(int, row["before"]["line"].split("."))):
+        hit, before = {"eol": row["before"]["eol"], "note": row["before"]["note"]}, True
+    if hit is None:
+        return dict(out, status="unknown", source=row["source"], headline="%s %s: line %s is not in the reference data" % (fw["label"], fw["version"], line))
+    ended = bool(hit["eol"]) and today > hit["eol"]
+    return dict(out, status="ended" if ended else "supported", eol=hit["eol"], source=row["source"], note=hit.get("note"),
+                headline="%s %s: %s" % (fw["label"], fw["version"], ("end of life before %s (every version before %s)" % (hit["eol"], row["before"]["line"])) if before
+                                        else ("end of life %s" % hit["eol"]) if ended else "supported" + (" until %s" % hit["eol"] if hit["eol"] else "")))
+
+
 def lifecycle(disc, ref, as_of):
     j = _fv(disc, "stack.java_version")
     b = _fv(disc, "stack.spring_boot_version")
@@ -58,17 +78,37 @@ def lifecycle(disc, ref, as_of):
             heads.append("Java %s: not an LTS release listed in the reference data" % v)
     else:
         vals["java"] = {"version": None, "status": "unknown", "note": "no explicit Java version in build files"}
-    sm = re.match(r"\s*(\d+)", str(b.get("value"))) if b.get("value") else None
+    sm = re.match(r"\s*(\d+)(?:\.(\d+))?", str(b.get("value"))) if b.get("value") else None
     if sm:
-        row = ref["spring_boot"]["majors"].get(sm.group(1))
+        sb, line = ref["spring_boot"], "%s.%s" % (sm.group(1), sm.group(2)) if sm.group(2) else None
+        row = (sb.get("lines") or {}).get(line)
+        today = as_of[:10]
         if row:
-            vals["spring_boot"] = {"version": b["value"], "oss_status": row["oss_status"], "note": row["note"], "source": ref["spring_boot"]["source"], "evidence": b.get("evidence", [])[:1]}
-            heads.append("Spring Boot %s: open-source support %s" % (b["value"], row["oss_status"]))
-            if row["oss_status"] == "ended":
-                level = "concern"
+            st = "supported" if today <= row["oss_end"] else "commercial_only" if today <= row["commercial_end"] else "ended"
+            vals["spring_boot"] = {"version": b["value"], "line": line, "oss_status": st, "oss_end": row["oss_end"], "commercial_end": row["commercial_end"],
+                                   "source": sb["source"], "evidence": b.get("evidence", [])[:1]}
+            heads.append("Spring Boot %s: %s" % (b["value"], {"supported": "open-source support until " + row["oss_end"],
+                                                              "commercial_only": "open-source support ended " + row["oss_end"] + ", paid support until " + row["commercial_end"],
+                                                              "ended": "all support ended " + row["commercial_end"]}[st]))
+            level = {"ended": "concern", "commercial_only": "attention" if level != "concern" else level}.get(st, level)
+        elif (sb.get("majors") or {}).get(sm.group(1), {}).get("oss_status") == "ended":
+            row = sb["majors"][sm.group(1)]
+            vals["spring_boot"] = {"version": b["value"], "line": line, "oss_status": "ended", "note": row["note"], "source": sb["source"], "evidence": b.get("evidence", [])[:1]}
+            heads.append("Spring Boot %s: all support ended" % b["value"])
+            level = "concern"
+        else:  # a line the reference data does not list: never assumed supported
+            vals["spring_boot"] = {"version": b["value"], "line": line, "oss_status": "unknown", "note": "line %s is not in the reference data" % line,
+                                   "source": sb["source"], "evidence": b.get("evidence", [])[:1]}
+            heads.append("Spring Boot %s: support window unknown (not in the reference data)" % b["value"])
     elif b.get("status") == "NOT_FOUND":
         vals["spring_boot"] = {"version": None, "status": "not_applicable_or_not_found"}
-    known = [k for k in ("java", "spring_boot") if vals.get(k, {}).get("version")]
+    fw = (_fv(disc, "stack.app_framework").get("value") or {})
+    if fw.get("name") and fw["name"] != "spring_boot":
+        vals["framework"] = _framework_support(fw, (ref.get("frameworks") or {}).get(fw["name"]), as_of[:10], _fv(disc, "stack.app_framework").get("evidence", [])[:2])
+        heads.append(vals["framework"]["headline"])
+        if vals["framework"]["status"] == "ended":
+            level = "concern"
+    known = [k for k in ("java", "spring_boot", "framework") if vals.get(k, {}).get("version")]
     vals = {k: v for k, v in vals.items() if v.get("status") != "not_applicable_or_not_found"}  # no Spring Boot is not a gap in the assessment
     if not known:
         return _d("unknown", "No runtime or framework version could be read", "info", "versions are read from build files only", ["stack.java_version", "stack.spring_boot_version"], vals)
@@ -82,7 +122,7 @@ def lifecycle(disc, ref, as_of):
 def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] = None, criticality: Optional[dict] = None, lifecycle_ref: Optional[dict] = None,
            portfolio_graph: Optional[dict] = None, as_of: Optional[str] = None, resilience: Optional[dict] = None) -> dict:
     app = disc["identity"]["app_id"]["value"]
-    as_of = (as_of or os.environ.get("DISCOVERY_FIXED_TIME") or "2026-10-29")[:10]
+    as_of = (as_of or os.environ.get("DISCOVERY_FIXED_TIME") or datetime.date.today().isoformat())[:10]  # support windows are judged on the scan date
     ref = lifecycle_ref or load_lifecycle()
     out: Dict[str, dict] = {}
     m = disc.get("maturity", {})
@@ -107,14 +147,16 @@ def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] =
         rs = [c for c in resilience["summary"] if c["state"] not in ("not_applicable", "not_assessed")]
         pres = [c["id"] for c in rs if c["state"] == "present"]
         absn = [c["id"] for c in rs if c["state"] == "absent"]
-        unk = [c["id"] for c in rs if c["state"] in ("unknown", "default", "partial")]
+        unk = [c["id"] for c in rs if c["state"] == "unknown"]
+        part = [c["id"] for c in rs if c["state"] in ("default", "partial")]  # partial is decided, not unknown: same as the aspect
         core = [c for c in ("replicas", "anti_affinity", "pdb") if c in absn]
-        out["operational_resilience"] = _d("partial" if unk else "assessed", "%d of %d HA checks in place; %d absent%s" % (len(pres), len(rs), len(absn), (" (" + ", ".join(x.replace("_", " ") for x in core) + ")") if core else ""),
+        out["operational_resilience"] = _d("partial" if unk else "assessed", "%d of %d HA checks in place, %d partial; %d absent%s" % (len(pres), len(rs), len(part), len(absn), (" (" + ", ".join(x.replace("_", " ") for x in core) + ")") if core else ""),
                                            "attention" if core else "info", "attention = replicas, anti-affinity or a disruption budget is absent from the deployment files read (%s)" % ", ".join(resilience["platforms"]),
-                                           ["resilience.v1"], {"present": pres, "absent": absn, "unknown": unk, "platforms": resilience["platforms"], "eks": resilience["eks"]["detected"]},
+                                           ["resilience.v1"], {"present": pres, "partial": part, "absent": absn, "unknown": unk, "platforms": resilience["platforms"], "eks": resilience["eks"]["detected"]},
                                            "absent means not in these files; a platform or GitOps repository may add it")
     elif resilience:
-        out["operational_resilience"] = _d("not_assessed", "No Kubernetes, Nomad or Compose workload definition in this repository: HA configuration may live elsewhere", "info", "HA settings are read from deployment descriptors", ["resilience.v1"], {"present": [], "absent": [], "unknown": []})
+        why = resilience.get("reason") or "no deployment definition in this repository: HA configuration may live elsewhere"
+        out["operational_resilience"] = _d("not_assessed", why[:1].upper() + why[1:], "info", "HA settings are read from deployment descriptors", ["resilience.v1"], {"present": [], "absent": [], "unknown": []})
     else:
         res = {k: _fv(disc, "resilience." + k) for k in ("health_endpoint", "health_probes", "multiple_instances", "rolling_or_zero_downtime_strategy", "rollback", "container_image")}
         present = [k for k, f in res.items() if f.get("status") == "CONFIRMED" and f.get("value")]
@@ -130,7 +172,8 @@ def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] =
                                                ["resilience"], {"present": present, "absent": absent, "unknown": unknown}, "absent means not found in the files read; it may be configured elsewhere")
     if safetynet:
         s = safetynet["summary"]
-        tot = sum(sum(v.values()) for v in s.values())
+        # direct and class_level break the mapped counts down; adding them again would double the total (same rule as the aspect)
+        tot = sum(v["mapped_with_assertions"] + v["mapped_no_assertion_seen"] + v["unverified"] for v in s.values())
         direct = sum(v.get("direct", v["mapped_with_assertions"] + v["mapped_no_assertion_seen"]) for v in s.values())
         cls = sum(v.get("class_level", 0) for v in s.values())
         mapped = direct + cls
@@ -159,6 +202,8 @@ def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] =
                 if e["type"] == "CALLS_API":
                     owner = ("app:" + tn["app"]) if tn.get("app") and tn["type"] == "ApiEndpoint" else t if tn["type"] == "Application" else None
                     (out_apps.add(owner) if owner else out_ext.add(t) if tn["type"] == "ExternalSystem" and not tn["attrs"].get("unresolved") else None)
+                elif e["type"] == "DEPENDS_ON" and tn["type"] == "ExternalSystem" and not tn["attrs"].get("unresolved") and not t.startswith("ext:Observability:"):
+                    out_ext.add(t)  # a webhook or SaaS the application depends on is an external system too
                 elif e["type"] in ("PUBLISHES_TO", "CONSUMES_FROM") and e["resolution"].get("state") == "resolved":
                     topics.add(t)
             if e["type"] == "CALLS_API" and e["source"] != me and ((nodes[e["target"]].get("app") == app) or e["target"] == me):
@@ -169,11 +214,15 @@ def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] =
             if len({x["source"] for x in g["edges"] if x["target"] == d and x["source"].startswith("app:")}) > 1:
                 dbs_shared += 1
         portfolio = g["scope"] == "portfolio"
-        vals = {"depends_on_applications": len(out_apps), "depends_on_external_systems": len(out_ext), "topics_used": len(topics), "shared_databases": dbs_shared,
+        stores = {e["target"] for e in g["edges"] if e["source"] == me and e["type"] in ("DEPENDS_ON", "READS_FROM", "WRITES_TO")
+                  and (nodes.get(e["target"]) or {}).get("type") in ("Database", "MessageBroker")}
+        caches = {t for t in stores if re.search(r"(?i)hazelcast|redis|memcache|ehcache|caffeine", (nodes.get(t) or {}).get("name") or "")}
+        stores -= caches  # a cache or data grid is not the database the database checks talk about
+        vals = {"depends_on_applications": len(out_apps), "depends_on_external_systems": len(out_ext), "data_stores_and_brokers": len(stores), "caches": len(caches), "topics_used": len(topics), "shared_databases": dbs_shared,
                 "unresolved_or_ambiguous_relationships": unresolved, "relied_on_by": (len(in_apps) if portfolio else None)}
         out["architecture_coupling"] = _d("assessed" if portfolio else "partial",
-                                          "Depends on %d application(s), %d external system(s); %d topic(s) used, %d shared database(s)%s; %d relationship(s) unresolved" % (
-                                              len(out_apps), len(out_ext), len(topics), dbs_shared, ("; relied on by %d" % len(in_apps)) if portfolio else "", unresolved),
+                                          "Depends on %d application(s), %d external system(s), %d data store(s) or broker(s), %d cache(s); %d topic(s) used, %d shared database(s)%s; %d relationship(s) unresolved" % (
+                                              len(out_apps), len(out_ext), len(stores), len(caches), len(topics), dbs_shared, ("; relied on by %d" % len(in_apps)) if portfolio else "", unresolved),
                                           "info", "counts of relationships in the graph; not a score", ["relationships"], vals,
                                           None if portfolio else "single-application graph: who depends on this application is unknown until it is analysed with the others")
         integ = len({e["target"] for e in g["edges"] if e["source"] == me and e["type"] in ("CALLS_API", "PUBLISHES_TO", "CONSUMES_FROM", "READS_FROM", "WRITES_TO", "DEPENDS_ON") and not e["target"].startswith("module:")})

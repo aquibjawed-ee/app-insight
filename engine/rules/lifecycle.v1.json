@@ -1,25 +1,163 @@
 {
-  "contract": "lifecycle-reference.v1",
-  "version": "1.0.0",
-  "review": {"status": "unreviewed", "reviewed_by": null, "reviewed_at": null},
-  "as_of": "2026-10-29",
-  "note": "Reference data about vendor support windows, not discovery output. Dates are the vendors' published roadmaps and must be reviewed by a maintainer before they are relied on; other JDK distributions (Temurin, Corretto, Zulu ...) publish their own, usually longer, windows. When a version is not listed the status is `unknown`, never guessed.",
-  "java": {
-    "source": "Oracle Java SE Support Roadmap (premier and extended support, by LTS release)",
-    "lts": {
-      "8":  {"premier_until": "2022-03", "extended_until": "2030-12"},
-      "11": {"premier_until": "2023-09", "extended_until": "2032-01"},
-      "17": {"premier_until": "2026-09", "extended_until": "2029-09"},
-      "21": {"premier_until": "2028-09", "extended_until": "2031-09"}
-    },
-    "non_lts_note": "Non-LTS feature releases are supported until the next release (about six months)."
+ "contract": "lifecycle-reference.v1",
+ "version": "1.1.0",
+ "review": {
+  "status": "unreviewed",
+  "reviewed_by": null,
+  "reviewed_at": null
+ },
+ "as_of": "2026-11-01",
+ "note": "Reference data about vendor support windows, not discovery output. Dates are the vendors' published roadmaps and must be reviewed by a maintainer before they are relied on; other JDK distributions (Temurin, Corretto, Zulu ...) publish their own, usually longer, windows. When a version is not listed the status is `unknown`, never guessed.",
+ "java": {
+  "source": "Oracle Java SE Support Roadmap (premier and extended support, by LTS release)",
+  "lts": {
+   "8": {
+    "premier_until": "2022-03",
+    "extended_until": "2030-12"
+   },
+   "11": {
+    "premier_until": "2023-09",
+    "extended_until": "2032-01"
+   },
+   "17": {
+    "premier_until": "2026-09",
+    "extended_until": "2029-09"
+   },
+   "21": {
+    "premier_until": "2028-09",
+    "extended_until": "2031-09"
+   }
   },
-  "spring_boot": {
-    "source": "spring.io/projects/spring-boot#support",
-    "majors": {
-      "1": {"oss_status": "ended", "note": "all 1.x lines are out of open-source support"},
-      "2": {"oss_status": "ended", "oss_ended": "2023-11", "note": "2.7 was the last 2.x line; its open-source support ended in November 2023 (commercial support is offered separately)"},
-      "3": {"oss_status": "line-specific", "note": "each 3.x minor line has its own open-source window; the minor version must be checked against the project's support page"}
+  "non_lts_note": "Non-LTS feature releases are supported until the next release (about six months)."
+ },
+ "spring_boot": {
+  "source": "spring.io support dates (https://api.spring.io/projects/spring-boot/generations, the data behind spring.io/projects/generations), fetched 2026-11-01",
+  "lines": {
+   "1.5": {
+    "released": "2017-01-31",
+    "oss_end": "2019-08-31",
+    "commercial_end": "2020-11-30"
+   },
+   "2.0": {
+    "released": "2018-03-31",
+    "oss_end": "2019-03-31",
+    "commercial_end": "2020-06-30"
+   },
+   "2.1": {
+    "released": "2018-10-31",
+    "oss_end": "2019-10-31",
+    "commercial_end": "2021-01-31"
+   },
+   "2.2": {
+    "released": "2019-10-31",
+    "oss_end": "2020-10-31",
+    "commercial_end": "2022-01-31"
+   },
+   "2.3": {
+    "released": "2020-05-31",
+    "oss_end": "2021-05-31",
+    "commercial_end": "2022-08-31"
+   },
+   "2.4": {
+    "released": "2020-11-30",
+    "oss_end": "2021-11-30",
+    "commercial_end": "2023-02-28"
+   },
+   "2.5": {
+    "released": "2021-05-31",
+    "oss_end": "2022-05-31",
+    "commercial_end": "2023-08-31"
+   },
+   "2.6": {
+    "released": "2021-11-30",
+    "oss_end": "2022-11-30",
+    "commercial_end": "2024-02-29"
+   },
+   "2.7": {
+    "released": "2022-05-31",
+    "oss_end": "2023-06-30",
+    "commercial_end": "2029-06-30"
+   },
+   "3.0": {
+    "released": "2022-11-30",
+    "oss_end": "2023-12-31",
+    "commercial_end": "2024-12-31"
+   },
+   "3.1": {
+    "released": "2023-05-31",
+    "oss_end": "2024-06-30",
+    "commercial_end": "2025-06-30"
+   },
+   "3.2": {
+    "released": "2023-11-30",
+    "oss_end": "2024-12-31",
+    "commercial_end": "2025-12-31"
+   },
+   "3.3": {
+    "released": "2024-05-31",
+    "oss_end": "2025-06-30",
+    "commercial_end": "2026-06-30"
+   },
+   "3.4": {
+    "released": "2024-11-30",
+    "oss_end": "2025-12-31",
+    "commercial_end": "2026-12-31"
+   },
+   "3.5": {
+    "released": "2025-05-31",
+    "oss_end": "2026-06-30",
+    "commercial_end": "2032-06-30"
+   },
+   "4.0": {
+    "released": "2025-11-30",
+    "oss_end": "2026-12-31",
+    "commercial_end": "2027-12-31"
+   },
+   "4.1": {
+    "released": "2026-06-30",
+    "oss_end": "2027-07-31",
+    "commercial_end": "2028-07-31"
+   },
+   "4.2": {
+    "released": "2026-11-30",
+    "oss_end": "2027-12-31",
+    "commercial_end": "2028-12-31"
+   }
+  },
+  "majors": {
+   "1": {
+    "oss_status": "ended",
+    "note": "all 1.x lines are out of open-source support"
+   }
+  },
+  "note": "Per release line (major.minor). A line that is not listed is `unknown`, never assumed supported. Commercial support is VMware Tanzu's paid offering."
+ },
+ "frameworks": {
+  "dropwizard": {
+   "label": "Dropwizard",
+   "source": "Dropwizard security policy, supported versions table (github.com/dropwizard/dropwizard SECURITY.md), fetched 2026-11-01",
+   "lines": {
+    "5.0": {
+     "eol": null
+    },
+    "4.0": {
+     "eol": "2026-01-31"
+    },
+    "3.0": {
+     "eol": "2026-01-31"
+    },
+    "2.1": {
+     "eol": "2024-01-31"
+    },
+    "2.0": {
+     "eol": "2023-01-31"
     }
+   },
+   "before": {
+    "line": "2.0",
+    "eol": "2023-01-31",
+    "note": "every version before 2.0 reached end of life before 2023-01-31"
+   }
   }
+ }
 }

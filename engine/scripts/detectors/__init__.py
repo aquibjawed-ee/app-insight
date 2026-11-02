@@ -17,13 +17,13 @@ class Ctx:
                          r"benchmarks?|jmh)(?:[-_][\w.-]*)?/|(^|/)\.(?:devcontainer|gitpod|vscode|idea)/", re.I)
     # a module that only holds tests (okhttp's maven-tests, ktor's test, bff's test/journey): its src/main is test code
     TEST_MODULE = re.compile(r"(^|/)(?:[\w.-]*[-_]tests?|tests?[-_][\w.-]+|tests?|testing|its?|[\w.-]*-it-[\w.-]*)(/|$)", re.I)
-    TEST_SRC_DIR = re.compile(r"/src/(?:test|[A-Za-z0-9_]*Tests?)/")
+    TEST_SRC_DIR = re.compile(r"/src/(?:test|integration-test|[A-Za-z0-9_]*Tests?)/")
     SOURCE_EXT = (".java", ".kt", ".groovy", ".scala")
 
     # Kotlin Multiplatform source sets (src/jvmMain, src/commonTest) and the <platform>/src, <platform>/test layout
     _PLAT = r"(?:common|jvm|js|native|posix|nix|darwin|ios|desktop|android|wasm\w*)"
     SRC_MAIN = re.compile(r"/src/main/|/src/(?![A-Za-z0-9_]*[Tt]est|jmh/|[A-Za-z0-9_]*[Bb]ench)[A-Za-z0-9_]+/(?:java|kotlin)/|/%s/src/" % _PLAT)
-    SRC_TEST = re.compile(r"/src/(?:test|integrationTest|intTest|it|[a-z][A-Za-z0-9]*Test)/|/%s/tests?/" % _PLAT)
+    SRC_TEST = re.compile(r"/src/(?:test|integrationTest|integration-test|intTest|it|[a-z][A-Za-z0-9]*Test)/|/%s/tests?/" % _PLAT)
 
     @classmethod
     def _aux(cls, f: str) -> bool:

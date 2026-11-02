@@ -41,14 +41,52 @@ CHECKS = [  # id, group, title, why it matters
 GROUPS = ["Redundancy", "Health", "Rollout", "Capacity", "Recovery", "Supply"]
 APPLIES = {  # which platforms each check is meaningful for
     "kubernetes": {c[0] for c in CHECKS}, "nomad": {"replicas", "anti_affinity", "zone_spread", "readiness", "rollout", "graceful_stop", "resources", "restart_recovery", "image_pinned"},
-    "compose": {"replicas", "readiness", "restart_recovery", "image_pinned", "resources"}}
+    "compose": {"replicas", "readiness", "restart_recovery", "image_pinned", "resources"},
+    "ansible": {"replicas", "readiness", "rollout", "graceful_stop", "resources", "restart_recovery", "image_pinned"}}
 # EKS-specific signals only. An ECR image or an AWS SDK says nothing about EKS (ECR also serves ECS and Lambda).
+# files that describe a test, contract or mock harness, or a developer's local stack: not how the application runs in production
+NONPROD_DIR = re.compile(r"(^|/)(?:contracts?|contract[-_]?tests?|tests?|it|e2e|integration[-_]?tests?|mocks?|stubs?|fixtures?|perf|load[-_]?tests?)/", re.I)
+NONPROD_COMPOSE = re.compile(r"(^|/)(?:local|dev|devenv)/|(^|/)(?:docker-)?compose[.-](?:test|tests|local|dev|e2e|ci|it|mock|debug)\b[^/]*$", re.I)
+MOVING_TAG = {"latest", "stable", "lts", "edge", "main", "master", "develop", "dev", "current", "nightly", "snapshot"}
 EKS_HINT = re.compile(r"eks\.amazonaws\.com|eksctl\.io|aws_eks_|alb\.ingress\.kubernetes\.io|karpenter\.sh|ebs\.csi\.aws\.com|aws-load-balancer-controller")
 ZONE_KEY = re.compile(r"topology\.kubernetes\.io/zone|failure-domain\.beta\.kubernetes\.io/zone|topology\.ebs\.csi\.aws\.com/zone")
 
 
 def _res(state, value=None, note=None, e=None):
     return {"state": state, "value": value, "note": note, "evidence": [e] if e else []}
+
+
+def _pinned(ref):
+    """(state, tag, note) for an image reference: a digest or a tag with a version number is pinned; no tag, :latest or a codename
+    (node:boron, :alpine) moves; a tag filled in at deploy time (${TAG}) cannot be judged from the file."""
+    if "@sha256:" in ref:
+        return "present", ref.split("@", 1)[1][:19], "pinned by digest"
+    last = ref.split("/")[-1]
+    tag = last.rsplit(":", 1)[1] if ":" in last else None
+    if tag is None:
+        return "absent", None, "no tag, so the image floats to :latest"
+    if "$" in tag or "{{" in tag:
+        return "unknown", tag, "the tag is set at deploy time (%s)" % tag
+    if tag.lower() in MOVING_TAG or not re.search(r"\d", tag):
+        return "absent", tag, "moving tag :%s (a name, not a version)" % tag
+    return "present", tag, None
+
+
+def _norm(name):
+    n = re.sub(r"[-_.](?:master|main|service|svc|app|application)$", "", (name or "").lower())
+    return re.sub(r"[^a-z0-9]", "", n)
+
+
+def _own_service(app, name, body):
+    """A compose service is this application when it is built from the repository or its image is named after it; prometheus,
+    grafana, postgres and other third-party images are what the application runs next to, not the application."""
+    if any(re.search(r"^\s+build:", l) for l in body):
+        return True
+    im = next((re.search(r"image:\s*[\"']?([^\s\"']+)", l) for l in body if re.search(r"^\s+image:", l)), None)
+    if not im:
+        return False
+    a, b = _norm(app), _norm(im.group(1).split("/")[-1].split(":")[0])
+    return bool(a and b and (a in b or b in a))
 
 
 def _first(lines, rx, flags=0):
@@ -199,14 +237,13 @@ def k8s_checks(app, repo, f, s, doc, lines_all, ctx, siblings, helm_vals, eks):
     else:
         c["resources"] = _res("unknown" if templated else "absent", None, "no requests/limits" if not templated else "set through a Helm value that is empty or not read", None)
     # recovery: k8s restarts by default (restartPolicy Always); rollback is a CI concern
-    rp = at(r"restartPolicy:")
-    c["restart_recovery"] = _res("present", None, "Deployments restart failed containers by default (restartPolicy: Always)", rp)
+    rp = at(r"restartPolicy:") or at(r"^kind:")  # with no restartPolicy, the workload kind is what guarantees the restart
+    c["restart_recovery"] = _res("present", None, "restarts failed containers (restartPolicy: Always is the default); rollback is a pipeline concern", rp)
     # image
     im = re.search(r"^\s*-?\s*image:\s*[\"']?([^\s\"']+)", text, re.M)
     if im and "{{" not in im.group(1):
-        tag = im.group(1).rsplit(":", 1)[1] if ":" in im.group(1).split("/")[-1] else None
-        e = at(r"image:")
-        c["image_pinned"] = _res("present" if tag and tag != "latest" else "absent", tag, None if tag and tag != "latest" else "no tag or :latest", e)
+        st, tag, note = _pinned(im.group(1))
+        c["image_pinned"] = _res(st, tag, note, at(r"image:"))
     else:
         c["image_pinned"] = _res("unknown", None, "image is a template or Helm value", at(r"image:"))
     return c
@@ -238,8 +275,8 @@ def nomad_checks(app, repo, f, lines):
     c["restart_recovery"] = _res("present", None, None, rec) if rec else _res("absent", None, "no restart, reschedule or auto_revert", None)
     im = re.search(r"image\s*=\s*[\"']([^\"']+)", text)
     if im:
-        tag = im.group(1).rsplit(":", 1)[1] if ":" in im.group(1).split("/")[-1] else None
-        c["image_pinned"] = _res("present" if tag and tag != "latest" else "absent", tag, None if tag and tag != "latest" else "no tag or :latest", at(r"image\s*="))
+        st, tag, note = _pinned(im.group(1))
+        c["image_pinned"] = _res(st, tag, note, at(r"image\s*="))
     else:
         c["image_pinned"] = _res("unknown", None, "image not literal", None)
     return c
@@ -256,14 +293,124 @@ def compose_checks(app, repo, f, lines, svc_start, svc_lines):
     hc = at(r"healthcheck:")
     c["readiness"] = _res("present", None, None, hc) if hc else _res("absent", None, "no healthcheck", None)
     rp = at(r"restart:") or at(r"restart_policy:")
-    c["restart_recovery"] = _res("present", None, None, rp) if rp else _res("absent", None, "no restart policy", None)
+    c["restart_recovery"] = _res("present", None, "restarts a failed container; nothing rolls back a bad release", rp) if rp else _res("absent", None, "no restart policy", None)
     rs = at(r"(?:mem_limit|cpus|limits):")
     c["resources"] = _res("present", None, None, rs) if rs else _res("absent", None, "no limits", None)
     im = re.search(r"image:\s*[\"']?([^\s\"']+)", text)
     if im:
-        tag = im.group(1).rsplit(":", 1)[1] if ":" in im.group(1).split("/")[-1] else None
-        c["image_pinned"] = _res("present" if tag and tag != "latest" else "absent", tag, None, at(r"image:"))
+        st, tag, note = _pinned(im.group(1))
+        c["image_pinned"] = _res(st, tag, note, at(r"image:"))
     return c
+
+
+ANSIBLE_RUN = re.compile(r"\bansible-playbook\b")
+ANSIBLE_DEPLOY = re.compile(r"^\s*(?:community\.docker\.)?docker_container:|^\s*(?:kubernetes\.core\.)?k8s:|^\s*(?:ansible\.builtin\.)?systemd:")
+
+
+def _unread_deploy(repo, ctx, app):
+    """A deployment mechanism this check does not read (Ansible): its presence turns 'absent' into 'not checked'."""
+    for f in ctx.ci_files:
+        lines = evidence.read_lines(repo, f) or []
+        i = _first(lines, ANSIBLE_RUN.pattern)
+        if i:
+            return {"mechanism": "Ansible", "evidence": [ev(f, i, lines, app)]}
+    for f in ctx.files:
+        if re.search(r"(^|/)roles/[^/]+/tasks/[^/]+\.ya?ml$|(^|/)(?:playbook[^/]*|site)\.ya?ml$", f):
+            lines = evidence.read_lines(repo, f) or []
+            i = _first(lines, ANSIBLE_DEPLOY.pattern)
+            if i:
+                return {"mechanism": "Ansible", "evidence": [ev(f, i, lines, app)]}
+    return None
+
+
+NONPROD_ENV = re.compile(r"(?i)(?:^|[/_.-])(?:local|dev|devel|demo|vagrant|test|sandbox)(?:[/_.-]|$)")
+
+
+def _inventories(repo, ctx):
+    """Ansible inventory files and the hosts each lists ([group] sections; web-[1:3].x expands to three hosts; :children and :vars are not hosts)."""
+    out = []
+    for f in ctx.files:
+        if not re.search(r"(^|/)inventor(?:y|ies)/|(^|/)hosts[^/]*$|\.ini$", f) or ctx._aux(f):
+            continue
+        lines = evidence.read_lines(repo, f) or []
+        if not any(re.match(r"^\[[\w.:-]+\]\s*$", l) for l in lines):
+            continue
+        hosts, first, section = set(), None, ""
+        for i, l in enumerate(lines, 1):
+            t = l.strip()
+            if not t or t.startswith(("#", ";")):
+                continue
+            m = re.match(r"^\[([\w.:-]+)\]$", t)
+            if m:
+                section = m.group(1)
+                continue
+            if section.endswith((":children", ":vars")) or "=" in t.split()[0]:
+                continue
+            name = t.split()[0]
+            r = re.search(r"\[(\d+):(\d+)\]", name)
+            for n in (range(int(r.group(1)), int(r.group(2)) + 1) if r else [None]):
+                hosts.add(name if n is None else name[:r.start()] + str(n) + name[r.end():])
+            first = first or i
+        if hosts:
+            out.append({"file": f, "hosts": len(hosts), "ev": ev(f, first, lines, None), "nonprod": bool(NONPROD_ENV.search(f))})
+    return out
+
+
+def ansible_checks(app, repo, ctx):
+    """One workload for an Ansible-deployed application: hosts per environment from the inventories, the rollout from the playbook, the
+    container or process supervisor settings from the roles. Returns None when the repository holds no Ansible deployment."""
+    inv = _inventories(repo, ctx)
+    books = []
+    for f in ctx.files:
+        if f.endswith((".yml", ".yaml")) and not ctx._aux(f):
+            lines = evidence.read_lines(repo, f) or []
+            if any(re.match(r"^-?\s*hosts:\s*\S", l) for l in lines[:40]):
+                books.append((f, lines))
+    if not inv or not books:
+        return None
+
+    def first(rx, files=None):
+        for f, lines in (files or books):
+            i = _first(lines, rx)
+            if i:
+                return ev(f, i, lines, app)
+        return None
+    roles = [(f, evidence.read_lines(repo, f) or []) for f in ctx.files if re.search(r"(^|/)(?:roles/[^/]+/(?:tasks|handlers)/|tasks/)[^/]+\.ya?ml$", f)]
+    sup = [(f, evidence.read_lines(repo, f) or []) for f in ctx.files if re.search(r"\.god$|\.service$|supervisor[^/]*\.conf$|(^|/)monit[^/]*$", f)]
+    c = {}
+    prod = [x for x in inv if not x["nonprod"]] or inv
+    two = [x for x in prod if x["hosts"] >= 2]
+    st = "present" if len(two) == len(prod) else "partial" if two else "absent"
+    c["replicas"] = _res(st, min(x["hosts"] for x in prod), "%d of %d environment inventories list two or more hosts" % (len(two), len(prod)), (two or prod)[0]["ev"])
+    ser = first(r"^\s*serial:\s*\S")
+    c["rollout"] = _res("present", None, "hosts are deployed one batch at a time (serial)", ser) if ser else _res("absent", None, "the playbook deploys every host at once (no serial)", None)
+    hc = first(r"(?:url:|\bcurl\b|\bwget\b)[^\n]*(?:/health|\{\{\s*inventory_hostname|localhost)", roles + books)
+    c["readiness"] = _res("partial", None, "the deploy checks each host responds before moving on; whether the load balancer uses a health check is not visible", hc) if hc else \
+        _res("absent", None, "no health check in the deployment", None)
+    rp = first(r"^\s*restart_policy:\s*\S|^\s*Restart=\w", roles + sup) or first(r"\bkeepalive\b|autorestart\s*=\s*true", sup)
+    c["restart_recovery"] = _res("present", None, "a failed process or container is restarted; nothing rolls back a bad release", rp) if rp else \
+        _res("absent", None, "no restart policy or process supervisor found", None)
+    mem = first(r"^\s*(?:memory|mem_limit):\s*\S|MemoryMax=|MemoryLimit=", roles + sup)
+    cpu = first(r"^\s*(?:cpus|cpu_quota|cpu_shares|cpuset_cpus):\s*\S|CPUQuota=", roles + sup)
+    c["resources"] = _res("present", None, "memory and CPU limits set", mem) if mem and cpu else \
+        _res("partial", None, "only a %s limit is set" % ("memory" if mem else "CPU"), mem or cpu) if mem or cpu else _res("absent", None, "no memory or CPU limit set", None)
+    stop = first(r"^\s*stop_timeout:\s*\S|TimeoutStopSec=|\bstop_timeout\b|\bstop_grace", roles + sup)
+    docker = first(r"^\s*(?:community\.docker\.)?docker_container:", roles)
+    c["graceful_stop"] = _res("present", None, None, stop) if stop else \
+        _res("default", None, "Docker's default applies: SIGTERM, then a kill after 10 seconds", docker) if docker else \
+        _res("absent", None, "no stop timeout: the process may be killed mid-request", None)
+    im = first(r"^\s*image:\s*\S", roles)
+    if im:
+        st, tag, note = _pinned(re.sub(r"^\s*image:\s*[\"']?|[\"']\s*$", "", im["snippet"]))
+        if st == "unknown":  # the tag is a deploy variable: the pipeline may pass the commit (tag=${COMMIT_TAG}), which pins it
+            var = re.sub(r"[{}\s]", "", tag or "")
+            ci = [e for f in ctx.ci_files for e in [first(r"\b%s=\$\{?\w*(?:COMMIT|SHA|GIT_COMMIT|BUILD_NUMBER|VERSION)\w*" % re.escape(var),
+                                                          [(f, evidence.read_lines(repo, f) or [])])] if e] if var else []
+            if ci:
+                st, note, im = "present", "the pipeline deploys the image tagged with the commit (%s)" % ci[0]["snippet"].strip()[:60], ci[0]
+        c["image_pinned"] = _res(st, tag, note, im)
+    return {"platform": "ansible", "kind": "playbook", "name": books[0][0], "file": books[0][0], "helm": False, "checks": c,
+            "inventories": [{k: x[k] for k in ("file", "hosts", "nonprod")} for x in inv]}
 
 
 def assess(repo: str, disc: Optional[dict] = None) -> dict:
@@ -273,8 +420,14 @@ def assess(repo: str, disc: Optional[dict] = None) -> dict:
     deploy = [f for f in ctx.deploy_files]
     nomad = [f for f in files if re.search(r"\.(nomad|hcl)$", f)]
     nomad = [f for f in nomad if any(re.search(r'^\s*job\s+"', l) for l in (evidence.read_lines(repo, f) or [])[:80])]
+    ignored = [{"file": f, "why": "test, contract or mock harness, not the production deployment"} for f in deploy if NONPROD_DIR.search("/" + f)]
+    ignored += [{"file": f, "why": "local or developer stack"} for f in deploy if not NONPROD_DIR.search("/" + f) and NONPROD_COMPOSE.search(f)
+                and re.search(r"(?i)compose[^/]*\.ya?ml$", f)]
+    skip = {x["file"] for x in ignored}
+    deploy = [f for f in deploy if f not in skip]
     k8s_files = sorted(f for f in deploy if f.endswith((".yml", ".yaml")) and not re.match(r"(?i)(?:docker-)?compose|values|Chart\.", os.path.basename(f)))
     compose = sorted(f for f in deploy if re.match(r"(?i)(?:docker-)?compose[^/]*\.ya?ml$", os.path.basename(f)))
+    unread = _unread_deploy(repo, ctx, app)
     # EKS / cloud hints anywhere in infra-ish files
     eks_ev = []
     for f in sorted(set(k8s_files + deploy + [x for x in files if x.endswith((".tf", ".yaml", ".yml", ".json")) and re.search(r"(?i)eks|terraform|infra|cluster|deploy|helm|chart", x)])):
@@ -324,9 +477,18 @@ def assess(repo: str, disc: Optional[dict] = None) -> dict:
                 continue
             nxt = next((j for j, n in svc if j > i), len(lines))
             body = lines[i + 1:nxt]
-            if any(re.search(r"^\s+(?:image|build):", l) for l in body):
-                workloads.append({"platform": "compose", "kind": "service", "name": name, "file": f, "helm": False, "checks": compose_checks(app, repo, f, lines, i + 1, body)})
-    for p in ("kubernetes", "nomad", "compose"):
+            if not any(re.search(r"^\s+(?:image|build):", l) for l in body):
+                continue
+            if not _own_service(app, name, body):
+                ignored.append({"file": f, "service": name, "why": "third-party image the application runs next to, not the application"})
+                continue
+            workloads.append({"platform": "compose", "kind": "service", "name": name, "file": f, "helm": False, "checks": compose_checks(app, repo, f, lines, i + 1, body)})
+    if not workloads:  # VMs deployed by Ansible: read the inventories, playbooks and roles rather than reporting them unread
+        aw = ansible_checks(app, repo, ctx)
+        if aw:
+            workloads.append(aw)
+            unread = None
+    for p in ("kubernetes", "nomad", "compose", "ansible"):
         if any(w["platform"] == p for w in workloads):
             platforms.append(p)
     # summary
@@ -337,7 +499,9 @@ def assess(repo: str, disc: Optional[dict] = None) -> dict:
             summary.append({"id": cid, "group": grp, "title": title, "why": why, "state": "not_applicable" if workloads else "not_assessed", "workloads": 0, "evidence": []})
             continue
         states = [w["checks"][cid]["state"] for w in rel]
-        agg = "present" if all(s == "present" for s in states) else "absent" if all(s in ("absent",) for s in states) else "default" if all(s in ("default", "present") for s in states) and "default" in states else "partial" if "present" in states else "unknown" if "unknown" in states and "absent" not in states else "absent"
+        agg = "present" if all(s == "present" for s in states) else "absent" if all(s in ("absent",) for s in states) \
+            else "default" if all(s in ("default", "present") for s in states) and "default" in states \
+            else "partial" if "present" in states or "partial" in states else "unknown" if "unknown" in states and "absent" not in states else "absent"
         ev_list = [e for w in rel for e in w["checks"][cid]["evidence"]][:2]
         summary.append({"id": cid, "group": grp, "title": title, "why": why, "state": agg, "workloads": len(rel), "evidence": ev_list,
                         "notes": sorted({w["checks"][cid]["note"] for w in rel if w["checks"][cid]["note"]})[:2]})
@@ -349,8 +513,11 @@ def assess(repo: str, disc: Optional[dict] = None) -> dict:
                    "Helm charts are not rendered: a value that comes from a template or an unread values file is `unknown`.",
                    "A PodDisruptionBudget or autoscaler is matched to the repository, not to a specific workload selector.",
                    "Nothing was applied or queried; no cluster was contacted."]
+    if unread:
+        limitations.insert(0, "Deployed with %s (%s:%s), which is not read: its settings are not checked here." % (unread["mechanism"], unread["evidence"][0]["path"], unread["evidence"][0]["line_start"]))
     return {"contract": CONTRACT, "version": VERSION, "application": app, "state": state, "platforms": platforms,
             "eks": {"detected": eks, "evidence": eks_ev, "note": "EKS signals: eks.amazonaws.com annotations, eksctl, aws_eks Terraform, ALB / Karpenter / EBS CSI annotations" if eks else "no EKS-specific signal found; generic Kubernetes checks apply"},
-            "workloads": workloads, "summary": summary, "groups": GROUPS,
-            "reason": None if workloads else "no Kubernetes, Nomad or Compose workload definition in this repository: HA configuration may live in a platform or GitOps repository",
+            "workloads": workloads, "summary": summary, "groups": GROUPS, "ignored": ignored, "unread": unread,
+            "reason": None if workloads else ("deployed with %s, which is not read: replicas, health checks and limits could not be checked" % unread["mechanism"]) if unread
+            else "no Kubernetes, Nomad or Compose workload definition for this application in the repository: HA configuration may live in a platform or GitOps repository",
             "limitations": limitations}

@@ -189,7 +189,7 @@ def main(argv=None) -> int:
         errs = merge_llm(doc, json.load(open(a[2], encoding="utf-8")))
         if not errs:
             with open(a[1] + ".tmp", "w", encoding="utf-8") as fh:
-                json.dump(doc, fh, indent=2, sort_keys=True)
+                json.dump(evidence.redact_tree(doc), fh, indent=2, sort_keys=True)
                 fh.write("\n")
             os.replace(a[1] + ".tmp", a[1])
     else:

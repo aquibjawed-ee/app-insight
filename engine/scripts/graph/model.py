@@ -97,7 +97,8 @@ def load(path: str) -> dict:
 
 def dump(doc: dict, path: str):
     with open(path + ".tmp", "w", encoding="utf-8") as fh:
-        json.dump(doc, fh, indent=2, sort_keys=True)
+        import evidence  # redacted on the way out: no secret reaches a written file
+        json.dump(evidence.redact_tree(doc), fh, indent=2, sort_keys=True)
         fh.write("\n")
     import os
     os.replace(path + ".tmp", path)

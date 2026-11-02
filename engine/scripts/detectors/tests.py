@@ -27,9 +27,15 @@ TEST_MARK = re.compile(r"@(?:[\w]+\.)*(?:Test|ParameterizedTest|RepeatedTest|Tes
 # e2e/acceptance/journey directories hold acceptance-style tests anywhere; `functional` only as a module directory
 # (before src/): a package named functional inside src/test is usually in-process tests (e.g. gson's)
 ACCEPT_DIR = re.compile(r"(^|/)(e2e|acceptance|journeys?)(/|$)", re.I)
-SOURCE_SET = re.compile(r"(?:^|/)src/(integrationTest|intTest|it|functionalTest|acceptanceTest|e2eTest|contractTest)/")
+SOURCE_SET = re.compile(r"(?:^|/)src/(integrationTest|integration-test|intTest|it|functionalTest|acceptanceTest|e2eTest|contractTest)/")
 FUNCTIONAL_MODULE = re.compile(r"^(?:.*/)?functional/(?:src/)", re.I)
 CONTRACT_DIR = re.compile(r"(^|/)contracts?(/|$)", re.I)
+# the class name states the intent: FooAcceptanceTest, CheckoutE2ETest, SignupJourneyTest
+ACCEPT_NAME = re.compile(r"(?:Acceptance|E2E|EndToEnd|Journey)(?:Test|Tests|IT|Spec)\.\w+$")
+# boots the whole application: the test talks to the running app, not to one class
+FULL_APP = re.compile(r"\bDropwizardAppRule\b|\bDropwizardAppExtension\b|@SpringBootTest\s*\([^)]*webEnvironment\s*=\s*[\w.]*(?:RANDOM_PORT|DEFINED_PORT)|@QuarkusTest\b|@MicronautTest\b")
+# a class whose only test checks that the application context starts: it proves wiring, not behaviour
+CONTEXT_ONLY = re.compile(r"(?:@Test\s*(?:fun|void|public\s+void)\s+`?contextLoads`?\s*\(\s*\)\s*(?::\s*Unit\s*)?\{\s*\}\s*)")
 
 
 def _classify(repo, test_sources, module_of=lambda p: "."):
@@ -57,14 +63,19 @@ def _classify(repo, test_sources, module_of=lambda p: "."):
         if CONTRACT_DIR.search(f):
             con_ev.append(file_ev(f, idx0, ls[idx0 - 1]))
             continue
+        if ACCEPT_NAME.search(f):
+            acc_ev.append(file_ev(f, idx0, ls[idx0 - 1]))
+            continue
+        if len(re.findall(r"@Test\b", text)) == 1 and CONTEXT_ONLY.search(text):
+            continue  # neither a unit nor an integration test: it only starts the context
         is_it = re.search(r"(IT|IntegrationTest|ITCase)\.\w+$", f) or "/integration" in f \
-            or re.search(r"(^|/)(?:its?|[\w.-]*integration[-_]?tests?|[\w.-]*-it)(/|$)", f.split("/src/")[0] + "/") or (sset and sset.group(1) in ("integrationTest", "intTest", "it", "functionalTest")) \
-            or re.search(r"@(SpringBootTest|Testcontainers|DataJpaTest|WebMvcTest)", text)
+            or re.search(r"(^|/)(?:its?|[\w.-]*integration[-_]?tests?|[\w.-]*-it)(/|$)", f.split("/src/")[0] + "/") or (sset and sset.group(1) in ("integrationTest", "integration-test", "intTest", "it", "functionalTest")) \
+            or re.search(r"@(SpringBootTest|Testcontainers|DataJpaTest|WebMvcTest)", text) or FULL_APP.search(text)
         idx = next((i for i, ln in enumerate(ls, 1) if TEST_MARK.search(ln)), 1)
         if is_it:
             integ += 1
             it_tools.update(n for n, rx in IT_TOOLS if re.search(rx, text))
-            it_separate = it_separate or bool(sset and sset.group(1) in ("integrationTest", "intTest", "it", "functionalTest"))
+            it_separate = it_separate or bool(sset and sset.group(1) in ("integrationTest", "integration-test", "intTest", "it", "functionalTest"))
             integ_ev.append(file_ev(f, idx, ls[idx - 1]))
         else:
             unit += 1
@@ -123,16 +134,23 @@ Ctx_AUX = _Ctx.AUX_DIR
 VERSION = "0.7.0"
 
 
+def _it_note(ctx):
+    run = [e for e in grep_files(ctx.repo, ctx.ci_files, r"\b(?:integrationTest|intTest|integration-test)\b", 5)
+           if not re.search(r"-x\s+(?:integrationTest|intTest)\b", e["snippet"])][:1]  # `build -x integrationTest` skips them
+    if run:
+        return "the classes live in their own source set, which the pipeline runs (%s:%s)" % (run[0]["path"], run[0]["line_start"])
+    return "the classes live in their own source set, so the ordinary test task may not run them"
+
+
 def detect(ctx) -> dict:
     r = ctx.repo
     out = {}
     unit, unit_ev, integ, integ_ev, it_tools, it_separate, acc_cls, con_cls, unit_mods = _classify(r, ctx.test_sources, ctx.module_of)
     out["unit_tests"] = fact({"test_classes": unit, "test_files": len(ctx.test_sources), "by_module": dict(sorted(unit_mods.items()))},
-                             "CONFIRMED" if unit else "NOT_FOUND", unit_ev[:5],
-                             "classes with @Test that are not integration-style")
+                             "CONFIRMED" if unit else "NOT_FOUND", unit_ev[:5])
     out["integration_tests"] = fact({"test_classes": integ, "tools": it_tools, "separate_source_set": it_separate},
                                     "CONFIRMED" if integ else "NOT_FOUND", integ_ev[:5],
-                                    "separate_source_set: the classes live outside src/test, so the ordinary test task may not run them")
+                                    _it_note(ctx) if it_separate else None)
     fw = []
     fev = []
     for name, rx in (("junit5", r"junit-jupiter|org\.junit\.jupiter|useJUnitPlatform"), ("junit4", r"<artifactId>junit</artifactId>|junit:junit"),
@@ -196,11 +214,18 @@ def detect(ctx) -> dict:
     if acc_cls and not feat and disabled(acc_cls):
         acc_val["not_run_reason"] = "the module holding these tests switches its tests off"
     out["acceptance_tests"] = _kind(acc_val, ev, ext["acceptance"], cuc)
-    cdirs = [f for f in ctx.files if re.search(r"(^|/)(pacts?|contracts?)/.+\.(json|ya?ml|groovy|kts?)$", f)]
-    cl = grep_files(r, ctx.build_files, r"pact|spring-cloud-contract|spring-cloud-starter-contract", 2)
-    ev = [file_ev(f, 1, (read_lines(r, f) or [""])[0]) for f in cdirs[:3]] + con_cls[:3]
+    # contract files, not the tooling next to them (package.json, a compose file that starts a mock)
+    cdirs = [f for f in ctx.files if re.search(r"(^|/)(pacts?|contracts?)/.+\.(json|ya?ml|groovy|kts?|apib|md)$", f)
+             and not re.search(r"(^|/)(package(-lock)?\.json|(docker-)?compose[^/]*\.ya?ml|README\.md|[^/]*\.config\.\w+)$|/node_modules/", f)]
+    cl = grep_files(r, ctx.build_files, r"pact|spring-cloud-contract|spring-cloud-starter-contract|\bdredd\b", 2)
+    # the pipeline step that runs them proves more than the first line of a contract file
+    # the command that runs them first; a stage named after them only if no command is found
+    con_run = grep_files(r, ctx.ci_files, r"runContract\w*|pact(?:Verify|Publish)|\bcontractTest\b|\bdredd\b", 2) or \
+        grep_files(r, ctx.ci_files, r"(?i)contract[-_ ]?tests?", 1)
+    ev = con_run + [file_ev(f, 1, (read_lines(r, f) or [""])[0]) for f in cdirs[:3]] + con_cls[:3]
     con_val = {"contract_files": len(cdirs), "test_classes": len(con_cls), "libraries": _libs(cl, r"spring-cloud-(?:starter-)?contract|pact"),
                "tools": sorted(({"pact"} if re.search(r"pact", " ".join(e["snippet"] for e in cl), re.I) or any("pact" in f for f in cdirs) else set())
+                               | ({"dredd"} if re.search(r"\bdredd\b", " ".join(e["snippet"] for e in cl + con_run), re.I) else set())
                                | ({"spring-cloud-contract"} if re.search(r"spring-cloud-(?:starter-)?contract", " ".join(e["snippet"] for e in cl)) else set()))}
     if con_cls and not cdirs and disabled(con_cls):
         con_val["not_run_reason"] = "the module holding these tests switches its tests off"

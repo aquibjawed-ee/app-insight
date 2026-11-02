@@ -148,7 +148,8 @@ class PlatformTest(unittest.TestCase):
         self.assertEqual(len(d), 9)
         self.assertEqual(d["business_criticality"]["state"], "unknown")
         self.assertEqual(d["security_exposure"]["state"], "not_assessed")
-        self.assertEqual(d["technology_lifecycle"]["level"], "concern")
+        self.assertEqual(d["technology_lifecycle"]["level"], "attention")  # Boot 2.7: open-source support ended, paid support until 2029 (spring.io)
+        self.assertEqual(d["technology_lifecycle"]["values"]["spring_boot"]["oss_status"], "commercial_only")
         def keys(o):
             return {k for x in (o.values() if isinstance(o, dict) else o if isinstance(o, list) else []) for k in keys(x)} | (set(o) if isinstance(o, dict) else set())
         self.assertNotIn("score", keys({k: v for k, v in d.items() if k != "engineering_maturity"}))  # only the maturity dimension carries a score, and it is not combined

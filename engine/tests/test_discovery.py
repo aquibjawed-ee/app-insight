@@ -883,3 +883,13 @@ class Contract(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommitTagging(unittest.TestCase):
+    def test_an_image_tagged_with_the_commit_is_partial_tagging_not_absent(self):
+        jf = "pipeline {\n  environment {\n    COMMIT_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()\n  }\n}\n"
+        d, doc = run(java({"Jenkinsfile": jf}))
+        res = {c["id"]: c for c in doc["maturity"]["criteria"]}["version_tagging"]
+        self.assertEqual(res["result"], "PARTIAL")
+        self.assertIn("build_ci.artifact_tag_from_commit", res["facts"])
+        self.assertEqual(doc["build_ci"]["artifact_tag_from_commit"]["evidence"][0]["path"], "Jenkinsfile")

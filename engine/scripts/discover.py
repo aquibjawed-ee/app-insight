@@ -41,14 +41,16 @@ LIMITATIONS = [
     "Facts are repository-wide. File citations carry the module they came from; per-module assessment is not performed.",
     "Dependencies and hosting are read from files (deployment descriptors and pipeline commands name the platform; nothing is queried): hosts are not resolved, a service reached only at run time, through a client built in code or through a URL held in a property is not named, and a declared dependency with no connection setting is reported as declared only.",
     "Evidence snippets are redacted for secret-looking literals; review before sharing outside the organisation.",
+    "Runtime resilience (timeouts, retries, circuit breakers, consumer error handling, shutdown, log format) is read from application*.properties|yml, logback/log4j2 files and main code; values set by the platform, environment variables, a config server or a shared library are not visible, and a client built through an in-house wrapper is not recognised.",
 ]
-ORDER = ["identity", "stack", "build_ci", "tests", "api", "resilience", "security"]
+ORDER = ["identity", "stack", "build_ci", "tests", "api", "resilience", "security", "runtime"]
 
 
 def build(repo: str) -> dict:
     ctx = Ctx(repo)
     doc = {"contract": "discovery.v1"}
     failures = []
+    ctx.doc = doc  # a later detector may read an earlier one's facts (runtime reads the Spring Boot version)
     for name in ORDER:
         try:
             doc[name] = importlib.import_module("detectors." + name).detect(ctx)
@@ -104,7 +106,7 @@ def main(argv=None) -> int:
     path = os.path.join(out_dir, "discovery.json")
     tmp = path + ".tmp"  # write-then-rename so a crash never leaves a half-written discovery.json
     with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(doc, fh, indent=2, sort_keys=True)
+        json.dump(evidence.redact_tree(doc), fh, indent=2, sort_keys=True)
         fh.write("\n")
     os.replace(tmp, path)
     m = doc["maturity"]
