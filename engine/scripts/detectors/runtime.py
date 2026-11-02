@@ -29,6 +29,7 @@ HTTP_CLIENTS = [  # (name, pattern, finite default or None)
     ("Retrofit", r"\bRetrofit\.Builder\s*\(", "10 s (OkHttp)"),
     ("Feign", r"@FeignClient\b", "10 s connect / 60 s read"),
     ("Feign builder", r"\b(?:Hystrix)?Feign\.builder\s*\(", "10 s connect / 60 s read"),
+    ("HTTP client from a library", r"\bnew\s+(?!RestTemplate\b)\w*(?:Http|Rest)\w*Client\s*\(", None),
     ("MicroProfile REST client", r"@RegisterRestClient\b", "implementation default"),
     # AWS SDK clients call AWS over HTTP: v2 defaults to 2 s connect / 30 s socket with no overall call timeout; v1 to 10 s / 50 s
     ("AWS SDK v2", r"\b(?!(?:Rest|Web|Http|OkHttp|Feign|Jersey|Vertx|Ktor)Client\b)[A-Z][A-Za-z0-9]*(?:Async)?Client\.(?:builder|create)\s*\(", "2 s connect / 30 s socket, no overall call timeout"),
@@ -37,6 +38,7 @@ HTTP_CLIENTS = [  # (name, pattern, finite default or None)
 AWS_SDK = r"software\.amazon\.awssdk|com\.amazonaws"
 HTTP_TIMEOUT_CODE = (r"\.(?:connect|read|write|call|response|socket|connectionRequest|request|connection|apiCall|apiCallAttempt)Timeout\s*\(|"
                      r"\bwith(?:ClientExecution|Request|Socket|Connection)Timeout\s*\(|"
+                     r"\.options\s*\(\s*new\s+(?:feign\.)?Request\.Options|\bnew\s+\w*(?:Http|Rest)\w*Client\s*\([^)]*(?i:timeout)|"
                      r"\bset(?:Connect|Read|Socket|ConnectionRequest|Response)Timeout\s*\(|\b(?:Read|Write)TimeoutHandler\b|"
                      r"\bCONNECT_TIMEOUT_MILLIS\b|\.timeout\s*\(\s*Duration")
 NOT_HTTP = re.compile(r"datasource|jpa|hibernate|persistence|kafka|rabbit|jms|activemq|artemis|redis|mongo|r2dbc|jdbc|cassandra|"
@@ -49,7 +51,7 @@ RETRY_CODE = (r"@Retryable\b|@Retry\b|\bRetryTemplate\b|\bRetry\.of(?:Defaults)?
 KAFKA_IN = r"@KafkaListener\b|\bKafkaConsumer\s*<|@StreamListener\b|\bReactiveKafkaConsumerTemplate\b|\bKafkaMessageListenerContainer\b|@Incoming\b"
 RABBIT_IN = r"@RabbitListener\b|\bSimpleMessageListenerContainer\b"
 JMS_IN = r"@JmsListener\b|\bimplements\s+(?:\w+\s*,\s*)*MessageListener\b|\bDefaultMessageListenerContainer\b"
-SQS_IN = r"@SqsListener\b|\bReceiveMessageRequest\b"
+SQS_IN = r"(?-i:@SqsListener)\b|\bReceiveMessageRequest\b"  # the exact annotation: a class named SQSListener is not one
 DEAD_CODE = (r"\bDeadLetterPublishingRecoverer\b|@RetryableTopic\b|@DltHandler\b|\bRepublishMessageRecoverer\b|"
              r"\bRejectAndDontRequeueRecoverer\b|x-dead-letter-exchange|\bdeadLetterExchange\b|\bdeadLetterTargetArn\b|\bredrivePolicy\b|"
              r"[\"'][\w.-]*(?:\.dlt|\.dlq|-dlt|-dlq|_dlq|_dlt|dead[-_.]?letter)[\w.-]*[\"']")
@@ -144,6 +146,8 @@ def _keys(ss):
     return ", ".join(ks[:4]) + (" and %d more" % (len(ks) - 4) if len(ks) > 4 else "")
 
 
+# settings a framework applies to every client of its kind; a custom key (feignClientReadTimeout) is read by whichever code uses it
+GLOBAL_KEY = re.compile(r"^(?:spring\.|feign\.|resilience4j\.|ribbon\.|hystrix\.|okhttp\.|quarkus\.|micronaut\.|mp-rest|server\.)")
 HEALTH_CLASS = re.compile(r"(?i)health\w*\.(?:java|kt|groovy|scala)$")
 
 
@@ -169,6 +173,25 @@ def http_timeouts(ctx, cfg):
         reads = [t for t in texts if re.search(r"read|response|socket|call|write|request|timelimiter|\.timeout\s*\(", t.replace("connectionrequest", ""))]
         where = (_keys(keyed) + (" and " if keyed and code else "") + ("set in code" if code else "")).strip()
         evs = [s["ev"] for s in keyed] + code
+        # timeouts set in code bound only the clients built in the same file; a client built elsewhere with none keeps its default
+        coded = {e["path"] for e in code}
+        custom = sorted({k["key"].split(".")[-1] for k in keyed if not GLOBAL_KEY.match(k["k"])})
+        if custom:  # code that reads a custom timeout setting (@Value("${feignClientReadTimeout}")) applies it
+            coded |= {e["path"] for e in _code(ctx, r"\b(?:%s)\b" % "|".join(map(re.escape, custom)), 20)}
+        bare = sorted({e["path"] for n, p, d in HTTP_CLIENTS if n in ("Feign builder", "HTTP client from a library", "RestTemplate", "Apache HttpClient", "JDK HttpClient")
+                       for e in _outbound(_code(ctx, p, 10)) if e["path"] not in coded}) if coded and not any(GLOBAL_KEY.match(k["k"]) for k in keyed) else []
+        # a client wrapped by a breaker command that has an execution timeout is bounded by it (DiscoveryCommand: 5000 ms)
+        hx = _code(ctx, r"withExecutionTimeoutInMilliseconds|execution\.isolation\.thread\.timeoutInMilliseconds", 2) + \
+            [s["ev"] for s in cfg if re.search(r"hystrix\..*timeoutinmilliseconds$", s["k"])][:1]
+        breakers = {e["path"] for e in _code(ctx, BREAKER_CODE, 10)}
+        bounded = [b for b in bare if hx and any(re.sub(r"(?:Client)?(?:Configuration|Config|Factory)$", "", os.path.splitext(os.path.basename(b))[0]) in os.path.basename(k) for k in breakers)]
+        bare = [b for b in bare if b not in bounded]
+        if reads and bounded and not bare:
+            return _verdict("PRESENT", "Timeouts set (%s); the client built in %s is bounded by its circuit-breaker command's timeout (%s:%s)" % (
+                where, ", ".join(os.path.basename(b) for b in bounded), hx[0]["path"], hx[0]["line_start"]), evs + hx[:1])
+        if reads and bare:
+            return _verdict("PARTIAL", "Timeouts are set for the clients in %s, but clients built in %s use their library defaults" % (
+                ", ".join(sorted({os.path.basename(p) for p in coded})[:3]), ", ".join(os.path.basename(b) for b in bare[:3])), evs)
         if reads:
             return _verdict("PRESENT", "Timeouts set (%s)%s" % (where, "; clients: " + names if names else ""), evs)
         if used and all(d for _, d, _ in used):
@@ -197,9 +220,14 @@ def retries_breakers(ctx, cfg):
     if bc and not bk:
         clients = sorted({e["path"] for n, p, _ in HTTP_CLIENTS for e in _outbound(_code(ctx, p, 10))})
         covered = {e["path"] for e in bc}
-        bare = [c for c in clients if c not in covered and not grep_files(ctx.repo, [c], BREAKER_CODE, 1)]
+        # a breaker class elsewhere covers a client configuration it is named after: DiscoveryCommand wraps what DiscoveryConfiguration builds
+        stems = {re.sub(r"(?:Client)?(?:Configuration|Config|Factory)$", "", os.path.splitext(os.path.basename(c))[0]): c for c in clients}
+        named = {c for stem, c in stems.items() if stem and any(stem in os.path.basename(b) for b in covered)}
+        bare = [c for c in clients if c not in covered and c not in named and not grep_files(ctx.repo, [c], BREAKER_CODE, 1)]
         if bare:
-            return _verdict("PARTIAL", "A circuit breaker wraps some calls (%s), but none is visible around the clients built in %s" % (
+            feign = any(grep_files(ctx.repo, [c], r"\bFeign\.builder\s*\(", 1) and not grep_files(ctx.repo, [c], r"\.retryer\s*\(", 1) for c in bare)
+            return _verdict("PARTIAL", ("A circuit breaker wraps some calls (%s), but none is visible around the clients built in %s" + (
+                " (Feign's default retryer still retries them up to 5 times)" if feign else "")) % (
                 ", ".join(sorted({os.path.basename(e["path"]) for e in bc})[:3]), ", ".join(os.path.basename(c) for c in bare[:3])),
                 bc[:2] + [e for n, p, _ in HTTP_CLIENTS for e in _code(ctx, p, 10) if e["path"] == bare[0]][:1])
     if bk or bc:

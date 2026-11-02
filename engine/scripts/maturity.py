@@ -131,6 +131,10 @@ def _scan(cat):
         if base[0] != "MET":
             return base
         run = _f(doc, "security." + cat + "_in_pipeline")
+        if run["value"] and cat == "sast" and _f(doc, "security.sast_root_only")["value"]:
+            return "PARTIAL", ["security.sast_root_only", "security.sast", "security.sast_in_pipeline"]  # modules left out
+        if run["value"] and cat == "sast" and _f(doc, "security.sast_rules_filtered")["value"]:
+            return "PARTIAL", ["security.sast_rules_filtered", "security.sast", "security.sast_in_pipeline"]  # wired, but its security rules filtered out
         if run["value"]:
             return "MET", ["security." + cat, "security." + cat + "_in_pipeline"]
         return "PARTIAL", ["security." + cat, "security." + cat + "_in_pipeline"]
@@ -174,6 +178,10 @@ CRITERIA = [
 ]
 
 
+# criteria that only a pipeline can show: with the pipeline outside the repository, finding nothing is unknown, not absent
+PIPELINE_ONLY = {"automated_build", "tests_run_in_ci", "version_tagging", "automated_deploy", "rollback", "secret_scanning", "dependency_scanning", "sast"}
+
+
 def score(doc: dict) -> dict:
     has_http = _f(doc, "api.http_endpoints_present")["status"] in ("CONFIRMED", "INFERRED")
     out = []
@@ -183,6 +191,8 @@ def score(doc: dict) -> dict:
         if cid in LIBRARY_NA and _f(doc, "stack.artifact_kind")["value"] == "library":
             continue
         result, facts = fn(doc)
+        if result == "NO_EVIDENCE" and cid in PIPELINE_ONLY and (_f(doc, "build_ci.ci_system")["value"] or []) == ["external"]:
+            result, facts = "UNKNOWN", ["build_ci.ci_system"] + facts
         out.append({"id": cid, "label": label, "result": result, "rule": rule, "facts": facts})
     scored = [c for c in out if c["result"] != "UNKNOWN"]
     pts = sum(1.0 if c["result"] == "MET" else 0.5 if c["result"] == "PARTIAL" else 0.0 for c in scored)

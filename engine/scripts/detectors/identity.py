@@ -80,7 +80,7 @@ def _about(ctx):
         said = next(((i, _clean(h)) for i, h in titles[:2] if len(h.split()) >= 4 and _clean(h)), None)
         if said:
             return fact([said[1]], "CONFIRMED", [file_ev(name, said[0], lines[said[0] - 1])], "the README's heading describes the application; it has no intro paragraph")
-        return fact(None, "NOT_FOUND", [file_ev(name, 1, lines[0] if lines else "")], "README has no descriptive text")
+        return fact(None, "NOT_FOUND", [file_ev(name, 1, lines[0] if lines else "")], "it does not say what the application does (no description under its title)")
     return fact(out, "CONFIRMED", [file_ev(name, first, lines[first - 1])], "first lines of %s, markup removed" % name)
 
 _USERINFO = re.compile(r"^(\w+://)[^/@\s]+@")

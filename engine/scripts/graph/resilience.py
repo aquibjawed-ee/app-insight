@@ -42,7 +42,7 @@ GROUPS = ["Redundancy", "Health", "Rollout", "Capacity", "Recovery", "Supply"]
 APPLIES = {  # which platforms each check is meaningful for
     "kubernetes": {c[0] for c in CHECKS}, "nomad": {"replicas", "anti_affinity", "zone_spread", "readiness", "rollout", "graceful_stop", "resources", "restart_recovery", "image_pinned"},
     "compose": {"replicas", "readiness", "restart_recovery", "image_pinned", "resources"},
-    "ansible": {"replicas", "readiness", "rollout", "graceful_stop", "resources", "restart_recovery", "image_pinned"}}
+    "ansible": {"replicas", "zone_spread", "readiness", "rollout", "graceful_stop", "resources", "restart_recovery", "image_pinned"}}
 # EKS-specific signals only. An ECR image or an AWS SDK says nothing about EKS (ECR also serves ECS and Lambda).
 # files that describe a test, contract or mock harness, or a developer's local stack: not how the application runs in production
 NONPROD_DIR = re.compile(r"(^|/)(?:contracts?|contract[-_]?tests?|tests?|it|e2e|integration[-_]?tests?|mocks?|stubs?|fixtures?|perf|load[-_]?tests?)/", re.I)
@@ -323,7 +323,8 @@ def _unread_deploy(repo, ctx, app):
     return None
 
 
-NONPROD_ENV = re.compile(r"(?i)(?:^|[/_.-])(?:local|dev|devel|demo|vagrant|test|sandbox)(?:[/_.-]|$)")
+NONPROD_ENV = re.compile(r"(?i)(?:^|[\s/_.\[-])(?:local|dev|devel|demo|vagrant|test|sandbox|qa\d*|uat|stag(?:e|ing)|sit|perf|int(?:egration)?)(?:[/_.\]:-]|\d|$)")
+PROD_ENV = re.compile(r"(?i)(?:^|[\s/_.\[-])(?:prod|production|live|prd)(?:[/_.\]:-]|\d|$)")
 
 
 def _inventories(repo, ctx):
@@ -352,7 +353,9 @@ def _inventories(repo, ctx):
                 hosts.add(name if n is None else name[:r.start()] + str(n) + name[r.end():])
             first = first or i
         if hosts:
-            out.append({"file": f, "hosts": len(hosts), "ev": ev(f, first, lines, None), "nonprod": bool(NONPROD_ENV.search(f))})
+            groups = " ".join(re.findall(r"^\[([\w.:-]+)\]", "\n".join(lines), re.M))
+            prod = bool(PROD_ENV.search(f) or PROD_ENV.search(groups))  # [production:children] marks a production inventory
+            out.append({"file": f, "hosts": len(hosts), "ev": ev(f, first, lines, None), "prod": prod, "nonprod": not prod and bool(NONPROD_ENV.search(f) or NONPROD_ENV.search(groups))})
     return out
 
 
@@ -378,11 +381,19 @@ def ansible_checks(app, repo, ctx):
     roles = [(f, evidence.read_lines(repo, f) or []) for f in ctx.files if re.search(r"(^|/)(?:roles/[^/]+/(?:tasks|handlers)/|tasks/)[^/]+\.ya?ml$", f)]
     sup = [(f, evidence.read_lines(repo, f) or []) for f in ctx.files if re.search(r"\.god$|\.service$|supervisor[^/]*\.conf$|(^|/)monit[^/]*$", f)]
     c = {}
-    prod = [x for x in inv if not x["nonprod"]] or inv
-    two = [x for x in prod if x["hosts"] >= 2]
-    st = "present" if len(two) == len(prod) else "partial" if two else "absent"
-    c["replicas"] = _res(st, min(x["hosts"] for x in prod), "%d of %d environment inventories list two or more hosts" % (len(two), len(prod)), (two or prod)[0]["ev"])
+    name = lambda x: os.path.splitext(os.path.basename(x["file"]))[0]  # noqa: E731
+    prod = [x for x in inv if x["prod"]] or [x for x in inv if not x["nonprod"]]
+    skipped = [x for x in inv if x not in prod]
+    if not prod:  # only QA, test or local inventories: production may well be redundant, but nothing here shows it
+        c["replicas"] = _res("unknown", None, "only non-production inventories are in this repository (%s); production hosts are not visible" %
+                             ", ".join(name(x) for x in inv[:5]), inv[0]["ev"])
+    else:
+        two = [x for x in prod if x["hosts"] >= 2]
+        st = "present" if len(two) == len(prod) else "partial" if two else "absent"
+        c["replicas"] = _res(st, min(x["hosts"] for x in prod), "%d of %d production inventories list two or more hosts%s" % (
+            len(two), len(prod), " (not counted, non-production: %s)" % ", ".join(name(x) for x in skipped[:4]) if skipped else ""), (two or prod)[0]["ev"])
     ser = first(r"^\s*serial:\s*\S")
+    c["zone_spread"] = _res("unknown", None, "which zones or data centres the hosts sit in is not visible in the inventories", None)
     c["rollout"] = _res("present", None, "hosts are deployed one batch at a time (serial)", ser) if ser else _res("absent", None, "the playbook deploys every host at once (no serial)", None)
     hc = first(r"(?:url:|\bcurl\b|\bwget\b)[^\n]*(?:/health|\{\{\s*inventory_hostname|localhost)", roles + books)
     c["readiness"] = _res("partial", None, "the deploy checks each host responds before moving on; whether the load balancer uses a health check is not visible", hc) if hc else \
@@ -391,9 +402,11 @@ def ansible_checks(app, repo, ctx):
     c["restart_recovery"] = _res("present", None, "a failed process or container is restarted; nothing rolls back a bad release", rp) if rp else \
         _res("absent", None, "no restart policy or process supervisor found", None)
     mem = first(r"^\s*(?:memory|mem_limit):\s*\S|MemoryMax=|MemoryLimit=", roles + sup)
+    heap = None if mem else first(r"-Xmx\d+[mMgG]\b", sup + [(f, evidence.read_lines(repo, f) or []) for f in ctx.files if re.search(r"(^|/)(?:sysconfig|libexec|bin)/|\.(?:sh|conf)$", f)])
     cpu = first(r"^\s*(?:cpus|cpu_quota|cpu_shares|cpuset_cpus):\s*\S|CPUQuota=", roles + sup)
     c["resources"] = _res("present", None, "memory and CPU limits set", mem) if mem and cpu else \
-        _res("partial", None, "only a %s limit is set" % ("memory" if mem else "CPU"), mem or cpu) if mem or cpu else _res("absent", None, "no memory or CPU limit set", None)
+        _res("partial", None, "only a %s limit is set" % ("memory" if mem else "CPU"), mem or cpu) if mem or cpu else \
+        _res("partial", None, "the JVM heap is capped (-Xmx), but no operating-system memory or CPU limit is set", heap) if heap else _res("absent", None, "no memory or CPU limit set", None)
     stop = first(r"^\s*stop_timeout:\s*\S|TimeoutStopSec=|\bstop_timeout\b|\bstop_grace", roles + sup)
     docker = first(r"^\s*(?:community\.docker\.)?docker_container:", roles)
     c["graceful_stop"] = _res("present", None, None, stop) if stop else \
@@ -407,8 +420,12 @@ def ansible_checks(app, repo, ctx):
             ci = [e for f in ctx.ci_files for e in [first(r"\b%s=\$\{?\w*(?:COMMIT|SHA|GIT_COMMIT|BUILD_NUMBER|VERSION)\w*" % re.escape(var),
                                                           [(f, evidence.read_lines(repo, f) or [])])] if e] if var else []
             if ci:
-                st, note, im = "present", "the pipeline deploys the image tagged with the commit (%s)" % ci[0]["snippet"].strip()[:60], ci[0]
+                st, note, im = "present", "the pipeline deploys the image tagged with the commit (%s:%s)" % (ci[0]["path"], ci[0]["line_start"]), ci[0]
         c["image_pinned"] = _res(st, tag, note, im)
+    else:  # an RPM or package deploy pins its version when the playbook requires an explicit one
+        pin = first(r"\b(?:rpm|package|artifact|app)_version\b[^\n]*(?:undefined|is not defined|required)|name=\S*-\{\{\s*\w*version\s*\}\}")
+        if pin:
+            c["image_pinned"] = _res("present", None, "the deploy refuses to run without an explicit package version", pin)
     return {"platform": "ansible", "kind": "playbook", "name": books[0][0], "file": books[0][0], "helm": False, "checks": c,
             "inventories": [{k: x[k] for k in ("file", "hosts", "nonprod")} for x in inv]}
 

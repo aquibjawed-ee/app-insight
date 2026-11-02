@@ -234,3 +234,80 @@ class ThirdAuditTest(unittest.TestCase):
               "components": []}
         d = dimensions.assess({"identity": {"app_id": {"value": "x"}}, "stack": {}, "maturity": {}}, safetynet=sn)
         self.assertIn("1 of 9 discovered components", d["dimensions"]["safety_net_strength"]["headline"])
+
+
+class FourthAuditTest(unittest.TestCase):
+    """Regressions from the third acceptance audit: configuration and environment, not presence alone."""
+
+    def test_an_include_filter_without_security_rules_neutralises_find_sec_bugs(self):
+        from detectors import security
+        base = {"build.gradle": "apply plugin: 'findbugs'\nfindbugs { includeFilter = file(\"config/findbugs.xml\") }\n"}
+        keep = repo(dict(base, **{"config/findbugs.xml": '<FindBugsFilter>\n  <Match><Bug category="SECURITY"/></Match>\n</FindBugsFilter>\n'}))
+        drop = repo(dict(base, **{"config/findbugs.xml": '<FindBugsFilter>\n  <Match><Bug pattern="BC_IMPOSSIBLE_DOWNCAST"/></Match>\n</FindBugsFilter>\n'}))
+        self.assertEqual(security.rules_filtered(Ctx(keep)), [])  # the SECURITY category includes find-sec-bugs' rules
+        self.assertEqual([e["path"] for e in security.rules_filtered(Ctx(drop))], ["build.gradle", "config/findbugs.xml"])
+
+    def test_qa_inventories_do_not_show_production_redundancy(self):
+        from graph import resilience
+        files = {"pom.xml": F.pom("svc", "3.2.4", "17", []), "deploy/playbook.yml": "- hosts: app\n  serial: 1\n",
+                 "deploy/inventory/qa1/qa1.ini": "[nodes]\napp-[1:2].qa1\n", "deploy/inventory/local/local.ini": "[nodes]\nlocalhost\n"}
+        st = {x["id"]: x for x in resilience.assess(repo(files))["summary"]}
+        self.assertEqual(st["replicas"]["state"], "unknown")
+        files["deploy/inventory/hosts_eu1"] = "[eu1]\napp-1.eu1\napp-2.eu1\n\n[production:children]\neu1\n"
+        st = {x["id"]: x for x in resilience.assess(repo(files))["summary"]}
+        self.assertEqual(st["replicas"]["state"], "present")  # [production:children] marks it; qa1 and local are named as not counted
+        self.assertIn("not counted, non-production", st["replicas"]["notes"][0])
+
+    def test_timeouts_cover_only_the_clients_that_read_them(self):
+        r = repo({"src/main/resources/application.yml": "apiReadTimeout: 5000\n",
+                  J + "ApiConfig.java": "package com.acme;\nclass ApiConfig {\n  @Value(\"${apiReadTimeout}\") int t;\n  Object a() { return Feign.builder().target(A.class, u); }\n}\n",
+                  J + "DiscoveryConfig.java": "package com.acme;\nclass DiscoveryConfig {\n  Object d() { return Feign.builder().target(D.class, u); }\n}\n"})
+        ctx = Ctx(r)
+        v = runtime.http_timeouts(ctx, runtime.settings(ctx))["value"]
+        self.assertEqual(v["state"], "PARTIAL")
+        self.assertIn("DiscoveryConfig.java", v["summary"])
+
+    def test_a_library_client_given_timeout_arguments_has_timeouts(self):
+        r = repo({J + "AuthModule.java": "package com.acme;\nclass AuthModule {\n  Object c() { return new HttpClient(enc, CONNECTION_TIMEOUT_IN_MILLIS, READ_TIMEOUT_IN_MILLIS); }\n}\n"})
+        ctx = Ctx(r)
+        self.assertEqual(runtime.http_timeouts(ctx, runtime.settings(ctx))["value"]["state"], "PRESENT")
+
+    def test_a_breaker_named_after_a_client_configuration_covers_it(self):
+        r = repo({J + "DiscoveryCommand.java": "package com.acme;\nclass DiscoveryCommand extends HystrixCommand<String> {\n}\n",
+                  J + "DiscoveryConfiguration.java": "package com.acme;\nclass DiscoveryConfiguration {\n  Object d() { return Feign.builder().target(D.class, u); }\n}\n"})
+        ctx = Ctx(r)
+        self.assertEqual(runtime.retries_breakers(ctx, runtime.settings(ctx))["value"]["state"], "PRESENT")
+
+
+class FifthAuditTest(unittest.TestCase):
+    """Regressions from the fifth acceptance audit: scope, shared deadlines, one external-pipeline rule, production inventories."""
+
+    def test_an_analyser_applied_only_to_the_root_project_leaves_modules_out(self):
+        d = discover.build(repo({
+            "settings.gradle": "include ':orders', ':billing'\n",
+            "build.gradle": "apply from: \"${rootDir}/support/quality.gradle\"\nallprojects {\n  repositories { mavenCentral() }\n}\n",
+            "support/quality.gradle": "apply plugin: 'findbugs'\ndependencies { findbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.4.4' }\n",
+            "Jenkinsfile": "pipeline { stages { stage('b') { steps { sh './gradlew clean build' } } } }\n",
+            "orders/src/main/java/A.java": "class A {}\n", "billing/src/main/java/B.java": "class B {}\n"}))
+        self.assertEqual({c["id"]: c["result"] for c in d["maturity"]["criteria"]}["sast"], "PARTIAL")
+        self.assertIn("orders, billing", d["security"]["sast_root_only"]["note"])
+
+    def test_a_pipeline_outside_the_repository_makes_found_nothing_unknown_and_configured_partial(self):
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\napply plugin: 'findbugs'\ndependencies { findbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1' }\n",
+                                 "README.md": "# Svc\n\nThe jenkins job svc-build builds it.\n"}))
+        res = {c["id"]: c["result"] for c in d["maturity"]["criteria"]}
+        self.assertEqual((res["automated_build"], res["sast"]), ("UNKNOWN", "PARTIAL"))
+
+    def test_only_inventories_marked_production_are_counted_when_any_is(self):
+        from graph import resilience
+        files = {"pom.xml": F.pom("svc", "3.2.4", "17", []), "deploy/playbook.yml": "- hosts: all\n  serial: 1\n",
+                 "deploy/inventory/hosts_eu1": "[eu1]\na.eu1\nb.eu1\n\n[production:children]\neu1\n",
+                 "deploy/inventory/hosts_load": "[load]\nl1\nl2\n", "deploy/inventory/hosts_dr": "[dr]\nd1\n\n[production:children]\ndr\n"}
+        st = {x["id"]: x for x in resilience.assess(repo(files))["summary"]}
+        self.assertIn("1 of 2 production inventories", st["replicas"]["notes"][0])
+        self.assertIn("hosts_load", st["replicas"]["notes"][0])
+
+    def test_a_class_named_like_an_annotation_is_not_a_consumer(self):
+        r = repo({J + "SQSListener.kt": "package com.acme\n@Component\nclass SQSListener {\n  fun on() {}\n}\n"})
+        ctx = Ctx(r)
+        self.assertEqual(runtime.messaging_errors(ctx, runtime.settings(ctx))["value"]["state"], "NOT_APPLICABLE")

@@ -135,7 +135,8 @@ def eval_criterion(cid, cx):
         return _r("NOT_APPLICABLE", "not scored for " + _a(cx.kind))
     st = CRITERION_STATE.get(c["result"], "UNKNOWN")
     facts = c.get("facts") or []
-    if st == "ABSENT" and cid in PIPELINE_CRITERIA and cx.stack["ci_system"] == ["external"]:
+    # a scanner configured but "not run by a CI file" is unknown, not partial, when the pipeline is outside the repository
+    if cx.stack["ci_system"] == ["external"] and cid in PIPELINE_CRITERIA and st in ("ABSENT", "UNKNOWN"):
         ext = _fact(cx.disc, "build_ci.ci_system")
         return _r("UNKNOWN", "The pipeline runs outside this repository (named in %s); what it does is not visible here" %
                   ", ".join("%s:%s" % (e["path"], e["line_start"]) for e in (ext.get("evidence") or [])[:1]) or "the README",

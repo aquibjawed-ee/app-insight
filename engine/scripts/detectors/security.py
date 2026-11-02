@@ -95,7 +95,7 @@ def _secret_files(ctx):
     files = [f for f in ctx.files if not ctx._aux(f) and not test.search(f) and "/node_modules/" not in f and not f.startswith(".git/") and not GENERATED.search(f)]
     config = [f for f in files if CONFIG_EXT.search(f) and f not in ctx.ci_files and f not in ctx.build_files and not f.endswith("gradle.properties")]
     code = [f for f in files if f in ctx.ci_files or f in ctx.build_files or f.endswith(("gradle.properties",))
-            or re.search(r"\.(?:java|kt|groovy|scala|sh|py|js|ts|go|rb)$", f)]
+            or re.search(r"\.(?:java|kt|groovy|scala|sh|py|js|ts|go|rb|html?)$", f)]
     return config, code, files
 
 
@@ -128,21 +128,67 @@ def secrets(ctx):
     in_code = _scan_secrets(ctx, [f for f in code if f not in build], [WEBHOOK_SECRET, QUERY_SECRET, CODE_SECRET, BASIC_SECRET, URL_SECRET, TOKEN_SECRET]) + \
         _scan_secrets(ctx, build, [PROP_SECRET, WEBHOOK_SECRET, CODE_SECRET, DEFAULT_SECRET, CONFIG_SECRET, URL_SECRET, TOKEN_SECRET])
     keys = [file_ev(f, i, ln) for f in files for ls in [read_lines(ctx.repo, f) or []] for i, ln in enumerate(ls[:3], 1) if PRIVATE_KEY.search(ln)]
+    # a passphrase-protected key is still a committed key, but say so: it is not the same exposure as a plaintext one
+    enc = sum(1 for e in keys if re.search(r"ENCRYPTED", "\n".join((read_lines(ctx.repo, e["path"]) or [])[:3])))
 
     def verdict(hits, where, n):
         if hits:
             files_hit = sorted({e["path"] for e in hits})
-            return fact({"state": "ISSUE", "level": "configured", "summary": "%d literal secret%s committed in %s (%s): rotate them and move them to a secret store" % (
-                len(hits), "" if len(hits) == 1 else "s", where, ", ".join(files_hit[:4]) + (" and %d more" % (len(files_hit) - 4) if len(files_hit) > 4 else ""))},
+            return fact({"state": "ISSUE", "level": "configured", "summary": "%d literal secret%s committed in %s (%s)%s: rotate them and move them to a secret store" % (
+                len(hits), "" if len(hits) == 1 else "s", where, ", ".join(files_hit[:4]) + (" and %d more" % (len(files_hit) - 4) if len(files_hit) > 4 else ""),
+                "; %d of them a passphrase-protected private key" % enc if enc and "key" in where else "")},
                 "CONFIRMED", hits[:6])
         # a bounded search that found nothing: the observation is the search itself, so the status is NOT_FOUND with nothing to cite
-        return fact({"state": "PRESENT", "level": "declared", "summary": "No literal secret found in the %d %s scanned (values held in ${...} references are not secrets)" % (n, where)},
+        return fact({"state": "PRESENT", "level": "declared", "summary": "No literal secret found in the %d %s scanned (values held in ${...} references are not secrets; test sources and fixtures are not scanned)" % (n, where)},
                     "NOT_FOUND", [])
     return {"secrets_in_config": verdict(in_cfg, "configuration files", len(config)),
             "secrets_committed": verdict(keys + in_code, "code, build, pipeline and key files", len(code))}
 # Gradle plugins that attach their tasks to `check`, so a pipeline running `gradle build` or `gradle check` runs them too
 CHECK_WIRED = r"apply\s+plugin\s*:\s*['\"](?:findbugs|com\.github\.spotbugs)['\"]|id\s*\(?\s*['\"](?:com\.github\.spotbugs)['\"]"
 CI_GRADLE_CHECK = r"gradlew?\b[^\n]*\s(?:build|check)\b"
+
+
+# find-sec-bugs' own rule ids (a sample wide enough to tell its rules from FindBugs' classic ones)
+FSB_RULES = r"PREDICTABLE_RANDOM|SQL_INJECTION_(?:JPA|JDBC|HIBERNATE|SPRING|TURBINE)|COMMAND_INJECTION|PATH_TRAVERSAL_|XXE_|WEAK_MESSAGE_DIGEST|CIPHER_INTEGRITY|" \
+            r"SPRING_CSRF|HARD_CODE_PASSWORD|LDAP_INJECTION|XPATH_INJECTION|UNVALIDATED_REDIRECT|CRLF_INJECTION|INSECURE_COOKIE|TRUST_BOUNDARY|SSRF|" \
+            r"STATIC_IV|ECB_MODE|DES_USAGE|URLCONNECTION_SSRF|SPEL_INJECTION|OGNL_INJECTION|category\s*=\s*[\"']SECURITY"
+
+
+def rules_filtered(ctx):
+    """Evidence that a SpotBugs / FindBugs include filter selects none of find-sec-bugs' rules, so the security plugin reports
+    nothing although it is wired in; [] when there is no include filter or it keeps security rules."""
+    inc = grep_files(ctx.repo, ctx.build_files, r"includeFilter(?:File)?\s*=", 2)
+    for e in inc:
+        m = re.search(r"([\w.\-]+\.xml)", e["snippet"])
+        if not m:
+            continue
+        for f in [x for x in ctx.files if os.path.basename(x) == m.group(1)][:2]:
+            text = "\n".join(read_lines(ctx.repo, f) or [])
+            if "<FindBugsFilter" in text and not re.search(FSB_RULES, text):
+                return [e, file_ev(f, 1, (read_lines(ctx.repo, f) or [""])[0])]
+    return []
+
+
+def root_only(ctx, wired_file):
+    """The modules a root-applied analyser never sees: the script is applied at the top level of the root build file, outside
+    allprojects { } and subprojects { }, while settings.gradle includes modules with their own sources."""
+    sett = [f for f in ctx.files if re.match(r"settings\.gradle(?:\.kts)?$", f)]
+    mods = [m for e in grep_files(ctx.repo, sett, r"^\s*include\b", 5) for m in re.findall(r"['\"]:?([\w\-/:]+)['\"]", e["snippet"])]
+    mods = [m.replace(":", "/") for m in mods if any(f.startswith(m.replace(":", "/") + "/src/main/") for f in ctx.files)]
+    root = next((f for f in ("build.gradle", "build.gradle.kts") if f in ctx.fileset), None)
+    if not mods or not root or wired_file in ("build.gradle", "build.gradle.kts"):
+        return [], mods
+    lines = read_lines(ctx.repo, root) or []
+    depth, block = 0, None
+    for i, l in enumerate(lines, 1):
+        if depth == 0 and re.match(r"\s*(allprojects|subprojects|configure)\b", l):
+            block = "all"
+        if re.search(r"apply\s+from\s*:?\s*\(?[^\n]*%s" % re.escape(os.path.basename(wired_file)), l):
+            return ([] if (depth > 0 and block) else [file_ev(root, i, l)]), mods
+        depth += l.count("{") - l.count("}")
+        if depth == 0:
+            block = None
+    return [], mods
 
 
 def _lifecycle_run(ctx, ev):
@@ -191,4 +237,14 @@ def detect(ctx) -> dict:
         else fact(False, "NOT_FOUND", [], "no Dependabot or Renovate config file; it may still be enabled in the hosting platform")
     out["vulnerability_reports"] = _reports(ctx)
     out.update(secrets(ctx))
+    filt = rules_filtered(ctx) if out.get("sast", {}).get("value") else []
+    life = (out.get("sast_in_pipeline") or {}).get("evidence") or []
+    wired = next((e["path"] for e in life if e["path"] not in ctx.ci_files), None)
+    scope, mods = root_only(ctx, wired) if wired else ([], [])
+    out["sast_root_only"] = fact(bool(scope), "CONFIRMED" if scope else "NOT_FOUND", scope,
+                                 "the analyser is applied to the root project only (%s); modules %s are not analysed" % (
+                                     "%s:%s" % (scope[0]["path"], scope[0]["line_start"]), ", ".join(mods[:4])) if scope else None)
+    out["sast_rules_filtered"] = fact(bool(filt), "CONFIRMED" if filt else "NOT_FOUND", filt,
+                                      "the analyser's include filter (%s) selects none of find-sec-bugs' rules, so only classic FindBugs patterns run"
+                                      % filt[1]["path"] if filt else None)
     return out

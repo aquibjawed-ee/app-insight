@@ -21,13 +21,17 @@
     "graceful_shutdown_upgrade": {"title": "Upgrade, then enable graceful shutdown", "requires": {"boot_graceful": ["no"]}, "does": "This Spring Boot line has no graceful shutdown setting: upgrade to a supported line (2.3 or later is the minimum), then set server.shutdown=graceful and a shutdown phase timeout."},
     "graceful_shutdown": {"title": "Enable graceful shutdown", "requires": {"boot_graceful": ["yes"]}, "does": "Set server.shutdown=graceful (or the framework's equivalent) and a shutdown phase timeout below the platform's termination grace period. On Spring Boot older than 2.3 the property does not exist: upgrade first."},
     "secrets": {"title": "Rotate and externalise the secrets", "does": "Rotate every exposed secret first (it is in the history), then load it at runtime from the platform's secret store (Vault, AWS Secrets Manager, Kubernetes Secrets) or the CI credential store; add secret scanning so it does not happen again."},
+    "migrations": {"title": "Version the database schema", "does": "Add a schema migration tool (Flyway or Liquibase) and move schema changes into versioned migrations run at startup or in the pipeline; stop relying on ddl-auto."},
+    "metrics_lib": {"title": "Export application metrics", "does": "Add a metrics exporter for the organisation's monitoring system (for example a Micrometer registry for Prometheus or Datadog) and expose it to the scraper or agent."},
+    "tracing_lib": {"title": "Add distributed tracing", "does": "Add OpenTelemetry (or the organisation's tracer), propagate trace context on inbound and outbound calls, and export to the tracing backend."},
+    "api_spec": {"title": "Publish an API specification", "does": "Publish an OpenAPI description of the HTTP interface (generated from the code or kept next to it) and check it in the pipeline."},
     "json_logs": {"title": "Log as JSON", "does": "Switch the log output to JSON (logging.structured.format.console on Spring Boot 3.4+, or a JSON encoder) and include trace and correlation identifiers."}
   },
   "aspects": {
     "delivery": ["ci"], "testing": ["tests"], "security": ["ci"], "platform": ["upgrade"], "runtime": ["app_config"], "availability": ["deploy_config"],
     "observability": ["app_config"], "api": ["app_config"], "data": ["app_config"], "knowledge": ["docs"], "config": ["app_config"], "code": ["tests"]
   },
-  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "architecture.calls_matched": ["alias"],
+  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "data.migrations": ["migrations"], "observability.metrics": ["metrics_lib"], "observability.tracing": ["tracing_lib"], "api.openapi": ["api_spec"], "architecture.calls_matched": ["alias"],
     "runtime.http_timeouts": ["http_timeouts"],
     "runtime.retries_breakers": ["resilience_lib"],
     "runtime.messaging_errors": ["dead_letter"],
