@@ -191,7 +191,10 @@ def score(doc: dict) -> dict:
         if cid in LIBRARY_NA and _f(doc, "stack.artifact_kind")["value"] == "library":
             continue
         result, facts = fn(doc)
-        if result == "NO_EVIDENCE" and cid in PIPELINE_ONLY and (_f(doc, "build_ci.ci_system")["value"] or []) == ["external"]:
+        hand = cid in ("automated_deploy", "rollback") and _f(doc, "build_ci.manual_deploy_documented")["value"]  # a runbook shows it is manual
+        if result == "NO_EVIDENCE" and hand:
+            facts = ["build_ci.manual_deploy_documented"] + facts
+        if result == "NO_EVIDENCE" and cid in PIPELINE_ONLY and not hand and (_f(doc, "build_ci.ci_system")["value"] or []) == ["external"]:
             result, facts = "UNKNOWN", ["build_ci.ci_system"] + facts
         out.append({"id": cid, "label": label, "result": result, "rule": rule, "facts": facts})
     scored = [c for c in out if c["result"] != "UNKNOWN"]

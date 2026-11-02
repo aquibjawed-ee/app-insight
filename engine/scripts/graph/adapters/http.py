@@ -307,6 +307,37 @@ def feign_clients(ctx, g: Graph, app: str, app_node: str, cfg: Config, consts):
     return
 
 
+FEIGN_TARGET = re.compile(r"\.target\(\s*(\w+)\.class\s*,\s*([^)]+?)\s*\)")
+
+
+def feign_builders(ctx, g: Graph, app: str, app_node: str, cfg: Config, consts):
+    """Feign clients built in code: Feign.builder()...target(Api.class, url), where url is a literal, a constant or an @Value
+    property. The annotation-driven extractor above does not see them, so without this the clients are missing from the graph."""
+    r = ctx.repo
+    srcs = {f: "\n".join(evidence.read_lines(r, f) or []) for f in ctx.src_main_java}
+    for f, text in srcs.items():
+        if not re.search(r"\bFeign\.(?:builder\s*\(|Builder\b)|\bHystrixFeign\.builder", text):
+            continue
+        lines = evidence.read_lines(r, f) or []
+        masked = mask_comments(lines)
+        for i, ln in enumerate(masked):
+            m = FEIGN_TARGET.search(ln)
+            if not m:
+                continue
+            iface, arg = m.group(1), m.group(2)
+            e = ev(f, i + 1, lines, app)
+            v, cfg_ev, how, why = resolve_arg(arg, cfg, consts, f)
+            u = URL_LIT.match('"%s"' % v) if v and v.startswith("http") else None
+            if u:
+                tnode, _ = _target_for_host(g, u.group(2), app)
+                rname = u.group(2)
+            else:
+                tnode, rname = _unresolved_target(g, "target=" + arg, why or "client url %r is not an absolute http(s) URL" % v, e), None
+            used = any(re.search(r"\b%s\b" % re.escape(iface), t) for ff, t in srcs.items() if ff != f)
+            _call(g, app, app_node, tnode, None, None, e, "source_call", "medium" if used else "low", rname,
+                  {"client_interface": iface, "style": "feign_builder", "referenced_elsewhere": used}, cfg_ev)
+
+
 def _call(g, app, app_node, tnode, verb, path, e, mech, conf, rname, attrs, cfg_ev=None):
     """cfg_ev: the configuration line that supplied the target host, cited next to the source line that makes the call."""
     tgt = g.nodes.get(tnode, {})

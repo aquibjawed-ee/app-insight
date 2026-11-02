@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 
 from evidence import fact, grep_files, file_ev, read_lines
@@ -34,6 +35,19 @@ def detect(ctx) -> dict:
     out["rolling_or_zero_downtime_strategy"] = fact(bool(strat), "CONFIRMED" if strat else "NOT_FOUND", strat)
     rb = grep_files(r, dep + ctx.ci_files, r"auto_revert\s*=\s*true|rollout\s+undo|helm\s+rollback|nomad\s+job\s+revert|automatic.?rollback", 3)
     out["rollback"] = fact(bool(rb), "CONFIRMED" if rb else "NOT_FOUND", rb)
+    # VMs deployed by Ansible: take the facts from the same reader as the availability checks, so the two views cannot disagree
+    from graph import resilience as ha
+    ha_doc = ha.assess(r)
+    if ha_doc.get("platforms") == ["ansible"]:
+        aw = ha_doc["workloads"][0]
+        if aw:
+            c = aw["checks"]
+            rp, rl, rd = c.get("replicas") or {}, c.get("rollout") or {}, c.get("readiness") or {}
+            out["deploy_descriptors"] = fact([aw["file"]], "CONFIRMED", [file_ev(aw["file"], 1, (read_lines(r, aw["file"]) or [""])[0])], "an Ansible playbook deploys the application")
+            out["multiple_instances"] = fact(rp.get("state") == "present", "CONFIRMED" if rp.get("evidence") else "NOT_FOUND", rp.get("evidence") or [], rp.get("note"))
+            out["rolling_or_zero_downtime_strategy"] = fact(rl.get("state") == "present", "CONFIRMED" if rl.get("evidence") else "NOT_FOUND", rl.get("evidence") or [], rl.get("note"))
+            out["health_probes"] = fact(False, "NOT_FOUND", rd.get("evidence") or [],
+                                        ("a deploy-time check, not a probe: " + rd["note"]) if rd.get("state") == "partial" else rd.get("note"))
     act = grep_files(r, ctx.build_files, r"spring-boot-starter-actuator|quarkus-smallrye-health|micronaut-management|smallrye-health", 1) + \
         grep_files(r, ctx.props, r"management\.(endpoint|endpoints)\.", 2)
     if not act:  # Dropwizard and MicroProfile register health checks in code, not in build files

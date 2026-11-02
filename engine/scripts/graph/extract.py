@@ -45,6 +45,7 @@ def extract(repo: str, disc: dict = None, profile: str = None, config_dirs=()) -
     http.exposed(ctx, g, app, app_node, cfg, consts)
     http.router_functions(ctx, g, app, app_node)
     http.feign_clients(ctx, g, app, app_node, cfg, consts)
+    http.feign_builders(ctx, g, app, app_node, cfg, consts)
     exchange_hosts = http.http_exchange_clients(ctx, g, app, app_node, cfg, consts)
     gateway.routes(ctx, g, app, app_node, cfg)
     http.http_calls(ctx, g, app, app_node, cfg, consts, skip_hosts={h.lower() for h in exchange_hosts})

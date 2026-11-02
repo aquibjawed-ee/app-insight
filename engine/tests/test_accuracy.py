@@ -311,3 +311,31 @@ class FifthAuditTest(unittest.TestCase):
         r = repo({J + "SQSListener.kt": "package com.acme\n@Component\nclass SQSListener {\n  fun on() {}\n}\n"})
         ctx = Ctx(r)
         self.assertEqual(runtime.messaging_errors(ctx, runtime.settings(ctx))["value"]["state"], "NOT_APPLICABLE")
+
+
+class SixthAuditTest(unittest.TestCase):
+    """Regressions from the sixth acceptance audit: one resilience model, programmatic Feign clients, documented manual deploys."""
+
+    def test_feign_clients_built_in_code_are_relationships(self):
+        import relate
+        r = repo({"src/main/resources/application.yml": "apiBaseUrl: https://api.example.com/v1\n",
+                  J + "ApiConfiguration.java": "package com.acme;\nclass ApiConfiguration {\n  Api api(@Value(\"${apiBaseUrl}\") String apiBaseUrl) {\n"
+                                               "    return Feign.builder().target(Api.class, apiBaseUrl);\n  }\n}\n"})
+        out = tempfile.mkdtemp()
+        relate.main(["analyse", r, "--out", out])
+        import json
+        edges = [e for e in json.load(open(os.path.join(out, "portfolio", "relationships.json")))["edges"] if e["type"] == "CALLS_API"]
+        self.assertEqual([e["target"] for e in edges], ["ext:api.example.com"])
+        self.assertEqual([x["path"] for x in edges[0]["evidence"]], [J + "ApiConfiguration.java", "src/main/resources/application.yml"])
+
+    def test_an_ansible_deploy_feeds_the_maturity_view_too(self):
+        d = discover.build(repo({"pom.xml": F.pom("svc", "3.2.4", "17", []), "deploy/inventory/prod/prod.ini": "[nodes]\na.prod\nb.prod\n\n[production:children]\nnodes\n",
+                                 "deploy/playbook.yml": "- hosts: nodes\n  serial: 1\n"}))
+        self.assertEqual({c["id"]: c["result"] for c in d["maturity"]["criteria"]}["zero_downtime"], "PARTIAL")  # replicas and rolling, no probe
+        self.assertTrue(d["resilience"]["rolling_or_zero_downtime_strategy"]["value"])
+
+    def test_a_documented_manual_deploy_is_a_gap_not_unknown(self):
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n",
+                                 "README.md": "# Svc\n\nBuilt by the jenkins job svc-build.\n\n## Deploy\n\n    ansible-playbook -i inventory/prod site.yml\n"}))
+        res = {c["id"]: c["result"] for c in d["maturity"]["criteria"]}
+        self.assertEqual((res["automated_build"], res["automated_deploy"]), ("UNKNOWN", "NO_EVIDENCE"))

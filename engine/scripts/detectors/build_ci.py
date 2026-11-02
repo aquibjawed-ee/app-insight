@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 
 from evidence import fact, grep_files, read_lines, file_ev
@@ -35,6 +36,13 @@ def detect(ctx) -> dict:
         ev.append(file_ev(f, 1, ls[0]))
     named = [] if systems else grep_files(r, [f for f in ("README.md", "README", "README.adoc", "README.rst") if f in ctx.fileset],
                                           r"(?i)\b(?:jenkins|teamcity|bamboo|circleci|travis|buildkite|github actions|gitlab ci)\b", 1)
+    # a runbook in which a person runs the deploy (ansible-playbook, kubectl apply, helm upgrade, a promote script) is evidence too:
+    # the deploy is not automated, whatever pipeline builds the artefact
+    docs = [f for f in ctx.files if re.match(r"(?i)(?:readme|runbook|deploy(?:ment)?|release)[^/]*\.(?:md|adoc|rst|txt)$", os.path.basename(f))
+            and not ctx._aux(f)][:8]
+    manual = grep_files(r, docs, r"^\s*(?:\$\s*)?(?:ansible-playbook\s|kubectl\s+(?:apply|rollout)\b|helm\s+(?:upgrade|install|rollback)\b|\S*/promote\s)", 2)
+    out["manual_deploy_documented"] = fact(bool(manual), "CONFIRMED" if manual else "NOT_FOUND", manual,
+                                           "the documentation has a person run the deploy by hand" if manual else None)
     out["ci_system"] = fact(systems, "CONFIRMED", ev) if systems else \
         fact(["external"], "INFERRED", named, "no CI definition in the repository; the README names a CI server outside it") if named else \
         fact([], "NOT_FOUND", [], "no CI definition (.gitlab-ci.yml, Jenkinsfile, .github/workflows, ...) found")

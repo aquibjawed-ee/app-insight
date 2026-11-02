@@ -136,6 +136,11 @@ def eval_criterion(cid, cx):
     st = CRITERION_STATE.get(c["result"], "UNKNOWN")
     facts = c.get("facts") or []
     # a scanner configured but "not run by a CI file" is unknown, not partial, when the pipeline is outside the repository
+    manual = _fact(cx.disc, "build_ci.manual_deploy_documented")
+    if cid in ("automated_deploy", "rollback") and manual.get("value") and st == "ABSENT":  # a runbook shows a person doing it
+        e0 = (manual.get("evidence") or [{}])[0]
+        return _r("ABSENT", "Done by hand: the documentation has a person run the deploy (%s:%s)" % (e0.get("path"), e0.get("line_start")),
+                  None, _ev(manual.get("evidence"), "CONFIRMED"), ["build_ci.manual_deploy_documented"] + facts)
     if cx.stack["ci_system"] == ["external"] and cid in PIPELINE_CRITERIA and st in ("ABSENT", "UNKNOWN"):
         ext = _fact(cx.disc, "build_ci.ci_system")
         return _r("UNKNOWN", "The pipeline runs outside this repository (named in %s); what it does is not visible here" %
