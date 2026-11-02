@@ -61,7 +61,7 @@ function pApps(m, query) {
   };
   search.addEventListener("input", () => { st.q = search.value; st.page = 1; draw(); });
   draw();
-  put(m, crumbs([["Applications"]]) + pageHeading("All applications", "Worst first. Click a column heading to sort, a “flagged” count to filter, a row to open it."));
+  put(m, crumbs([["Applications"]]) + pageHeading("All applications", "Worst first. Click a column heading to sort, a “flagged” count to filter, a row to open it.") + recentLink());
   const card = h("section", {class: "card apps-panel"}, h("div", {style: "margin-bottom:10px"}, search), chips, h("div", {style: "margin:10px 0"}, info1), holder, pager);
   m.append(card);
 }

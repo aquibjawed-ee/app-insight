@@ -184,3 +184,6 @@ a.score-tile{color:inherit}a.score-tile:hover{border-color:#b9d3fb;box-shadow:0 
 .heatmap th .hm-head{margin:auto;width:24px;height:24px}.heatmap th .hm-head svg{width:14px;height:14px}
 .ws-line{grid-template-columns:minmax(180px,1.1fr) minmax(150px,1fr) auto}
 .ws-line .chips{max-width:240px;overflow:hidden;flex-wrap:nowrap}
+.app-tabs{margin:0 0 14px}.app-tabs .tab{height:42px;font-size:14px}.view-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:12px}.view-intro p{margin:0;color:#637896;font-size:13px;max-width:760px}.sub-tabs .tab{height:36px;font-size:13px}
+@media (max-width:860px){.view-intro{flex-direction:column}}
+.tag.teal{background:#e3f5f1;color:#1d7f6c}.hm.in_place_partly_checked{background:repeating-linear-gradient(135deg,#8fdcb9 0 5px,#d3f0e3 5px 10px)}.aspect-chip.st-in_place_partly_checked{border-left:3px dashed #19b97d}

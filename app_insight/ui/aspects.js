@@ -5,7 +5,7 @@ const ASPECTS = D.catalogue.aspects;
 const ASP = Object.fromEntries(ASPECTS.map(a => [a.id, a]));
 const aspectsOf = name => APPS[name].aspects.aspects;
 const controlsOf = name => aspectsOf(name).flatMap(a => a.controls);
-const ASTATUS = {issues: ["red", "Issues"], gaps: ["yellow", "Gaps"], in_place: ["green", "In place"], not_assessed: ["gray", "Not assessed"], not_applicable: ["gray", "N/A"]};
+const ASTATUS = {issues: ["red", "Issues"], gaps: ["yellow", "Gaps"], in_place: ["green", "In place"], in_place_partly_checked: ["teal", "In place where checked"], not_assessed: ["gray", "Not assessed"], not_applicable: ["gray", "N/A"]};
 const CSTATE = {PRESENT: ["green", "In place"], PARTIAL: ["yellow", "Partial"], ABSENT: ["red", "Not found"], ISSUE: ["red", "Issue"], UNKNOWN: ["gray", "Unknown"], NOT_APPLICABLE: ["gray", "N/A"], NOT_ASSESSED: ["gray", "Not assessed"]};
 const SEVL = {high: "High", medium: "Medium", low: "Low", info: "Info"};
 const statusTag = s => `<span class="tag ${(ASTATUS[s] || ASTATUS.not_assessed)[0]}">${(ASTATUS[s] || ASTATUS.not_assessed)[1]}</span>`;
@@ -30,5 +30,5 @@ function workstreamsOf(fs) {
 }
 const wsHead = (w, right, short) => `<div class="ws-head"><span class="small-icon ws-${w.ws.k}">${icon(w.ws.ic)}</span><div><b>${esc(w.ws.t)}</b>${short ? "" : `<div class="tiny">${esc(w.ws.goal)}</div>`}</div>${right || ""}</div>`;
 /* aspect rollup across applications: how many are in each status */
-function aspectCounts(apps, id) { const c = {issues: 0, gaps: 0, in_place: 0, not_assessed: 0, not_applicable: 0}; apps.forEach(a => { const x = aspectsOf(a.name).find(y => y.id === id); c[x ? x.status : "not_assessed"]++; }); return c; }
+function aspectCounts(apps, id) { const c = {issues: 0, gaps: 0, in_place: 0, in_place_partly_checked: 0, not_assessed: 0, not_applicable: 0}; apps.forEach(a => { const x = aspectsOf(a.name).find(y => y.id === id); c[x ? x.status : "not_assessed"]++; }); return c; }
 const coverageText = a => { const c = a.coverage; return c.applicable ? `${c.present} of ${c.applicable} in place${c.applicable - c.assessed ? " · " + (c.applicable - c.assessed) + " not assessed" : ""}` : "does not apply"; };

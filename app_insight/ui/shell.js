@@ -11,35 +11,40 @@ const linkBtn = (text, href) => `<a class="linkbtn" href="${esc(href)}">${esc(te
 const ringStyle = (v, c) => `background:conic-gradient(${c} 0 ${v}%,#e9edf3 ${v}% 100%)`;
 function toast(text) { const n = $("#toast"); n.textContent = text; n.classList.add("show"); clearTimeout(window._toast); window._toast = setTimeout(() => n.classList.remove("show"), 2800); }
 
-/* which application the Discovery / Assessment / Architecture links open: the last one visited, else the one needing most attention */
+/* the sidebar holds only whole-portfolio pages, so each item always opens the same place. One application's pages share appHead:
+   its name, a switcher that keeps the tab, and the tabs. CUR is only the last application opened, shown as a visible shortcut. */
 let CUR = null;
-const worstApp = () => { let best = null, bs = -1; for (const a of D.apps) { const v = sevOf(a); if (v > bs) { bs = v; best = a.name; } } return best || (D.apps[0] && D.apps[0].name); };
-const curApp = () => (CUR && APPS[CUR] ? CUR : worstApp());
-
 const NAV = [
-  ["portfolio", "Dashboard", "dashboard", () => "#/portfolio"],
-  ["apps", "Applications", "grid", () => "#/apps"],
-  ["app", "Application AS-IS", "search", () => "#/app/" + curApp() + "/overview"],
-  ["assessment", "Assessment", "pie", () => "#/assessment/" + curApp()],
-  ["architecture", "Architecture", "network", () => "#/architecture/" + curApp()],
-  ["gaps", "Findings", "alert-triangle", () => "#/gaps"],
-  ["roadmap", "Roadmap", "list", () => "#/roadmap"],
-  ["impact", "Change impact", "share", () => "#/impact"],
-  ["about", "About", "info", () => "#/about"]];
-const NAVKEY = {map: "architecture", finding: "gaps"};
+  ["portfolio", "Dashboard", "dashboard", "#/portfolio"],
+  ["apps", "Applications", "grid", "#/apps"],
+  ["architecture", "Architecture", "network", "#/architecture"],
+  ["gaps", "Findings", "alert-triangle", "#/gaps"],
+  ["roadmap", "Roadmap", "list", "#/roadmap"],
+  ["impact", "Change impact", "share", "#/impact"],
+  ["about", "About", "info", "#/about"]];
+const ATABS = [["app", "AS-IS", n => "#/app/" + n + "/overview"], ["assessment", "Assessment", n => "#/assessment/" + n], ["architecture", "Architecture", n => "#/architecture/" + n], ["findings", "Findings", n => "#/app/" + n + "/findings"]];
+function appHead(m, name, tab) {
+  const a = APPS[name], about = (a.discovery.identity.about || {}).value, enc = encodeURIComponent(name), nf = allFindings().filter(f => f.app === name).length, label = ATABS.find(t => t[0] === tab)[1];
+  put(m, crumbs([["Applications", "#/apps"], [name, tab === "app" ? null : "#/app/" + enc + "/overview"]].concat(tab === "app" ? [] : [[label]])));
+  put(m, `<div class="entity-head"><div style="display:flex;gap:14px;align-items:flex-start"><div class="title-icon">${icon(val(a, "stack.artifact_kind") === "library" ? "package" : "box")}</div><div><div class="title-line"><h1 style="margin:0">${esc(name)}</h1><span class="status-pill green">Scanned</span></div><p>${esc(kindOf(a) || "application")}</p>${about ? `<p style="margin-top:8px;max-width:640px">${esc(String(about).slice(0, 260))}</p>` : ""}</div></div><div class="button-group"><label class="tiny" for="appSwitch">Switch application</label><select class="filter" id="appSwitch">${D.apps.map(x => `<option${x.name === name ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div></div>
+<nav class="tabs compact app-tabs" aria-label="${esc(name)} views">${ATABS.map(([k, l, href]) => `<a class="tab${k === tab ? " active" : ""}"${k === tab ? ' aria-current="page"' : ""} href="${href(enc)}">${esc(l)}${k === "findings" && nf ? ` <span class="tab-badge">${nf}</span>` : ""}</a>`).join("")}</nav>`);
+  $("#appSwitch").addEventListener("change", e => { location.hash = ATABS.find(t => t[0] === tab)[2](encodeURIComponent(e.target.value)); });
+}
+const recentLink = () => CUR && APPS[CUR] ? `<p class="tiny" style="margin:-4px 0 10px">Last opened: <a class="appname" href="#/app/${encodeURIComponent(CUR)}/overview">${esc(CUR)}</a></p>` : "";
 
 function route() {
   const raw = (location.hash || "#/portfolio").replace(/^#\/?/, ""), qi = raw.indexOf("?"), query = qi >= 0 ? raw.slice(qi + 1) : "", parts = (qi >= 0 ? raw.slice(0, qi) : raw).split("/"), view = parts[0] || "portfolio";
   closeDrawer();
-  if (["app", "assessment", "architecture", "map"].includes(view) && parts[1] && APPS[decodeURIComponent(parts[1])]) CUR = decodeURIComponent(parts[1]);
-  const key = NAVKEY[view] || view;
-  $("#navigation").innerHTML = NAV.map(([k, l, ic, href]) => `<a href="${esc(href())}" class="navitem${k === key ? " active" : ""}"${k === key ? ' aria-current="page"' : ""}>${icon(ic)}<span>${esc(l)}</span></a>`).join("");
+  const app = parts[1] ? decodeURIComponent(parts[1]) : null, inApp = app && APPS[app] && ["app", "assessment", "architecture", "map"].includes(view);
+  if (inApp) CUR = app;
+  // inside one application the sidebar marks Applications: that is where its pages live
+  const key = inApp ? "apps" : ({map: "architecture", finding: "gaps", app: "apps", assessment: "apps"})[view] || view;
+  $("#navigation").innerHTML = NAV.map(([k, l, ic, href]) => `<a href="${esc(href)}" class="navitem${k === key ? " active" : ""}"${k === key ? ' aria-current="page"' : ""}>${icon(ic)}<span>${esc(l)}</span></a>`).join("");
   const m = $("#main"); m.replaceChildren();
-  const app = parts[1] ? decodeURIComponent(parts[1]) : null;
-  if (view === "app") pApp(m, app || curApp(), parts[2]);
+  if (view === "app") app ? pApp(m, app, parts[2]) : pApps(m, "");
   else if (view === "apps") pApps(m, parts[1] && !query ? "f=" + parts[1] : query);
-  else if (view === "assessment") pAssessment(m, app || curApp(), parts[2]);
-  else if (view === "architecture") pArchitecture(m, app === "all" ? null : (app || curApp()), parts[2], parts[3]);
+  else if (view === "assessment") app ? pAssessment(m, app, parts[2]) : pApps(m, "");
+  else if (view === "architecture") pArchitecture(m, app === "all" ? null : app, parts[2], parts[3]);
   else if (view === "map") pArchitecture(m, app && app !== "all" ? app : null, parts[2], parts[3]);
   else if (view === "gaps") pFindings(m, query);
   else if (view === "finding") pFinding(m, decodeURIComponent(parts.slice(1).join("/")));
