@@ -1,0 +1,77 @@
+# OpenSpec project configuration for app-insight.
+# Written by hand in OpenSpec's layout; the OpenSpec CLI is not installed (installing it is an outside download).
+schema: spec-driven
+
+context: |
+  app-insight reads an organisation's application repositories and produces, for every application, its AS-IS
+  (what it is) and an assessment (how it is doing in every aspect that matters for production readiness and
+  maturity), with the evidence line behind every claim and a remedy for every gap. Its first use is a meeting in
+  which a consultant and a client look at the client's applications together; a wrong claim in that meeting costs
+  the project or the client's trust, in either direction (a false gap insults the team, a false pass hides a risk).
+  Deterministic Python 3.9+, standard library only, offline once repositories are on disk. JVM (Java, Kotlin) first.
+  Upstream design: /Users/asifahmed/Documents/ai-workspace/engineering-factory-design 4 (discovery and assessment
+  sections of capture/01-FULL-DECISION-LEDGER.md, docs/16-master-requirements.md, registry/features.csv).
+
+# Project rules. A design or change that breaks one is a finding, whatever else it gets right.
+# Source: where the rule was set (user decision in session, AGENTS.md, CLAUDE.md, upstream DECIDED, memory).
+rules:
+  - id: R-01
+    rule: No model decides a fact, a state, a severity or a remedy. Every verdict comes from a table, pattern, parser or tool exit code.
+    source: README.md, AGENTS.md; user confirmed 2026-11-02 ("deterministic scripts only")
+  - id: R-02
+    rule: Every claim that something is there cites a file and line that a re-read confirms; every claim that something is not there says where it searched and what for.
+    source: AGENTS.md; verify ACC-1, ACC-2, ACC-10
+  - id: R-03
+    rule: No answer is never a verdict. UNKNOWN, NOT_ASSESSED and NOT_APPLICABLE are never shown or counted as a pass or as a gap.
+    source: upstream F-070; aspects.py rollup; user "accuracy and consistency"
+  - id: R-04
+    rule: Absence is claimed only inside the declared supported range (framework, build tool, CI system, platform) and only where the repository does not point outside itself; elsewhere the result is undecided with the reason.
+    source: commit 9479a59; user approved steps 1 and 2 on 2026-11-02
+  - id: R-05
+    rule: The same number or state is the same everywhere it appears (aspects, maturity, dimensions, portfolio, report).
+    source: verify CON-1..CON-8; audit 6
+  - id: R-06
+    rule: No combined or overall score. Aspects are reported separately; ranking uses counts of issues and high gaps, never a percentage that rises when less is checked.
+    source: UI review round 1 A1/B7, round 2; upstream "no opaque universal health score"
+  - id: R-07
+    rule: Never print, copy or store a secret value. Redact at every writer; check every run output and every commit by comparing values, reporting booleans only.
+    source: session practice after the webhook leak; verify ACC-8, ACC-9
+  - id: R-08
+    rule: Never edit, build or run anything in a target repository. Nothing leaves the machine. No credentials on a command line or in a list file; clones use the user's own git setup.
+    source: AGENTS.md rules 2 and 5; user constraints
+  - id: R-09
+    rule: Clients are isolated in separate workspaces; one run never mixes clients.
+    source: AGENTS.md rule 1
+  - id: R-10
+    rule: Do not invent remedies, effort, dates or business value. Remedies come from the client's remedy packs and are offered only where they fit the application's stack.
+    source: AGENTS.md rule 4; audit 3 (remedy fit)
+  - id: R-11
+    rule: Reference data (support dates, end-of-life tables) carries its source and review status; unreviewed data is labelled as such wherever it is shown.
+    source: user 2026-11-01 ("use spring.io and mark unreviewed")
+  - id: R-12
+    rule: AS-IS (what the application is), assessment (how it is doing) and portfolio are separate perspectives; code-level risk rules are assessment controls with a confirmed flag; there is one assessment model (no separate maturity score); remedies hang off assessment gaps; the AS-IS view does not repeat assessment verdicts.
+    source: upstream DECIDED G, amended by decision D-9 (user, 2026-11-02; departure from upstream recorded in asis-baseline design section 12); UI review A4
+  - id: R-13
+    rule: Every claim carries how strongly it is known (declared, configured, enforced, verified; syntactic, semantic, runtime). A heuristic result is a potential issue, never a confirmed one.
+    source: upstream DECIDED G ("syntax vs semantic vs runtime certainty levels"; "warn vs confirmed depends on evidence")
+  - id: R-14
+    rule: Java semantic analysis (call graphs, data-access patterns, resource handling) comes from JVM tools (JavaParser, OpenRewrite, PMD, SpotBugs), not a home-grown Python Java parser.
+    source: upstream DECIDED G
+  - id: R-15
+    rule: The report needs no "how to read this page" guide; one vocabulary everywhere; designs are mocked with real data and agreed before product change; references convey ideas, not layouts.
+    source: user 2026-10-31 and 2026-11-01; memory ui-design-references
+  - id: R-16
+    rule: Everything must work for a portfolio of 300 applications: tables over diagrams, counts over name lists, filters over scrolling.
+    source: UI review A14-A16; user mock v2 brief
+  - id: R-17
+    rule: A tool gap is not a fact about the client. A check with no detector is listed once as out of scope, not per application as "not checked".
+    source: UI review round 2 "what both reviewers missed" 5
+  - id: R-18
+    rule: Every new detector or rule ships with a regression test, and every reported accuracy figure names the corpus and date it was measured on.
+    source: session practice (audits 1-6); upstream F-072 golden repositories
+  - id: R-19
+    rule: Commit only when asked, in logical pieces; push or create a remote only when asked.
+    source: user instructions
+  - id: R-20
+    rule: A requirement marked built cites the commit and test that prove it; otherwise it is planned.
+    source: red-team-design "verification level"
