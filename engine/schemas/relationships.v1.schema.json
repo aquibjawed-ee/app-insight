@@ -21,7 +21,7 @@
       "line_end": {"type": "integer", "minimum": 1}, "snippet": {"type": "string"}, "app": {"type": "string"}, "module": {"type": "string"}, "cmd": {"type": "string"}, "external": {"type": "boolean"}}},
     "node": {"type": "object", "additionalProperties": false, "required": ["id", "type", "name", "attrs", "evidence"], "properties": {
       "id": {"type": "string"},
-      "type": {"enum": ["Application", "Module", "Service", "ApiEndpoint", "Database", "MessageBroker", "Topic", "ExternalSystem", "InfrastructureResource"]},
+      "type": {"enum": ["Application", "Module", "Service", "ApiEndpoint", "Database", "Cache", "MessageBroker", "Topic", "ExternalSystem", "InfrastructureResource"]},
       "name": {"type": "string"}, "app": {"type": ["string", "null"]}, "attrs": {"type": "object"},
       "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}}},
     "edge": {"type": "object", "additionalProperties": false,

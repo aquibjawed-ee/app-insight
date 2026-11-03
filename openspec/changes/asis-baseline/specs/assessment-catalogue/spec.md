@@ -6,7 +6,8 @@
 The catalogue SHALL hold the 17 aspects of design section 9, each with one question. An aspect's status SHALL be the
 worst of its decided controls (high gaps, gaps, in place where checked, in place), never a score; possible issues
 SHALL NOT raise it.
-Status: PARTIAL (13 aspects BUILT, commit 4f47cd7, `tests/test_aspects.py`; 4 new aspects PLANNED, decision D-2).
+Status: PARTIAL (13 aspects BUILT, commit 4f47cd7, `tests/test_aspects.py::AspectsTest.test_catalogue_is_consistent`,
+`tests/test_aspects.py::AspectsTest.test_an_aspect_with_unchecked_controls_is_never_plain_in_place`; 4 new aspects PLANNED, decision D-2).
 
 #### Scenario: an aspect with nothing decided
 - WHEN every applicable control of an aspect is UNKNOWN or NOT_ASSESSED
@@ -53,7 +54,7 @@ Status: PLANNED, phase 1 T-1.9 (review-03 agreement; red-team 1 F9, 2 N6).
 ### Requirement: Framework-bound controls declare the frameworks they understand
 A control whose detector reads one framework's conventions SHALL list them in `understands`; outside them the result
 is UNKNOWN, "Not recognised for <framework>".
-Status: BUILT (8 controls, commits 4f47cd7, 9479a59; `tests/test_aspects.py::test_a_spring_only_check_says_not_recognised_for_another_framework`).
+Status: BUILT (8 controls, commits 4f47cd7, 9479a59; `tests/test_aspects.py::AspectsTest.test_a_spring_only_check_says_not_recognised_for_another_framework`).
 
 #### Scenario: a Micronaut service and structured logging
 - WHEN structured logging understands Spring Boot and Spring only

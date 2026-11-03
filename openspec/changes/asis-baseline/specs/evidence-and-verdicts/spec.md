@@ -7,7 +7,8 @@ A PRESENT, PARTIAL or ISSUE result SHALL cite at least one file and line (negati
 PRESENT means "scanned and nothing found" and SHALL name what was scanned), and the verify gate SHALL re-read every
 cited line after every run.
 Status: PARTIAL. BUILT for PRESENT and re-reading (ACC-1, ACC-2; commit 4f47cd7;
-`tests/test_verify.py::test_a_cited_line_that_does_not_say_it_is_caught`, `test_in_place_without_a_citation_is_caught`).
+`tests/test_verify.py::VerifyTest.test_a_cited_line_that_does_not_say_it_is_caught`,
+`tests/test_verify.py::VerifyTest.test_in_place_without_a_citation_is_caught`).
 PLANNED: ACC-2 for PARTIAL and ISSUE (today it checks PRESENT only, `verify.py:109`).
 
 #### Scenario: a file changes after the scan
@@ -19,7 +20,7 @@ An ABSENT result, a NOT_APPLICABLE result whose reason is that something was not
 default because a setting was not found, and a PARTIAL that rests on a missing part SHALL each carry a search record:
 what was looked for, and in which areas, with the number and names of the files searched. The search record SHALL
 name only places the detector actually reads.
-Status: PARTIAL. BUILT for ABSENT (commit 9479a59; ACC-10; `tests/test_verify.py::test_every_not_found_says_where_it_looked`),
+Status: PARTIAL. BUILT for ABSENT (commit 9479a59; ACC-10; `tests/test_verify.py::VerifyTest.test_every_not_found_says_where_it_looked`),
 except the `repo` area, which records no count or files today (`aspects.py:384`). PLANNED: the other three verdicts; a
 check that `search.for` names only places the detector reads (the owners record names README and build, which are not
 read).
@@ -36,9 +37,11 @@ with no recognised framework; (b) a blind spot exists in an area in the control'
 is named as external and no runbook shows a manual step, for pipeline controls; (d) the control is `usually_outside`
 and nothing was found.
 Status: PARTIAL. (a) BUILT for ABSENT on the 8 controls with `understands`, and for need-based N/A only where the need
-is outbound HTTP or database (2 of the 8; `aspects.py:423`) (commit 4f47cd7); (b) BUILT for ABSENT, a note
-on PARTIAL (commit 9479a59; CON-8; `tests/test_verify.py::test_a_blind_spot_turns_not_found_into_undecided`,
-`test_a_blind_spot_only_hides_what_it_could_hold`); (c) BUILT (commit 203d685); (d) PLANNED; all four for N/A and
+is outbound HTTP or database (2 of the 8; `aspects.py:423`) (commit 4f47cd7;
+`tests/test_aspects.py::AspectsTest.test_a_spring_only_check_says_not_recognised_for_another_framework`); (b) BUILT for ABSENT, a note
+on PARTIAL (commit 9479a59; CON-8; `tests/test_verify.py::VerifyTest.test_a_blind_spot_turns_not_found_into_undecided`,
+`tests/test_verify.py::VerifyTest.test_a_blind_spot_only_hides_what_it_could_hold`); (c) BUILT (commit 203d685;
+`tests/test_aspects.py::AspectsTest.test_pipeline_checks_are_unknown_when_the_pipeline_lives_outside_the_repository`); (d) PLANNED; all four for N/A and
 ISSUE-by-default PLANNED; verify rules for (a), (d) PLANNED.
 
 #### Scenario: a company parent POM
@@ -67,7 +70,8 @@ POMs and Gradle plugins from outside it, remote Gradle scripts, GitLab remote in
 reusable GitHub workflows, Azure templates from another repository, CI systems and build tools it does not parse,
 configuration servers and external configuration locations, deployment tools the availability checks do not read,
 and (PLANNED) GitOps markers.
-Status: BUILT except GitOps (commit 9479a59; `engine/tests/test_accuracy.py::ScopeTest`, 8 tests).
+Status: BUILT except GitOps (commit 9479a59; `engine/tests/test_accuracy.py::ScopeTest`, 8 tests, for example
+`engine/tests/test_accuracy.py::ScopeTest.test_remote_ci_shared_libraries_and_reusable_workflows_are_blind_spots`).
 
 #### Scenario: a classpath configuration location
 - WHEN a Dockerfile sets `-Dspring.config.location=classpath:/app.yml`
@@ -99,7 +103,7 @@ semantic); every ISSUE SHALL state `confirmed`. "Enforced" SHALL require a cited
 "verified" SHALL require a tool result; `confirmed: true` SHALL mean the issue is stated by a cited line, or by a
 reference-data lookup on a cited value, after the absence guard; `confirmed: false` SHALL be used only for heuristic
 patterns and for defaults inferred from a setting not being found (design 6.2, with the table of current sources).
-Status: BUILT for level (ACC-3; `tests/test_verify.py::test_enforced_without_a_ci_file_is_caught`); PLANNED for
+Status: BUILT for level (ACC-3; `tests/test_verify.py::VerifyTest.test_enforced_without_a_ci_file_is_caught`); PLANNED for
 certainty and confirmed.
 
 #### Scenario: a committed secret
@@ -137,7 +141,7 @@ Status: PLANNED (decision D-1).
 ### Requirement: Results are verdicts, never descriptions
 A result's summary SHALL describe what was found for this application and SHALL NOT be the control's description or
 fix text.
-Status: BUILT (ACC-5).
+Status: BUILT, test PLANNED (ACC-5 runs in every verify, but no test shows it catching a description).
 
 #### Scenario: a replica check
 - WHEN replicas are set for 2 of 3 workloads
@@ -146,7 +150,8 @@ Status: BUILT (ACC-5).
 ### Requirement: Every finding carries its rule and source version
 Every finding SHALL carry its control id, the catalogue version, and the source revision (commit; "uncommitted
 changes: N files" when the tree is dirty).
-Status: PARTIAL (control id and catalogue version BUILT; source revision per finding PLANNED; dirty state is recorded
+Status: PARTIAL (control id BUILT, `tests/test_aspects.py::AspectsTest.test_findings_are_exactly_the_controls_in_a_gap_state`;
+catalogue version BUILT, test PLANNED; source revision per finding PLANNED; dirty state is recorded
 in `run.json`).
 
 #### Scenario: a dirty working tree
@@ -178,7 +183,9 @@ Status: PLANNED (decision D-1); blocked on an upstream schema change (`additiona
 ### Requirement: Secrets never appear in any output
 Every file the run writes SHALL be redacted at the writer; verify SHALL fail a run in which any written file holds a
 value redaction would mask (ACC-9) or a literal value a secret detector located in the run (accuracy-assurance spec).
-Status: PARTIAL (redaction and ACC-9 BUILT, commits 73f83ba, 4f47cd7; the independent literal-value check PLANNED).
+Status: PARTIAL (redaction and ACC-9 BUILT, commits 73f83ba, 4f47cd7;
+`engine/tests/test_accuracy.py::ThirdAuditTest.test_every_written_string_is_redacted_not_only_evidence`,
+`tests/test_verify.py::VerifyTest.test_a_secret_in_any_written_file_fails_the_run`; the independent literal-value check PLANNED).
 
 #### Scenario: a webhook URL in a group_vars file
 - WHEN the secrets detector cites a line holding a Slack webhook

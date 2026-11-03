@@ -17,50 +17,54 @@ rejected, T-1.13 is reverted. Each task names its acceptance evidence. IDs are s
 
 ## Phase 1: client safety and correctness
 
-- [ ] T-1.1 Run verify before writing the report and `latest`; no report-client file on failure; verify result and
+- [x] T-1.1 Run verify before writing the report and `latest`; no report-client file on failure; verify result and
       rules in `summarise()`, `summary --json` and the report header; `report` and `aspects` exit non-zero on failure.
       (F5)
-- [ ] T-1.2 Coverage-matrix recount script. (F6)
-- [ ] T-1.3 Every BUILT row in the matrix and specs names its test id; false ones downgraded. (F6, R-20)
-- [ ] T-1.4 Detector failure: controls fed by a failed detector NOT_ASSESSED; shown in summary and report. (F6)
-- [ ] T-1.5 Per-repository isolation of extraction, safety net and resilience; unique clone folders and application
+- [x] T-1.2 Coverage-matrix recount script. (F6) Evidence: `openspec/scripts/matrix.py --write | --check`,
+      `openspec/scripts/test_matrix.py` (uncommitted).
+- [x] T-1.3 Every BUILT row in the matrix and specs names its test id; false ones downgraded. (F6, R-20) Evidence:
+      `matrix.py --check` exits 0; 52 BUILT rows cite tests, 2 downgraded to PARTIAL (identity `git_branch`,
+      `stack.packaging`: built, no test); spec BUILT claims cite a test or say "test PLANNED" (uncommitted).
+- [x] T-1.4 Detector failure: controls fed by a failed detector NOT_ASSESSED; shown in summary and report. (F6)
+- [x] T-1.5 Per-repository isolation of extraction, safety net and resilience; unique clone folders and application
       ids; duplicate names disambiguated. (F14)
-- [ ] T-1.6 Refuse credentialed source URLs; never store them. (R-08)
-- [ ] T-1.7 Independent leak check: literal values located by the secret detectors (memory only) and a second
+- [x] T-1.6 Refuse credentialed source URLs; never store them. (R-08)
+- [x] T-1.7 Independent leak check: literal values located by the secret detectors (memory only) and a second
       pattern set, compared with every written file. (F7)
-- [ ] T-1.8 Absence guard for NOT_APPLICABLE by need, ISSUE by default and PARTIAL by missing part; search records
+- [x] T-1.8 Absence guard for NOT_APPLICABLE by need, ISSUE by default and PARTIAL by missing part; search records
       for them; verify rules for framework envelope and N/A by need. (F3)
-- [ ] T-1.9 `usually_outside` attribute and GitOps blind spots; controls listed in design 6.6. (F9)
-- [ ] T-1.10 Owners search record names only CODEOWNERS (or extend the detector). (F6)
-- [ ] T-1.11 README mention of a CI product no longer makes the pipeline external without a statement that this
+- [x] T-1.9 `usually_outside` attribute and GitOps blind spots; controls listed in design 6.6. (F9)
+- [x] T-1.10 Owners search record names only CODEOWNERS (or extend the detector). (F6)
+- [x] T-1.11 README mention of a CI product no longer makes the pipeline external without a statement that this
       repository is built there. (F2)
-- [ ] T-1.12 Declared-only dependency and INFERRED-only facts → PARTIAL at level declared; negative scans and
+- [x] T-1.12 Declared-only dependency and INFERRED-only facts → PARTIAL at level declared; negative scans and
       framework-version defaults stay PRESENT, with regression tests for secrets_in_code, secrets_externalised and
       graceful_shutdown on Boot 3.4+. (F18, N15, F3-1)
-- [ ] T-1.13 Remove the maturity percentage from the report; dimension headlines checked against controls by verify.
+- [x] T-1.13 Remove the maturity percentage from the report; dimension headlines checked against controls by verify.
       (F10)
-- [ ] T-1.14 Remedy vocabulary declared per key; test on every remedy `requires`; fix `gitlab` → `gitlab-ci`.
-- [ ] T-1.15 `critical` in the severity order. (F21)
-- [ ] T-1.16 File roles: IDE output folders (`bin/`) excluded; general classifier for test fixtures and examples.
+- [x] T-1.14 Remedy vocabulary declared per key; test on every remedy `requires`; fix `gitlab` → `gitlab-ci`.
+- [x] T-1.15 `critical` in the severity order. (F21)
+- [x] T-1.16 File roles: IDE output folders (`bin/`) excluded; general classifier for test fixtures and examples.
       (F11)
-- [ ] T-1.17 Hazelcast and other grids typed as caches. (F21)
-- [ ] T-1.18 Criticality from the list file shown and filterable. (F6)
-- [ ] T-1.19 Report header "Internal: not validated" until the client-use gate passes. (D-0)
-- [ ] T-1.20 Audit-6 minor items (design section 15), each with a regression test.
-- [ ] T-1.21 Rescan the six repositories on the fixed code; verify passes; every state change explained.
-- [ ] T-1.22 ACC-2 extended to PARTIAL and ISSUE; `repo` search area records what it checked; need-based N/A
+- [x] T-1.17 Hazelcast and other grids typed as caches. (F21)
+- [x] T-1.18 Criticality from the list file shown and filterable. (F6)
+- [x] T-1.19 Report header "Internal: not validated" until the client-use gate passes. (D-0)
+- [x] T-1.20 Audit-6 minor items (design section 15), each with a regression test.
+- [x] T-1.21 Rescan the six repositories on the fixed code; verify passes; every state change explained.
+- [x] T-1.22 ACC-2 extended to PARTIAL and ISSUE; `repo` search area records what it checked; need-based N/A
       converted for every need on `understands` controls. (review 2 N7)
-- [ ] T-1.23 Independent leak check also on rebuilds and standalone verify (detectors re-run in memory). (N10)
-- [ ] T-1.24 `check`-sourced controls after a detector crash: NOT_ASSESSED with the true reason. (N17)
-- [ ] T-1.25 Reference data review status on every result that rests on it (Assessment results). (R-11)
+- [x] T-1.23 Independent leak check also on rebuilds and standalone verify (detectors re-run in memory). (N10)
+- [x] T-1.24 `check`-sourced controls after a detector crash: NOT_ASSESSED with the true reason. (N17)
+- [x] T-1.25 Reference data review status on every result that rests on it (Assessment results). (R-11)
 
-Started 2026-11-02 by user decision; T-1.1 to T-1.20 and T-1.22 to T-1.24 in progress (T-1.2, T-1.3 are spec
-bookkeeping: the recount was done by script with each revision; per-row test ids are still to do). Later phase-1 items not yet started: T-1.25, T-1.26, T-1.27.
+Phase 1 done 2026-11-03 (started 2026-11-02 by user decision). Evidence: `tests/test_phase1.py`,
+`engine/tests/test_accuracy.py::Phase1Test`, `openspec/scripts/test_matrix.py`; the rescan of the six repositories
+passes verify.
 
-- [ ] T-1.26 Verify reads evidence at the run's recorded commit, or refuses. (N11)
-- [ ] T-1.27 Verify recomputes coverage and status with its own table-driven logic. (N21)
-- [ ] T-1.28 Gate state in `summary --json` and "internal" in the report file name. (F3-21)
-- [ ] T-1.29 Make `report` rebuild the HTML only, as AGENTS.md says, or correct AGENTS.md; a run with `review.json`
+- [x] T-1.26 Verify reads evidence at the run's recorded commit, or refuses. (N11)
+- [x] T-1.27 Verify recomputes coverage and status with its own table-driven logic. (N21)
+- [x] T-1.28 Gate state in `summary --json` and "internal" in the report file name. (F3-21)
+- [x] T-1.29 Make `report` rebuild the HTML only, as AGENTS.md says, or correct AGENTS.md; a run with `review.json`
       is never rebuilt in place. (F3-9)
 
 Exit: both suites pass (browser test run, not skipped); verify passes on the six repositories.

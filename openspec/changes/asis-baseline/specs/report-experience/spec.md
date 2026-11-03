@@ -145,7 +145,7 @@ Status: PARTIAL (blind spots on the Assessment tab, commit 9479a59; the page is 
 The report SHALL be one self-contained HTML file with no network resources, and a headless-browser test SHALL render
 every view without script errors or visible "undefined", "NaN" or "null". The release check SHALL run on a machine with
 Chrome; a skipped browser test SHALL NOT count as passing.
-Status: PARTIAL. BUILT: `tests/test_report.py` (it caught the missing "in place where checked" colour fixed in commit
+Status: PARTIAL. BUILT: `tests/test_report.py::ReportTest.test_report_renders_every_view_in_a_browser_without_errors` (it caught the missing "in place where checked" colour fixed in commit
 9479a59). PLANNED: the test skips silently without Chrome (`tests/test_report.py:45`).
 
 #### Scenario: no Chrome on the machine
@@ -154,7 +154,7 @@ Status: PARTIAL. BUILT: `tests/test_report.py` (it caught the missing "in place 
 
 ### Requirement: Designs are mocked with real data and agreed first
 A structural change to the report SHALL first be built as a mock on a verified run's data, reviewed and agreed (R-15).
-Status: BUILT as practice (mock v1, v2).
+Status: followed as practice (mock v1, v2); a working practice, not code, so it has no test.
 
 #### Scenario: mock v3
 - WHEN the home redesign starts

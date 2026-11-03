@@ -87,7 +87,8 @@ def dependencies(ctx, g: Graph, app: str, app_node: str, cfg: Config):
                          "identity_note": "no literal host/database found, so this is not matched with other applications' databases" if len(c) != 1 else None}
                 if len(c) > 1:
                     attrs["identity_note"] = "%d different %s connection strings found: not attributed to one database" % (len(c), tech)
-            g.node(nid, "Database", tech, attrs, ats[:2], app=None if attrs["identity"] == "connection" else app)
+            # a cache or data grid (Redis, Hazelcast) is typed as one: the database checks (timeouts, migrations, sharing) are not about it
+            g.node(nid, "Cache" if kind == I.CACHE else "Database", tech, attrs, ats[:2], app=None if attrs["identity"] == "connection" else app)
             g.edge("DEPENDS_ON", app_node, nid, mech, basis, conf, ats[:3], attrs={"role": role, "modules": it["modules"], "embedded": it["embedded"]}, note=note)
         elif kind == I.MQ:
             fam = BROKER_FAMILY.get(tech)

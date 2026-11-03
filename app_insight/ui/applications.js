@@ -8,7 +8,7 @@ function techOf(a) {
   const out = [], j = val(a, "stack.java_version"), b = val(a, "stack.spring_boot_version"), l = val(a, "stack.language");
   if (j) out.push("Java " + j); if (b) out.push("Spring Boot " + String(b).split(".").slice(0, 2).join(".")); if (l && /kotlin/.test(l)) out.push("Kotlin");
   const seen = new Set();
-  for (const e of S[a.name].rs) { const n = NODES[e.target], t = n && n.attrs && n.attrs.technology; if (t && (n.type === "Database" || n.type === "MessageBroker") && !seen.has(t)) { seen.add(t); out.push(t); } }
+  for (const e of S[a.name].rs) { const n = NODES[e.target], t = n && n.attrs && n.attrs.technology; if (t && (n.type === "Database" || n.type === "Cache" || n.type === "MessageBroker") && !seen.has(t)) { seen.add(t); out.push(t); } }
   return out;
 }
 const stackHtml = (a, max) => { const t = techOf(a), shown = t.slice(0, max || 5); return t.length ? `<div class="stack">${shown.map(x => `<span>${esc(x)}</span>`).join("")}${t.length > shown.length ? `<span title="${esc(t.slice(shown.length).join(", "))}">+${t.length - shown.length}</span>` : ""}</div>` : '<span class="tiny">—</span>'; };
@@ -22,7 +22,7 @@ function cmp(key, dir) {
 }
 function appRow(a) {
   const cs = cells(a), href = "#/app/" + encodeURIComponent(a.name) + "/overview", p = evPct(a);
-  return `<tr tabindex="0" data-go="${esc(href)}"><td><a class="appname" href="${esc(href)}"><span class="appicon">${icon(val(a, "stack.artifact_kind") === "library" ? "package" : "box")}</span>${esc(a.name)}</a><div class="tiny" style="margin-left:34px">${esc(kindOf(a))}</div></td><td>${stackHtml(a)}</td>${cs.slice(0, 5).map(c => `<td>${cellHtml(c)}</td>`).join("")}<td><span class="progress" title="Share of this application's facts read from a cited line"><i style="width:${p}%"></i></span>${p}%</td></tr>`;
+  return `<tr tabindex="0" data-go="${esc(href)}"><td><a class="appname" href="${esc(href)}"><span class="appicon">${icon(val(a, "stack.artifact_kind") === "library" ? "package" : "box")}</span>${esc(a.name)}</a><div class="tiny" style="margin-left:34px">${esc(kindOf(a))}${critOf(a) ? " · criticality " + esc(critOf(a)) : ""}</div></td><td>${stackHtml(a)}</td>${cs.slice(0, 5).map(c => `<td>${cellHtml(c)}</td>`).join("")}<td><span class="progress" title="Share of this application's facts read from a cited line"><i style="width:${p}%"></i></span>${p}%</td></tr>`;
 }
 function appTable(rows, st) {
   const head = COLS.map(([k, ci]) => {
@@ -46,12 +46,13 @@ function pApps(m, query) {
   const colOf = {Lifecycle: "lifecycle", Tests: "tests", HA: "ha", Security: "security", "Unmatched calls": "unmatched"};
   const search = h("input", {type: "search", placeholder: "Filter " + D.apps.length + " applications by name, language or version…", value: st.q, class: "tsearch", "aria-label": "Filter applications"});
   const draw = () => {
-    const tests = fl.map(filterTest); let xs = D.apps.filter(a => tests.every(t => t(a)) && (!st.q || [a.name, val(a, "stack.language"), val(a, "stack.java_version"), val(a, "stack.spring_boot_version")].join(" ").toLowerCase().includes(st.q.toLowerCase())));
+    const tests = fl.map(filterTest); let xs = D.apps.filter(a => tests.every(t => t(a)) && (!st.q || [a.name, val(a, "stack.language"), val(a, "stack.java_version"), val(a, "stack.spring_boot_version"), critOf(a)].join(" ").toLowerCase().includes(st.q.toLowerCase())));
     xs.sort(cmp(st.sort, st.dir));
     const pages = Math.max(1, Math.ceil(xs.length / PAGE)); st.page = Math.min(st.page, pages);
     const slice = xs.slice((st.page - 1) * PAGE, st.page * PAGE);
     st.flags = fl.map(f => Object.keys(colOf).find(k => colOf[k] === f)).filter(Boolean);
     chips.replaceChildren(...Object.entries(FILTERS).filter(([k]) => !["ended", "extended"].includes(k)).map(([k, [l]]) => h("button", {class: "chipbtn" + (fl.includes(k) ? " on" : ""), onclick: () => { fl = fl.includes(k) ? fl.filter(x => x !== k) : fl.concat(k); st.page = 1; draw(); }}, l, " ", h("small", {}, D.apps.filter(FILTERS[k][1]).length))),
+      ...[...new Set(D.apps.map(critOf).filter(Boolean))].sort().map(c => "crit:" + c).filter(f => !fl.includes(f)).map(f => h("button", {class: "chipbtn", onclick: () => { fl = fl.concat(f); st.page = 1; draw(); }}, filterLabel(f), " ", h("small", {}, D.apps.filter(filterTest(f)).length))),
       ...fl.filter(f => !FILTERS[f] || ["ended", "extended"].includes(f)).map(f => h("button", {class: "chipbtn on", onclick: () => { fl = fl.filter(x => x !== f); draw(); }}, filterLabel(f), " ✕")));
     info1.replaceChildren("Showing ", h("b", {}, xs.length), " of " + D.apps.length + " applications", ...((fl.length || st.q) ? [h("button", {class: "mini", style: "margin-left:10px", onclick: () => { fl = []; st.q = ""; search.value = ""; st.page = 1; draw(); }}, "Clear filters")] : []));
     holder.replaceChildren(appTable(slice, Object.assign(st, {onSort: k => { if (st.sort === k) st.dir = st.dir === "asc" ? "desc" : "asc"; else { st.sort = k; st.dir = k === "Application" || k === "Technology stack" ? "asc" : "desc"; } draw(); },

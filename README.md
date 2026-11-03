@@ -10,7 +10,7 @@ it produces, for every application:
 - **the aspect trace**: 13 aspects that matter for production readiness and maturity, each made of controls. Every
   control has a state, how strongly it was shown, the evidence lines, and, when it is not in place, a finding and the
   remedy from the client's remedy pack;
-- **a portfolio report** (`report.html`, one self-contained file): applications × aspects, findings grouped by aspect,
+- **a portfolio report** (`report-internal.html`, one self-contained file, internal until reviewed): applications × aspects, findings grouped by aspect,
   a roadmap in dependency order, architecture and change impact.
 
 It is deterministic and offline once the repositories are on disk. No model decides a fact or a verdict, so it gives

@@ -99,7 +99,9 @@ def _secret_files(ctx):
     return config, code, files
 
 
-def _scan_secrets(ctx, files, rx_list, cap=200):
+def _scan_secrets(ctx, files, rx_list, cap=200, values=None):
+    """Evidence lines (redacted) for literal secrets. `values`, when given, collects the literal values themselves: they are
+    held in memory only, for the independent leak check, and never written or printed."""
     hits = []
     for f in files[:4000]:
         lines = read_lines(ctx.repo, f) or []
@@ -115,6 +117,8 @@ def _scan_secrets(ctx, files, rx_list, cap=200):
                     continue
                 if m and not NOT_A_SECRET.match(val) and not ENV_NAME.match(val) and not (KEY_PATH.search(val) and rx is not WEBHOOK_SECRET):
                     hits.append(file_ev(f, i, ln))
+                    if values is not None:
+                        values.add(val)
                     break
     return hits
 
@@ -143,6 +147,25 @@ def secrets(ctx):
                     "NOT_FOUND", [])
     return {"secrets_in_config": verdict(in_cfg, "configuration files", len(config)),
             "secrets_committed": verdict(keys + in_code, "code, build, pipeline and key files", len(code))}
+def secret_values(ctx):
+    """The literal values the secret detectors locate in this repository, for comparing with what a run wrote (verify ACC-11).
+    Memory only: the caller compares and reports a file and location, never a value. Values shorter than 8 characters are left
+    out: they are too common in ordinary text for a match to mean a leak."""
+    config, code, files = _secret_files(ctx)
+    vals = set()
+    build = [f for f in code if f in ctx.build_files or f.endswith("gradle.properties")]
+    _scan_secrets(ctx, config, [WEBHOOK_SECRET, QUERY_SECRET, DEFAULT_SECRET, LONG_SECRET, CONFIG_SECRET, URL_SECRET, TOKEN_SECRET], values=vals)
+    _scan_secrets(ctx, [f for f in code if f not in build], [WEBHOOK_SECRET, QUERY_SECRET, CODE_SECRET, BASIC_SECRET, URL_SECRET, TOKEN_SECRET], values=vals)
+    _scan_secrets(ctx, build, [PROP_SECRET, WEBHOOK_SECRET, CODE_SECRET, DEFAULT_SECRET, CONFIG_SECRET, URL_SECRET, TOKEN_SECRET], values=vals)
+    for f in files:  # a private key's body lines
+        ls = read_lines(ctx.repo, f) or []
+        if any(PRIVATE_KEY.search(ln) for ln in ls[:3]):
+            vals.update(ln.strip() for ln in ls[1:200] if len(ln.strip()) >= 16 and not ln.startswith("-----"))
+    # a value that is itself a key word (a password set to the word for password) is a weak secret, but the word appears in every
+    # report as a key name: comparing it would flag the vocabulary, not a leak
+    return {v.strip("\"'") for v in vals if len(v.strip("\"'")) >= 8 and not re.fullmatch(SECRET_NAME + r"s?", v.strip("\"'"), re.I)}
+
+
 # Gradle plugins that attach their tasks to `check`, so a pipeline running `gradle build` or `gradle check` runs them too
 CHECK_WIRED = r"apply\s+plugin\s*:\s*['\"](?:findbugs|com\.github\.spotbugs)['\"]|id\s*\(?\s*['\"](?:com\.github\.spotbugs)['\"]"
 CI_GRADLE_CHECK = r"gradlew?\b[^\n]*\s(?:build|check)\b"
@@ -217,6 +240,9 @@ def detect(ctx) -> dict:
         ev = ev[:3]
         if not ev:  # tool config files are evidence by name alone
             ev = [file_ev(f, 1, (read_lines(r, f) or [""])[0]) for f in cfg if re.search(rx, f)][:3]
+        if cat == "sast" and ev:
+            # FindBugs / SpotBugs applied in the build is one of the analysers (and find-sec-bugs is its plugin): cite it with the others
+            ev += [e for e in grep_files(r, ctx.build_files, CHECK_WIRED, 1) if e not in ev]
         if cat in PIPELINE_CATS:
             # configured is not the same as run: only a hit inside a CI file shows the pipeline invokes the tool
             ci_hits = [e for e in hits if e["path"] in set(ctx.ci_files)][:3]

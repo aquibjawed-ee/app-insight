@@ -34,7 +34,7 @@ class SourcesTest(unittest.TestCase):
         self.assertEqual([x.spec for x in s], ["https://github.com/acme/payments.git", "git@gitlab.example.com:grp/orders.git"])
         self.assertEqual((s[0].name, s[0].branch, s[0].team), ("pay", "main", "payments"))
         self.assertTrue(all(x.remote for x in s))
-        self.assertEqual(s[1].slug(), "grp__orders")
+        self.assertEqual(s[1].slug(), "gitlab.example.com__grp__orders")  # host and full path: a clone folder per repository
 
     def test_csv_without_header_uses_the_first_column(self):
         s = SRC.read_list(self.w("r.csv", "https://github.com/acme/a.git,x\nhttps://github.com/acme/b.git,y\n"))

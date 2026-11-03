@@ -1,7 +1,7 @@
 {
   "contract": "remedy-pack.v1",
   "id": "generic",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "title": "Generic guidance (no tooling assumed)",
   "note": "Tool-neutral next steps. Organisations replace or extend this pack with their own automation.",
   "remedies": {
@@ -25,13 +25,15 @@
     "metrics_lib": {"title": "Export application metrics", "does": "Add a metrics exporter for the organisation's monitoring system (for example a Micrometer registry for Prometheus or Datadog) and expose it to the scraper or agent."},
     "tracing_lib": {"title": "Add distributed tracing", "does": "Add OpenTelemetry (or the organisation's tracer), propagate trace context on inbound and outbound calls, and export to the tracing backend."},
     "api_spec": {"title": "Publish an API specification", "does": "Publish an OpenAPI description of the HTTP interface (generated from the code or kept next to it) and check it in the pipeline."},
+    "health_endpoint": {"title": "Add or open a health endpoint", "does": "Add the framework's health module where there is none (Spring Boot Actuator, MicroProfile Health, Micronaut management, Dropwizard health checks), let the platform's probes reach it without authentication, and point the readiness and liveness checks at it."},
     "json_logs": {"title": "Log as JSON", "does": "Switch the log output to JSON (logging.structured.format.console on Spring Boot 3.4+, or a JSON encoder) and include trace and correlation identifiers."}
   },
   "aspects": {
     "delivery": ["ci"], "testing": ["tests"], "security": ["ci"], "platform": ["upgrade"], "runtime": ["app_config"], "availability": ["deploy_config"],
     "observability": ["app_config"], "api": ["app_config"], "data": ["app_config"], "knowledge": ["docs"], "config": ["app_config"], "code": ["tests"]
   },
-  "controls": {"security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "data.migrations": ["migrations"], "observability.metrics": ["metrics_lib"], "observability.tracing": ["tracing_lib"], "api.openapi": ["api_spec"], "architecture.calls_matched": ["alias"],
+  "controls": {
+    "observability.health": ["health_endpoint"], "security.exposure_known": ["scan"], "security.dependency_updates": ["deps_bot"], "data.migrations": ["migrations"], "observability.metrics": ["metrics_lib"], "observability.tracing": ["tracing_lib"], "api.openapi": ["api_spec"], "architecture.calls_matched": ["alias"],
     "runtime.http_timeouts": ["http_timeouts"],
     "runtime.retries_breakers": ["resilience_lib"],
     "runtime.messaging_errors": ["dead_letter"],

@@ -66,6 +66,37 @@ def load_aliases(path):
     return out
 
 
+def _why(e):
+    """A failure as recorded: the exception type and a short, redacted message (a message can quote a file line)."""
+    return "%s: %s" % (type(e).__name__, evidence.redact(str(e))[:160])
+
+
+def _unique_ids(built):
+    """Two repositories with the same application id are both analysed: the later ones get the parent folder's name as a
+    suffix (then a number), recorded on the id fact. A duplicate never aborts the portfolio."""
+    seen, renamed = {}, []
+    for r, disc in built:
+        f = disc["identity"]["app_id"]
+        name = base = f["value"]
+        if name in seen:
+            name = "%s-%s" % (base, re.sub(r"[^\w.-]+", "_", os.path.basename(os.path.dirname(r))) or "repo")
+            i = 2
+            while name in seen:
+                name, i = "%s-%d" % (base, i), i + 1
+            f["value"], f["note"] = name, "renamed from %s: another repository in this analysis (%s) has that id" % (base, seen[base])
+            renamed.append({"repo": r, "from": base, "to": name})
+        seen[name] = r
+    return renamed
+
+
+def _empty_graph(app, disc, why):
+    g = model.Graph("application")
+    g.node("app:" + app, "Application", app, {"identity_keys": [], "declared_hosts": [], "context_path": None, "artifact_kind": None, "language": None}, app=app)
+    return g.to_doc({"extractor_version": extract.EXTRACTOR_VERSION, "application": app, "repository_fingerprint": disc["run_meta"]["inventory_fingerprint"],
+                     "discovery_fingerprint": disc["run_meta"]["fingerprint"], "static_analysis_only": True, "external_sources": {}, "integrity_errors": [],
+                     "failed": why, "limitations": ["Relationship extraction failed on this repository (%s): its relationships are not known." % why]})
+
+
 def cmd_analyse(a) -> int:
     repos = {}
     for r in a.repos:
@@ -73,36 +104,49 @@ def cmd_analyse(a) -> int:
         if not os.path.isdir(r):
             print("repo not found: %s" % r, file=sys.stderr)
             return 2
-    built = []
+    # every step is isolated per repository: one repository that breaks a step is recorded and the others go on
+    built, failed = [], []
     for r in sorted(os.path.abspath(x) for x in a.repos):
-        disc = discover.build(r)
-        built.append((r, disc))
-    names = [d["identity"]["app_id"]["value"] for _, d in built]
-    dup = sorted({n for n in names if names.count(n) > 1})
-    if dup:
-        print("two repositories have the same application id %s: rename a directory or fix its git remote" % ", ".join(dup), file=sys.stderr)
-        return 2
-    docs, rc = [], 0
+        try:
+            built.append((r, discover.build(r)))
+        except Exception as e:  # noqa: BLE001  the whole discovery failed: no application can be described, so none is invented
+            failed.append({"repo": r, "step": "discovery", "error": _why(e)})
+            print("%s: discovery failed (%s); the other repositories go on" % (r, _why(e)), file=sys.stderr)
+    renamed = _unique_ids(built)
+    docs, rc = [], 1 if failed else 0
     criticality = _read(a.criticality) if a.criticality else None
     sns, discs, res_docs = {}, {}, {}
+
+    def step(app, disc, name, fn, fallback):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001
+            nonlocal rc
+            rc = 1
+            disc["run_meta"]["failures"].append("%s: %s" % (name, _why(e)))  # the controls this step feeds become NOT_ASSESSED
+            print("%s: %s failed (%s); its results are not assessed" % (app, name, _why(e)), file=sys.stderr)
+            return fallback(_why(e))
     for r, disc in built:
         app = disc["identity"]["app_id"]["value"]
         repos[app] = r
         discs[app] = disc
-        g = extract.extract(r, disc, profile=a.profile, config_dirs=a.config_dir or ())
+        g = step(app, disc, "relationships", lambda: extract.extract(r, disc, profile=a.profile, config_dirs=a.config_dir or ()), lambda w: _empty_graph(app, disc, w))
         errs = schema_errors(g) + g["meta"]["integrity_errors"]
         if errs:
             print("%s: relationships invalid:\n  %s" % (app, "\n  ".join(errs[:10])), file=sys.stderr)
             rc = 1
-        sn = safetynet.map_application(r, g, disc)
-        sns[app] = sn
-        res_docs[app] = resilience.assess(r, disc)
+        sns[app] = step(app, disc, "safetynet", lambda: safetynet.map_application(r, g, disc),
+                        lambda w: {"contract": safetynet.CONTRACT, "application": app, "version": safetynet.VERSION, "repository_level": {}, "components": [], "summary": {},
+                                   "failed": w, "limitations": ["The safety-net mapping failed on this repository (%s)." % w]})
+        res_docs[app] = step(app, disc, "availability", lambda: resilience.assess(r, disc),
+                             lambda w: {"contract": resilience.CONTRACT, "version": resilience.VERSION, "application": app, "state": "not_assessed", "platforms": [],
+                                        "workloads": [], "summary": [], "groups": resilience.GROUPS, "ignored": [], "unread": None, "failed": w,
+                                        "reason": "the deployment check failed on this repository (%s)" % w, "limitations": []})
         _write(os.path.join(a.out, app, "resilience.json"), res_docs[app])
         docs.append(g)
         d = os.path.join(a.out, app)
-        _write(os.path.join(d, "discovery.json"), disc)
         _write(os.path.join(d, "relationships.json"), g)
-        _write(os.path.join(d, "safetynet.json"), sn)
+        _write(os.path.join(d, "safetynet.json"), sns[app])
     aliases = load_aliases(a.aliases) if a.aliases else None
     P = resolve.resolve(docs, aliases)
     ext_all = {}
@@ -116,13 +160,21 @@ def cmd_analyse(a) -> int:
     for r, disc in built:
         app = disc["identity"]["app_id"]["value"]
         own = next(g for g in docs if g["meta"]["application"] == app)
-        _write(os.path.join(a.out, app, "dimensions.json"), dimensions.assess(disc, own, sns[app], criticality, portfolio_graph=P, resilience=res_docs[app]))
-    manifest = {"contract": "analysis-manifest.v1", "applications": [{"app": app, "repo": repos[app], "inventory_fingerprint": discs[app]["run_meta"]["inventory_fingerprint"]} for app in sorted(repos)],
+        dims = step(app, disc, "dimensions", lambda: dimensions.assess(disc, own, None if sns[app].get("failed") else sns[app], criticality, portfolio_graph=P,
+                                                    resilience=None if res_docs[app].get("failed") else res_docs[app]),
+                    lambda w: {"contract": dimensions.CONTRACT, "application": app, "failed": w, "statement": "The dimensions step failed on this repository (%s)." % w,
+                               "dimensions": {k: dict(dimensions._d("not_assessed", "Not assessed: the dimensions step failed on this repository"), title=dimensions.TITLES[k])
+                                              for k in dimensions.ORDER}})
+        _write(os.path.join(a.out, app, "dimensions.json"), dims)
+        _write(os.path.join(a.out, app, "discovery.json"), disc)  # last, so it carries every step's failure
+    manifest = {"contract": "analysis-manifest.v1", "applications": [{"app": app, "repo": repos[app], "inventory_fingerprint": discs[app]["run_meta"]["inventory_fingerprint"],
+                                                                     "failures": discs[app]["run_meta"]["failures"]} for app in sorted(repos)],
+                "failed": failed, "renamed": renamed,
                 "external_sources": ext_all, "options": {"profile": a.profile, "aliases": bool(a.aliases), "config_dirs": len(a.config_dir or [])}, "generated_at": os.environ.get("DISCOVERY_FIXED_TIME") or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "tool": {"extractor": extract.EXTRACTOR_VERSION, "resolver": resolve.RESOLVER_VERSION,
                                                                                          "safetynet": safetynet.VERSION, "impact": impact.ENGINE_VERSION}}
     _write(os.path.join(a.out, "manifest.json"), manifest)
     print("━━ APP-DISCOVERY-RELATIONSHIPS ━━")
-    print("applications:  %d" % len(repos))
+    print("applications:  %d%s" % (len(repos), "; %d repositories could not be analysed" % len(failed) if failed else ""))
     print("nodes/edges:   %d / %d (portfolio)" % (len(P["nodes"]), len(P["edges"])))
     st = {}
     for e in P["edges"]:

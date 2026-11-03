@@ -220,7 +220,8 @@ def k8s_checks(app, repo, f, s, doc, lines_all, ctx, siblings, helm_vals, eks):
     elif mu:
         c["rollout"] = _res("present", None, None, mu)
     else:
-        c["rollout"] = _res("absent", None, "no strategy stated: Kubernetes defaults to RollingUpdate 25%/25%", st)
+        # a default has no setting to cite: cite the workload whose default it is (a partial result always cites a line)
+        c["rollout"] = _res("absent", None, "no strategy stated: Kubernetes defaults to RollingUpdate 25%/25%", st or at(r"^kind:\s*(?:Deployment|StatefulSet)\b"))
         c["rollout"]["state"] = "default"
     tg = at(r"terminationGracePeriodSeconds:")
     ps = at(r"preStop:")

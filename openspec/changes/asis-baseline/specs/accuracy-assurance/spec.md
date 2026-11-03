@@ -10,7 +10,8 @@ Every scan SHALL run the verify gate after `aspects.json` is built and before an
 pointer is written. The result and the rules broken SHALL be in the run summary, `summary --json` and the report
 header. `report` and `aspects` SHALL exit non-zero when verify fails. For the client file, a run-level failure SHALL
 delete it and a per-application failure SHALL mark that application "Not available: verification failed" (design 8.8).
-Status: PARTIAL. The gate is BUILT (commits 4f47cd7, 9479a59; `tests/test_verify.py`); ordering, summary field, exit
+Status: PARTIAL. The gate is BUILT (commits 4f47cd7, 9479a59;
+`tests/test_verify.py::VerifyTest.test_a_clean_run_passes`, `tests/test_verify.py::VerifyTest.test_a_cited_line_that_does_not_say_it_is_caught`); ordering, summary field, exit
 codes and header are phase 1 (T-1.1; today `cli.py:145-152` writes the report and `latest` first).
 
 #### Scenario: findings drift from the controls
@@ -187,7 +188,8 @@ A dispute or correction with a tool-error reason SHALL create a backlog item sto
 engineer SHALL write a synthetic fixture from a sanitised description, without model assistance on client-derived text,
 and a test SHALL fail if the fixture contains any of the workspace's application names, package prefixes or hostnames
 (R-08, R-09, R-18).
-Status: PLANNED; practice BUILT (`engine/tests/test_accuracy.py`, one class per audit, commit 203d685).
+Status: PLANNED; practice BUILT (`engine/tests/test_accuracy.py`, one class per audit, commit 203d685; for example
+`engine/tests/test_accuracy.py::SixthAuditTest.test_a_documented_manual_deploy_is_a_gap_not_unknown`); the sanitising test PLANNED.
 
 #### Scenario: a fixture containing a client package name
 - WHEN a fixture written from a dispute contains `com.acme.payments`, a package prefix of the client workspace
@@ -232,7 +234,9 @@ Status: PLANNED.
 ### Requirement: The seeded benchmark covers controls as well as facts
 The existing benchmark (`engine/benchmark`) SHALL be extended to control states, including the enterprise patterns rare
 in public code (company parent POM, Jenkins shared library, GitLab remote include, config server, GitOps).
-Status: PARTIAL (facts BUILT; 8 blind-spot fixture tests, `engine/tests/test_accuracy.py::ScopeTest`).
+Status: PARTIAL (facts BUILT, `engine/tests/test_benchmark.py::ShippedBenchmark.test_all_gates_pass`; 8 blind-spot fixture
+tests, for example `engine/tests/test_accuracy.py::ScopeTest.test_an_organisation_parent_pom_outside_the_repository_is_a_blind_spot`;
+control states PLANNED).
 
 #### Scenario: a technology the corpus lacks
 - WHEN no corpus repository uses IBM MQ
@@ -241,7 +245,8 @@ Status: PARTIAL (facts BUILT; 8 blind-spot fixture tests, `engine/tests/test_acc
 ### Requirement: Every regression found becomes a test
 Every error found by an audit, a review or a dispute SHALL get a regression test on a synthetic fixture that fails
 before the fix and passes after it (R-18).
-Status: BUILT as practice (`engine/tests/test_accuracy.py`, commits f4a7fd5, 203d685).
+Status: BUILT as practice (`engine/tests/test_accuracy.py`, commits f4a7fd5, 203d685; for example
+`engine/tests/test_accuracy.py::FourthAuditTest.test_timeouts_cover_only_the_clients_that_read_them`).
 
 #### Scenario: an audit finds a wrong reason
 - WHEN an audit finds "publishes only" where a consumer exists

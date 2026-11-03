@@ -43,7 +43,7 @@ def _classify(repo, test_sources, module_of=lambda p: "."):
     unit_mods = {}
     it_tools, it_separate = set(), False
     unit_ev, integ_ev = [], []
-    acc_ev, con_ev = [], []
+    acc_ev, con_ev, ctx_only = [], [], []
     for f in test_sources:
         ls = read_lines(repo, f) or []
         text = "\n".join(ls)
@@ -67,7 +67,8 @@ def _classify(repo, test_sources, module_of=lambda p: "."):
             acc_ev.append(file_ev(f, idx0, ls[idx0 - 1]))
             continue
         if len(re.findall(r"@Test\b", text)) == 1 and CONTEXT_ONLY.search(text):
-            continue  # neither a unit nor an integration test: it only starts the context
+            ctx_only.append(f)  # neither a unit nor an integration test: it only starts the context. Counted, so a summary can say so
+            continue
         is_it = re.search(r"(IT|IntegrationTest|ITCase)\.\w+$", f) or "/integration" in f \
             or re.search(r"(^|/)(?:its?|[\w.-]*integration[-_]?tests?|[\w.-]*-it)(/|$)", f.split("/src/")[0] + "/") or (sset and sset.group(1) in ("integrationTest", "integration-test", "intTest", "it", "functionalTest")) \
             or re.search(r"@(SpringBootTest|Testcontainers|DataJpaTest|WebMvcTest)", text) or FULL_APP.search(text)
@@ -81,7 +82,7 @@ def _classify(repo, test_sources, module_of=lambda p: "."):
             unit += 1
             unit_mods[module_of(f)] = unit_mods.get(module_of(f), 0) + 1
             unit_ev.append(file_ev(f, idx, ls[idx - 1]))
-    return unit, unit_ev, integ, integ_ev, sorted(it_tools), it_separate, acc_ev, con_ev, unit_mods
+    return unit, unit_ev, integ, integ_ev, sorted(it_tools), it_separate, acc_ev, con_ev, unit_mods, ctx_only
 
 
 def _in_optin_profile(repo, path, line):
@@ -145,8 +146,8 @@ def _it_note(ctx):
 def detect(ctx) -> dict:
     r = ctx.repo
     out = {}
-    unit, unit_ev, integ, integ_ev, it_tools, it_separate, acc_cls, con_cls, unit_mods = _classify(r, ctx.test_sources, ctx.module_of)
-    out["unit_tests"] = fact({"test_classes": unit, "test_files": len(ctx.test_sources), "by_module": dict(sorted(unit_mods.items()))},
+    unit, unit_ev, integ, integ_ev, it_tools, it_separate, acc_cls, con_cls, unit_mods, ctx_only = _classify(r, ctx.test_sources, ctx.module_of)
+    out["unit_tests"] = fact({"test_classes": unit, "test_files": len(ctx.test_sources), "by_module": dict(sorted(unit_mods.items())), "context_load_only": len(ctx_only)},
                              "CONFIRMED" if unit else "NOT_FOUND", unit_ev[:5])
     out["integration_tests"] = fact({"test_classes": integ, "tools": it_tools, "separate_source_set": it_separate},
                                     "CONFIRMED" if integ else "NOT_FOUND", integ_ev[:5],

@@ -14,7 +14,7 @@ class Ctx:
 
     # Directories whose contents describe documentation, samples, benchmarks or developer tooling, not the application
     AUX_DIR = re.compile(r"(^|/)(?:[\w.-]*[-_])?(?:docs?|documentation|samples?|examples?|snippets?|demos?|archetype-resources|"
-                         r"benchmarks?|jmh)(?:[-_][\w.-]*)?/|(^|/)\.(?:devcontainer|gitpod|vscode|idea)/", re.I)
+                         r"benchmarks?|jmh|fixtures?|__fixtures__|testdata|test-data)(?:[-_][\w.-]*)?/|(^|/)\.(?:devcontainer|gitpod|vscode|idea)/", re.I)
     # a module that only holds tests (okhttp's maven-tests, ktor's test, bff's test/journey): its src/main is test code
     TEST_MODULE = re.compile(r"(^|/)(?:[\w.-]*[-_]tests?|tests?[-_][\w.-]+|tests?|testing|its?|[\w.-]*-it-[\w.-]*)(/|$)", re.I)
     TEST_SRC_DIR = re.compile(r"/src/(?:test|integration-test|[A-Za-z0-9_]*Tests?)/")

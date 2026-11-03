@@ -52,6 +52,8 @@ KAFKA_IN = r"@KafkaListener\b|\bKafkaConsumer\s*<|@StreamListener\b|\bReactiveKa
 RABBIT_IN = r"@RabbitListener\b|\bSimpleMessageListenerContainer\b"
 JMS_IN = r"@JmsListener\b|\bimplements\s+(?:\w+\s*,\s*)*MessageListener\b|\bDefaultMessageListenerContainer\b"
 SQS_IN = r"(?-i:@SqsListener)\b|\bReceiveMessageRequest\b"  # the exact annotation: a class named SQSListener is not one
+LISTENER_LIKE = r"(?-i:@(?!(?:Kafka|Rabbit|Jms|Sqs|Event|TransactionalEvent|Stream|Application|Entity|Execution|Test\w*)Listener\b)[A-Z]\w*(?:Listener|Consumer|Subscriber)\s*\(\s*[\"'])"
+KNOWN_LISTENERS = "@KafkaListener, @RabbitListener, @JmsListener, @SqsListener, Spring Cloud Stream inputs"
 DEAD_CODE = (r"\bDeadLetterPublishingRecoverer\b|@RetryableTopic\b|@DltHandler\b|\bRepublishMessageRecoverer\b|"
              r"\bRejectAndDontRequeueRecoverer\b|x-dead-letter-exchange|\bdeadLetterExchange\b|\bdeadLetterTargetArn\b|\bredrivePolicy\b|"
              r"[\"'][\w.-]*(?:\.dlt|\.dlq|-dlt|-dlq|_dlq|_dlt|dead[-_.]?letter)[\w.-]*[\"']")
@@ -242,8 +244,11 @@ def retries_breakers(ctx, cfg):
         return _verdict("PARTIAL", "AWS SDK clients retry by default (a few attempts with backoff), but nothing stops calls to a failing "
                         "dependency (no circuit breaker)", sdk, "declared")
     lib = grep_files(ctx.repo, ctx.build_files, r"resilience4j|spring-retry|spring-cloud-starter-circuitbreaker|hystrix|failsafe|smallrye-fault-tolerance", 1)
-    return _verdict("ABSENT", "No retry or circuit breaker found in code or configuration" +
-                    ("; a resilience library is declared but not used" if lib else ""), lib)
+    out = _verdict("ABSENT", "No retry or circuit breaker found in code or configuration" +
+                   ("; a resilience library is declared but not used" if lib else ""), lib)
+    if not lib:  # no library declared and none used in code: a circuit breaker needs one whatever the framework, so this absence holds outside Spring too
+        out["value"]["framework_neutral"] = "no retry or circuit-breaker library is declared in the build, and none is used in code"
+    return out
 
 
 def messaging_errors(ctx, cfg):
@@ -253,7 +258,13 @@ def messaging_errors(ctx, cfg):
     if stream_in and not any(n == "Kafka" for n, _ in consumers):
         consumers.append(("Spring Cloud Stream", [stream_in[0]["ev"]]))
     if not consumers:
-        return _verdict("NOT_APPLICABLE", "No message consumer found (publishes only, or consumers are not in this repository)", [])
+        # an annotation shaped like a listener with a destination (@SQSListener("orders")) may be one this check does not know:
+        # say so instead of guessing why there is no consumer
+        like = _code(ctx, LISTENER_LIKE, 1)
+        if like:
+            return _verdict("UNKNOWN", "%s:%s uses a listener-like annotation this check does not recognise (it reads %s): whether failed "
+                            "messages are handled cannot be decided" % (like[0]["path"], like[0]["line_start"], KNOWN_LISTENERS), like)
+        return _verdict("NOT_APPLICABLE", "No message consumer found in the main code (it reads %s)" % KNOWN_LISTENERS, [])
     names = ", ".join(n for n, _ in consumers)
     dead_cfg = [s for s in cfg if MSG_KEY.search(s["k"]) and re.search(r"dlq|deadletter|dlt", s["k"])]
     retry_cfg = [s for s in cfg if MSG_KEY.search(s["k"]) and (re.search(r"maxattempts|backoff|retry|redelivery|requeuerejected", s["k"])

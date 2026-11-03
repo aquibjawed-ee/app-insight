@@ -1,13 +1,13 @@
 {
   "contract": "remedy-pack.v1",
   "id": "modernise-plugin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "title": "app-modernise Claude Code plugin",
   "note": "Commands generate the change on a working branch; review, push and raise the MR yourself.",
   "remedies": {
-    "pipeline": {"cmd": "/modernise-pipeline", "title": "Generate the CI/CD pipeline", "does": "Edits .gitlab-ci.yml from the organisation's golden templates: build gate, tests, version tagging, deploy, rollback and security-scan jobs.", "requires": {"ci_system": ["gitlab", "none"]}},
+    "pipeline": {"cmd": "/modernise-pipeline", "title": "Generate the CI/CD pipeline", "does": "Edits .gitlab-ci.yml from the organisation's golden templates: build gate, tests, version tagging, deploy, rollback and security-scan jobs.", "requires": {"ci_system": ["gitlab-ci", "none"]}},
     "helm": {"cmd": "/modernise-helm-deploy-scaffold", "title": "Scaffold a Helm deployment", "does": "A Helm chart per environment and a pipeline that builds, scans, packages and deploys a containerised application.", "requires": {"platform": ["kubernetes", "none"]}},
-    "unit": {"cmd": "/modernise-unit-test", "title": "Uplift unit tests to 75% coverage", "does": "Spec-driven unit tests per module with a JaCoCo 75% target and a mutation-testing gate."},
+    "unit": {"cmd": "/modernise-unit-test", "title": "Uplift unit tests to 75% coverage", "does": "Spec-driven unit tests per module with a JaCoCo 75% target and a mutation-testing gate.", "requires": {"coverage_tool": ["jacoco", "none"]}},
     "acceptance": {"cmd": "/modernise-acceptance-test", "title": "Generate acceptance tests", "does": "Acceptance test scaffolds for Spring-based JVM applications; extends existing suites.", "requires": {"framework": ["spring_boot", "spring"]}},
     "contract": {"cmd": "/modernise-contract-test", "title": "Generate consumer contract tests", "does": "Finds outbound API calls and the provider specs, and checks every consumed endpoint exists."},
     "perf": {"cmd": "/modernise-perf-test", "title": "Generate performance tests", "does": "Performance test runner from Honeycomb data and infrastructure configuration."},

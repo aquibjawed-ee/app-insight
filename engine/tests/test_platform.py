@@ -108,11 +108,16 @@ class PlatformTest(unittest.TestCase):
             os.remove(p)
         self.assertEqual(relate.main(["validate", "--out", self.out]), 0)
 
-    def test_duplicate_application_ids_are_refused(self):
+    def test_duplicate_application_ids_are_disambiguated_not_refused(self):
+        # review F14: one duplicate name (api, service) among 300 repositories must not abort the portfolio
         d = tempfile.mkdtemp()
         a = F.make_repo(os.path.join(d, "x"), "same", F.NOTIFIER_A)
         b = F.make_repo(os.path.join(d, "y"), "same", F.NOTIFIER_B)
-        self.assertEqual(relate.main(["analyse", a, b, "--out", os.path.join(d, "o")]), 2)
+        self.assertEqual(relate.main(["analyse", a, b, "--out", os.path.join(d, "o")]), 0)
+        with open(os.path.join(d, "o", "manifest.json")) as fh:
+            man = json.load(fh)
+        self.assertEqual(sorted(x["app"] for x in man["applications"]), ["same", "same-y"])
+        self.assertEqual(man["renamed"][0]["from"], "same")
 
     def test_c4_views_are_drawn_from_the_graph_and_keep_unresolved_visible(self):
         v = c4.context(self.P)

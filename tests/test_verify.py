@@ -27,7 +27,7 @@ class VerifyTest(unittest.TestCase):
         assert relate.main(["analyse"] + sorted(repos.values()) + ["--out", out]) == 0
         packs = A.load_remedy_packs(["modernise-plugin", "generic"])
         cls.docs = A.build(out, A.load_catalogue(), packs)
-        R.build(out, os.path.join(cls.run_dir, "report.html"), A.load_catalogue(), packs, [], "test")
+        R.build(out, os.path.join(cls.run_dir, V.REPORT), A.load_catalogue(), packs, [], "test")
         cls.app = sorted(cls.docs)[0]
         cls.path = os.path.join(out, cls.app, "aspects.json")
         with open(cls.path) as fh:

@@ -104,7 +104,7 @@ class AspectsTest(unittest.TestCase):
         ctl = next(c for c in self.cat["controls"] if c["id"] == "delivery.version_tagging")
         cx = A.Context("x", {"build_ci": {"ci_system": {"value": ["jenkins"]}}}, None, None, None, None, {"nodes": [], "edges": []})
         self.assertEqual([r["pack"] for r in A.remedies_for(ctl, packs, cx)], ["generic"])  # /modernise-pipeline edits .gitlab-ci.yml
-        cx.stack["ci_system"] = ["gitlab"]
+        cx.stack["ci_system"] = ["gitlab-ci"]  # the value the engine emits (build_ci._system); "gitlab" never matched
         self.assertEqual(A.remedies_for(ctl, packs, cx)[0]["cmd"], "/modernise-pipeline")
 
     def _cx(self, framework=None, deps=(), sn=None):

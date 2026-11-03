@@ -25,7 +25,8 @@ CHROME = next((p for p in ("/Applications/Google Chrome.app/Contents/MacOS/Googl
 class ReportTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        _, repos = F.make_portfolio()
+        _, cls.repos = F.make_portfolio()
+        repos = cls.repos
         cls.out = tempfile.mkdtemp(prefix="rep-")
         assert relate.main(["analyse"] + sorted(repos.values()) + ["--out", cls.out]) == 0
         for sc in (["--scenario", "java_runtime", "--to", "17"], ["--scenario", "messaging_schema", "--topic", "orders.created"]):
@@ -33,7 +34,8 @@ class ReportTest(unittest.TestCase):
         cat, packs = A.load_catalogue(), A.load_remedy_packs(["modernise-plugin", "generic"])
         cls.docs = A.build(cls.out, cat, packs)
         cls.html = os.path.join(cls.out, "report.html")
-        R.build(cls.out, cls.html, cat, packs, client="test-client")
+        src = [{"path": cls.repos["orders-service"], "criticality": "tier-1", "team": "payments", "status": "local"}]  # criticality from a list file
+        R.build(cls.out, cls.html, cat, packs, src, client="test-client")
 
     def test_report_has_no_unfilled_placeholders_and_is_self_contained(self):
         text = open(self.html).read()
@@ -51,7 +53,7 @@ class ReportTest(unittest.TestCase):
         open(page, "w").write(text.replace("<script>\n\"use strict\"", probe + "<script>\n\"use strict\"", 1).replace("</body>", tail + "</body>"))
         app = "orders-service"
         finding = self.docs[app]["findings"][0]
-        views = ["portfolio", "apps", "apps?f=unmatched,tests", "map", "gaps", "gaps?v=app", "roadmap", "impact", "about", "finding/" + finding,
+        views = ["portfolio", "apps", "apps?f=unmatched,tests", "apps?f=crit:tier-1", "map", "gaps", "gaps?v=app", "roadmap", "impact", "about", "finding/" + finding,
                  "assessment/" + app, "assessment/%s/runtime" % app, "assessment/notifier-a"] + ["app/%s/%s" % (a, t) for a in (app, "notifier-a") for t in ("overview", "components", "dependencies", "configuration", "findings", "evidence")]
         for v in views:
             dom = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=4000", "--dump-dom", "file://%s#/%s" % (page, v)],
@@ -65,6 +67,13 @@ class ReportTest(unittest.TestCase):
         dom = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=4000", "--dump-dom", "file://%s#/assessment/%s" % (page, app)], capture_output=True, text=True, timeout=90).stdout
         self.assertIn("Controls by aspect", dom)
         self.assertIn("Aspect scorecard", dom)
+        self.assertIn("criticality: tier-1", dom)  # T-1.18: the list file's criticality is shown
+        self.assertIn("Internal: not validated", dom)  # T-1.19: every page says it is not for client use
+        self.assertIn("Verify: not run", dom)
+        dom = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=4000", "--dump-dom", "file://%s#/apps?f=crit:tier-1" % page], capture_output=True, text=True, timeout=90).stdout
+        rows = re.findall(r'<tr tabindex="0" data-go="#/app/([^/"]+)/overview"', dom)
+        self.assertEqual(rows, ["orders-service"])  # filterable by criticality
+        self.assertNotIn(">Maturity<", dom)  # T-1.13: no maturity percentage tile
 
 
 if __name__ == "__main__":

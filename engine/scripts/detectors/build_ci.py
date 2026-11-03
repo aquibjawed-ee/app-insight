@@ -23,7 +23,12 @@ def _system(f: str) -> str:
             "bitbucket-pipelines.yml": "bitbucket", ".circleci/config.yml": "circleci"}.get(f, "unknown")
 
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
+_CI = r"(?:jenkins|teamcity|bamboo|circleci|circle ci|travis(?: ci)?|buildkite|github actions|gitlab ci|azure pipelines|codebuild)"
+CI_ELSEWHERE = (r"(?i)\b(?:built|builds|build|deployed|deploys|released|tested|runs?|is run)\b[^.\n]{0,40}?\b(?:on|by|in|with|at|via|through|from)\s+"
+                r"(?:the\s+|our\s+|a\s+|an\s+)?" + _CI + r"\b"
+                r"|\b" + _CI + r"\b[^.\n]{0,25}?\b(?:job|pipeline|build plan|build configuration|build project)s?\b"
+                r"|https?://[^\s)\]]*(?:jenkins|teamcity|bamboo|circleci\.com|travis-ci\.(?:org|com)|buildkite\.com)[^\s)\]]*")
 
 
 def detect(ctx) -> dict:
@@ -34,8 +39,9 @@ def detect(ctx) -> dict:
     for f in ctx.ci_files[:10]:
         ls = read_lines(r, f) or [""]
         ev.append(file_ev(f, 1, ls[0]))
-    named = [] if systems else grep_files(r, [f for f in ("README.md", "README", "README.adoc", "README.rst") if f in ctx.fileset],
-                                          r"(?i)\b(?:jenkins|teamcity|bamboo|circleci|travis|buildkite|github actions|gitlab ci)\b", 1)
+    # a README that only mentions a CI product says nothing about where this repository is built; it must say so (built by,
+    # a job or pipeline there, a link to the CI server or its badge), or every pipeline gap would be hidden as "outside"
+    named = [] if systems else grep_files(r, [f for f in ("README.md", "README", "README.adoc", "README.rst") if f in ctx.fileset], CI_ELSEWHERE, 1)
     # a runbook in which a person runs the deploy (ansible-playbook, kubectl apply, helm upgrade, a promote script) is evidence too:
     # the deploy is not automated, whatever pipeline builds the artefact
     docs = [f for f in ctx.files if re.match(r"(?i)(?:readme|runbook|deploy(?:ment)?|release)[^/]*\.(?:md|adoc|rst|txt)$", os.path.basename(f))
@@ -44,7 +50,7 @@ def detect(ctx) -> dict:
     out["manual_deploy_documented"] = fact(bool(manual), "CONFIRMED" if manual else "NOT_FOUND", manual,
                                            "the documentation has a person run the deploy by hand" if manual else None)
     out["ci_system"] = fact(systems, "CONFIRMED", ev) if systems else \
-        fact(["external"], "INFERRED", named, "no CI definition in the repository; the README names a CI server outside it") if named else \
+        fact(["external"], "INFERRED", named, "no CI definition in the repository; the README says it is built on a CI server outside it") if named else \
         fact([], "NOT_FOUND", [], "no CI definition (.gitlab-ci.yml, Jenkinsfile, .github/workflows, ...) found")
     out["ci_files"] = fact(ctx.ci_files, "CONFIRMED" if ctx.ci_files else "NOT_FOUND", ev)
     # Jobs: top-level keys (GitLab) or keys indented 2 under a top-level `jobs:` (CircleCI, GitHub Actions)

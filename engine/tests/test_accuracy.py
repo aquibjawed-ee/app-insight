@@ -387,3 +387,141 @@ class ScopeTest(unittest.TestCase):
         self.assertEqual(d["scope"]["blind_spots"]["value"], [])
         read = d["scope"]["files_read"]["value"]
         self.assertEqual((read["build"]["count"], read["ci"]["count"], read["config"]["count"]), (1, 1, 1))
+
+
+class Phase1Test(unittest.TestCase):
+    """Phase 1 of the AS-IS baseline (client safety and correctness), engine side: each test fails on the code before the fix."""
+
+    # --- T-1.4 / T-1.5: a failure is recorded and isolated, never a silent gap -----------------------------------------
+    def test_a_detector_that_raises_is_named_and_the_other_detectors_still_run(self):
+        from unittest import mock
+        with mock.patch.object(runtime, "detect", side_effect=ValueError("boom")):
+            d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n"}))
+        self.assertEqual(d["runtime"], {})
+        self.assertTrue(any(f.startswith("runtime: ValueError") for f in d["run_meta"]["failures"]))
+        self.assertTrue(d["stack"] and d["build_ci"])
+
+    def test_one_repository_that_breaks_a_step_does_not_stop_the_others(self):
+        import json
+        from unittest import mock
+        import relate
+        from graph import safetynet
+        root = tempfile.mkdtemp()
+        a = F.make_repo(root, "alpha", F.NOTIFIER_A)
+        b = F.make_repo(root, "beta", F.NOTIFIER_B)
+        real = safetynet.map_application
+
+        def flaky(r, g, disc):
+            if r == a:
+                raise RuntimeError("a pathological test file")
+            return real(r, g, disc)
+        out = os.path.join(root, "o")
+        with mock.patch.object(safetynet, "map_application", side_effect=flaky):
+            rc = relate.main(["analyse", a, b, "--out", out])
+        self.assertEqual(rc, 1)  # produced, with a failure
+        man = json.load(open(os.path.join(out, "manifest.json")))
+        self.assertEqual(len(man["applications"]), 2)
+        fa = next(x for x in man["applications"] if x["repo"] == a)
+        self.assertTrue(any(f.startswith("safetynet: RuntimeError") for f in fa["failures"]))
+        disc = json.load(open(os.path.join(out, fa["app"], "discovery.json")))
+        self.assertIn("safetynet: RuntimeError: a pathological test file", disc["run_meta"]["failures"])  # the product reads it from here
+        self.assertTrue(json.load(open(os.path.join(out, fa["app"], "safetynet.json")))["failed"])
+        self.assertEqual(len(fa["failures"]), 1)  # the failure does not cascade into the steps after it
+
+    def test_a_repository_whose_discovery_breaks_is_listed_and_the_rest_are_analysed(self):
+        import json
+        from unittest import mock
+        import relate
+        root = tempfile.mkdtemp()
+        a = F.make_repo(root, "alpha", F.NOTIFIER_A)
+        b = F.make_repo(root, "beta", F.NOTIFIER_B)
+        real = discover.build
+        with mock.patch.object(discover, "build", side_effect=lambda r: (_ for _ in ()).throw(OSError("unreadable")) if r == a else real(r)):
+            rc = relate.main(["analyse", a, b, "--out", os.path.join(root, "o")])
+        man = json.load(open(os.path.join(root, "o", "manifest.json")))
+        self.assertEqual((rc, [x["repo"] for x in man["applications"]], man["failed"][0]["repo"]), (1, [b], a))
+
+    # --- T-1.7: the literal values, in memory, for the independent leak check ------------------------------------------
+    def test_the_secret_detectors_hand_over_literal_values_but_not_key_words(self):
+        from detectors import security
+        r = repo({"src/main/resources/application.properties": "spring.datasource.password=Fake-Pass-0000-xyz\nother.password=password\n",
+                  "build.gradle": "plugins { id 'java' }\n"})
+        vals = security.secret_values(Ctx(r))
+        self.assertIn("Fake-Pass-0000-xyz", vals)
+        self.assertNotIn("password", vals)  # a value equal to the key word is vocabulary in every report, not a leak
+
+    # --- T-1.9: GitOps hand-off is a positive marker; an image published with no deploy is not one ---------------------
+    def test_gitops_manifests_and_manifest_repository_pushes_are_deploy_blind_spots(self):
+        argo = {"build.gradle": "plugins { id 'java' }\n",
+                "deploy/app.yaml": "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: svc\n"}
+        spots = discover.build(repo(argo))["scope"]["blind_spots"]["value"]
+        self.assertIn("Argo CD", next(b for b in spots if b["id"] == "deploy.gitops")["what"])
+        push = {"build.gradle": "plugins { id 'java' }\n",
+                ".gitlab-ci.yml": "release:\n  script:\n    - git clone https://git.example.invalid/team/svc-manifests.git m\n    - cd m && kustomize edit set image svc=img:$CI_COMMIT_SHA\n    - git push\n"}
+        self.assertTrue(any(b["id"] == "deploy.gitops" for b in discover.build(repo(push))["scope"]["blind_spots"]["value"]))
+        image_only = {"build.gradle": "plugins { id 'java' }\n", ".gitlab-ci.yml": "publish:\n  script:\n    - docker push registry.example.invalid/svc:1\n"}
+        self.assertFalse(any(b["id"] == "deploy.gitops" for b in discover.build(repo(image_only))["scope"]["blind_spots"]["value"]))
+
+    # --- T-1.11: a README that mentions a CI product is not a pipeline outside the repository -------------------------
+    def test_a_readme_that_only_mentions_a_ci_product_does_not_make_the_pipeline_external(self):
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n", "README.md": "# Svc\n\nWe moved off Jenkins years ago; see the team wiki.\n"}))
+        self.assertEqual(d["build_ci"]["ci_system"]["value"], [])
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n", "README.md": "# Svc\n\nThe Jenkins pipeline svc-build builds and releases it.\n"}))
+        self.assertEqual(d["build_ci"]["ci_system"]["value"], ["external"])
+
+    # --- T-1.16: file roles ------------------------------------------------------------------------------------------
+    def test_ide_output_folders_are_not_read_but_a_scripts_bin_is(self):
+        r = repo({"build.gradle": "plugins { id 'java' }\n", "src/main/resources/logback-spring.xml": "<configuration/>\n",
+                  "bin/main/logback-spring.xml": "<configuration><appender class=\"net.logstash.logback.encoder.LogstashEncoder\"/></configuration>\n",
+                  "packaging/bin/start": "#!/bin/sh\nexec java -jar app.jar\n"})
+        files = Ctx(r).files
+        self.assertNotIn("bin/main/logback-spring.xml", files)  # a stale copy the IDE compiled: never evidence
+        self.assertIn("packaging/bin/start", files)
+
+    def test_every_file_has_a_role_and_a_package_named_example_is_code(self):
+        import evidence
+        roles = {p: evidence.role(p) for p in ("src/main/java/com/example/App.java", "examples/demo/pom.xml", "src/test/resources/payload.json",
+                                               "fixtures/repo/pom.xml", "target/classes/application.yml", "src/test/java/AppTest.java")}
+        self.assertEqual(list(roles.values()), ["application", "example", "test_fixture", "test_fixture", "build_output", "test"])
+        self.assertTrue(Ctx._aux("fixtures/repo/pom.xml"))  # a fixture project's build file is not the application's build
+
+    # --- T-1.17: caches and data grids ---------------------------------------------------------------------------------
+    def test_hazelcast_is_typed_as_a_cache_not_a_database(self):
+        from graph import extract
+        r = repo({"build.gradle": "dependencies {\n  implementation 'com.hazelcast:hazelcast:3.12'\n  implementation 'org.postgresql:postgresql:42.6.0'\n}\n"})
+        types = {n["name"]: n["type"] for n in extract.extract(r)["nodes"]}
+        self.assertEqual(types.get("Hazelcast (embedded or remote)"), "Cache")
+        self.assertEqual(types.get("PostgreSQL"), "Database")
+
+    # --- T-1.20: audit-6 minor items -----------------------------------------------------------------------------------
+    def test_context_load_only_classes_are_counted_not_dropped(self):
+        d = discover.build(repo({"build.gradle": "plugins { id 'java' }\n",
+                                 T + "AppTests.java": "package com.acme;\n@SpringBootTest\nclass AppTests {\n  @Test\n  void contextLoads() {\n  }\n}\n"}))
+        self.assertEqual(d["tests"]["unit_tests"]["value"]["context_load_only"], 1)
+
+    def test_the_findbugs_plugin_is_cited_with_the_other_sast_evidence(self):
+        d = discover.build(repo({"build.gradle": "apply from: 'qa.gradle'\n", "qa.gradle": "apply plugin: 'findbugs'\napply plugin: \"sonar-runner\"\n"}))
+        self.assertEqual(sorted((e["path"], e["line_start"]) for e in d["security"]["sast"]["evidence"]), [("qa.gradle", 1), ("qa.gradle", 2)])
+
+    def test_a_listener_like_annotation_is_undecided_not_publishes_only(self):
+        r = repo({"build.gradle.kts": 'dependencies { implementation("software.amazon.awssdk:sqs:2.25.0") }\n',
+                  "src/main/kotlin/com/acme/Q.kt": "package com.acme\nclass Q {\n  @SQSListener(\"orders-queue\")\n  fun on(m: String) {}\n}\n"})
+        v = runtime.messaging_errors(Ctx(r), runtime.settings(Ctx(r)))["value"]
+        self.assertEqual(v["state"], "UNKNOWN")
+        self.assertIn("Q.kt:3", v["summary"])
+        none = repo({"build.gradle": "plugins { id 'java' }\n"})
+        v = runtime.messaging_errors(Ctx(none), runtime.settings(Ctx(none)))["value"]
+        self.assertNotIn("publishes only", v["summary"])  # nothing shows it publishes: the reason must not say so
+
+    def test_no_resilience_library_at_all_is_an_absence_that_holds_for_any_framework(self):
+        ctx = Ctx(repo({"build.gradle": GRADLE_DW}))
+        v = runtime.retries_breakers(ctx, runtime.settings(ctx))["value"]
+        self.assertEqual((v["state"], bool(v.get("framework_neutral"))), ("ABSENT", True))
+        ctx = Ctx(repo({"build.gradle": GRADLE_DW + "dependencies { compile 'io.github.resilience4j:resilience4j-core:1.7.0' }\n"}))
+        self.assertFalse(runtime.retries_breakers(ctx, runtime.settings(ctx))["value"].get("framework_neutral"))  # declared, perhaps used through config
+
+    def test_the_coupling_headline_says_when_the_dependency_map_is_incomplete(self):
+        disc = {"identity": {"app_id": {"value": "svc"}}, "stack": {"http_client_libraries": {"value": [{"technology": "Dropwizard client"}]}}}
+        g = {"scope": "application", "nodes": [{"id": "app:svc", "type": "Application", "name": "svc", "attrs": {}}], "edges": []}
+        head = dimensions.assess(disc, g)["dimensions"]["architecture_coupling"]["headline"]
+        self.assertIn("the map is incomplete: an HTTP client is used but no call target was traced", head)

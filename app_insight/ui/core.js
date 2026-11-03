@@ -42,7 +42,7 @@ const S = {};
 for (const a of D.apps) {
   const sn = a.safetynet.summary, tot = Object.values(sn).reduce((s, v) => s + v.mapped_with_assertions + v.mapped_no_assertion_seen + v.unverified, 0), mapped = Object.values(sn).reduce((s, v) => s + (v.direct != null ? v.direct : v.mapped_with_assertions + v.mapped_no_assertion_seen), 0), classLevel = Object.values(sn).reduce((s, v) => s + (v.class_level || 0), 0);
   const rs = relEdges(a.name), un = rs.filter(e => ["unresolved", "ambiguous"].includes(e.resolution.state)).length;
-  S[a.name] = {tot, mapped, classLevel, rs, un, eps: D.portfolio.graph.nodes.filter(n => n.type === "ApiEndpoint" && n.app === a.name).length, blocking: a.discovery.gaps_and_risks.filter(g => g.severity === "BLOCKING").length, mat: a.discovery.maturity};
+  S[a.name] = {tot, mapped, classLevel, rs, un, eps: D.portfolio.graph.nodes.filter(n => n.type === "ApiEndpoint" && n.app === a.name).length, blocking: a.discovery.gaps_and_risks.filter(g => g.severity === "BLOCKING").length};
 }
 /* one row model per application: the same cells feed the table, the app tiles and the sort/filter logic */
 const SEV = {bad: 3, warn: 2, info: 0, none: 1, ok: 0};
@@ -60,10 +60,11 @@ function cells(a) {
     {k: "Tests", cls: !s.tot ? "none" : s.mapped === s.tot ? "ok" : "warn", ic: !s.tot ? "–" : s.mapped === s.tot ? "✓" : "◐", t: s.tot ? s.mapped + "/" + s.tot + " mapped" + (s.classLevel ? " +" + s.classLevel + " by class" : "") : "nothing to map", tip: dim(a, "safety_net_strength").headline, tab: "safety", flag: s.tot > s.mapped},
     {k: "HA", cls: res.state === "not_assessed" ? "none" : res.level === "attention" ? "warn" : "ok", ic: res.state === "not_assessed" ? "–" : res.level === "attention" ? "▲" : "✓", t: res.state === "not_assessed" ? "no deploy files" : haN + "/" + haT + " checks", tip: res.headline, tab: "resilience", flag: res.state !== "not_assessed" && res.level === "attention"},
     {k: "Security", cls: sec.state === "assessed" ? (sec.level === "concern" ? "bad" : sec.level === "attention" ? "warn" : "ok") : "none", ic: sec.state === "assessed" ? "✓" : "–", t: sec.state === "assessed" ? "scanned" : "not scanned", tip: sec.headline, tab: "delivery", flag: sec.state !== "assessed"},
-    {k: "Unmatched calls", cls: !s.rs.length ? "none" : s.un ? "warn" : "ok", ic: !s.rs.length ? "–" : s.un ? "?" : "✓", t: !s.rs.length ? "none found" : s.un ? s.un + " unmatched" : "all matched", tip: s.un ? s.un + " call(s) or message(s) could not be matched to a known application" : "Every call and message is matched or goes to an external system", tab: "integrations", flag: s.un > 0},
-    {k: "Maturity", cls: "info", ic: "◔", t: Math.round(s.mat.score) + "%", tip: "Engineering practice: " + s.mat.band + " (" + s.mat.score + "%). Not a risk score.", tab: "checklist", flag: false}];
+    {k: "Unmatched calls", cls: !s.rs.length ? "none" : s.un ? "warn" : "ok", ic: !s.rs.length ? "–" : s.un ? "?" : "✓", t: !s.rs.length ? "none found" : s.un ? s.un + " unmatched" : "all matched", tip: s.un ? s.un + " call(s) or message(s) could not be matched to a known application" : "Every call and message is matched or goes to an external system", tab: "integrations", flag: s.un > 0}];  /* no maturity percentage: there is no combined score (R-06) */
 }
 const lifeLevel = a => dim(a, "technology_lifecycle").level;
+/* business criticality as supplied (the list file's column, else the --criticality file); never inferred from technology */
+const critOf = a => (a.source && a.source.criticality) || (((dim(a, "business_criticality") || {}).state === "assessed") ? ((dim(a, "business_criticality").values || {}).tier || null) : null);
 
 /* ---------- drawer ---------- */
 const drawer = $("#drawer"), scrim = $("#scrim");
@@ -117,12 +118,13 @@ const FILTERS = {
   lifecycle: ["Support ended or extended only", a => ["concern", "attention"].includes(lifeLevel(a))], ended: ["Vendor support ended", a => lifeLevel(a) === "concern"], extended: ["Extended support only", a => lifeLevel(a) === "attention"],
   tests: ["Components with no mapped test", a => S[a.name].tot > S[a.name].mapped], ha: ["HA basics missing in deployment files", a => cells(a)[2].flag], nodeploy: ["No deployment files", a => dim(a, "operational_resilience").state === "not_assessed"],
   security: ["Not scanned for vulnerabilities", a => dim(a, "security_exposure").state !== "assessed"], unmatched: ["Has unmatched calls", a => S[a.name].un > 0]};
-function filterLabel(t) { if (FILTERS[t]) return FILTERS[t][0]; const [k, v] = t.split(":"); return ({java: "Java ", boot: "Spring Boot ", lang: "Language ", db: "Data store ", broker: "Broker "}[k] || k + " ") + v; }
+function filterLabel(t) { if (FILTERS[t]) return FILTERS[t][0]; const [k, v] = t.split(":"); return ({java: "Java ", boot: "Spring Boot ", lang: "Language ", db: "Data store ", broker: "Broker ", crit: "Criticality "}[k] || k + " ") + v; }
 function filterTest(t) {
   if (FILTERS[t]) return FILTERS[t][1];
   const [k, v] = t.split(":");
   if (k === "java") return a => (val(a, "stack.java_version") || "?") === v; if (k === "boot") return a => { const b = val(a, "stack.spring_boot_version"); return (b ? b.split(".")[0] + ".x" : "none") === v; };
   if (k === "lang") return a => (val(a, "stack.language") || "unknown") === v;
+  if (k === "crit") return a => (critOf(a) || "not supplied") === v;
   if (k === "db" || k === "broker") return a => D.portfolio.graph.edges.some(e => e.source === "app:" + a.name && NODES[e.target] && NODES[e.target].attrs && NODES[e.target].attrs.technology === v && NODES[e.target].type === (k === "db" ? "Database" : "MessageBroker"));
   return () => true;
 }

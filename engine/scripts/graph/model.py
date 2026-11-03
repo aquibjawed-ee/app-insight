@@ -9,7 +9,7 @@ from typing import Dict, Iterable, List, Optional
 
 CONTRACT = "relationships.v1"
 
-NODE_TYPES = ("Application", "Module", "Service", "ApiEndpoint", "Database", "MessageBroker", "Topic", "ExternalSystem",
+NODE_TYPES = ("Application", "Module", "Service", "ApiEndpoint", "Database", "Cache", "MessageBroker", "Topic", "ExternalSystem",
               "InfrastructureResource")
 EDGE_TYPES = ("CONTAINS", "EXPOSES_API", "CALLS_API", "PUBLISHES_TO", "CONSUMES_FROM", "READS_FROM", "WRITES_TO", "DEPENDS_ON",
               "DEPLOYED_ON")

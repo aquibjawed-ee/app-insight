@@ -119,6 +119,18 @@ def lifecycle(disc, ref, as_of):
               ["stack.java_version", "stack.spring_boot_version"], vals)
 
 
+def _untraced(disc, g, me):
+    """Why the dependency map is incomplete, or None: services named in configuration that no relationship cites, or an HTTP
+    client with no traced call. The same reading as the architecture.calls_matched control, so the two never disagree."""
+    cited = {"%s:%s" % (x.get("path"), x.get("line_start")) for e in g["edges"] if e["source"] == me for x in e.get("evidence") or []}
+    urls = [u for u in _fv(disc, "runtime.service_urls").get("value") or [] if u.get("at") not in cited]
+    if urls:
+        return "%d service(s) named in configuration were not traced in code" % len(urls)
+    if _fv(disc, "stack.http_client_libraries").get("value") and not any(e["type"] == "CALLS_API" and e["source"] == me for e in g["edges"]):
+        return "an HTTP client is used but no call target was traced"
+    return None
+
+
 def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] = None, criticality: Optional[dict] = None, lifecycle_ref: Optional[dict] = None,
            portfolio_graph: Optional[dict] = None, as_of: Optional[str] = None, resilience: Optional[dict] = None) -> dict:
     app = disc["identity"]["app_id"]["value"]
@@ -210,19 +222,23 @@ def assess(disc: dict, graph: Optional[dict] = None, safetynet: Optional[dict] =
                 in_apps.add(e["source"])
         for t in topics:
             in_apps |= {x["source"] for x in g["edges"] if x["target"] == t and x["type"] == "CONSUMES_FROM" and x["source"] != me}
-        for d in {e["target"] for e in g["edges"] if e["source"] == me and e["target"].startswith("db:")}:
+        for d in {e["target"] for e in g["edges"] if e["source"] == me and e["target"].startswith("db:") and (nodes.get(e["target"]) or {}).get("type") == "Database"}:
             if len({x["source"] for x in g["edges"] if x["target"] == d and x["source"].startswith("app:")}) > 1:
                 dbs_shared += 1
         portfolio = g["scope"] == "portfolio"
         stores = {e["target"] for e in g["edges"] if e["source"] == me and e["type"] in ("DEPENDS_ON", "READS_FROM", "WRITES_TO")
-                  and (nodes.get(e["target"]) or {}).get("type") in ("Database", "MessageBroker")}
-        caches = {t for t in stores if re.search(r"(?i)hazelcast|redis|memcache|ehcache|caffeine", (nodes.get(t) or {}).get("name") or "")}
+                  and (nodes.get(e["target"]) or {}).get("type") in ("Database", "Cache", "MessageBroker")}
+        caches = {t for t in stores if (nodes.get(t) or {}).get("type") == "Cache" or re.search(r"(?i)hazelcast|redis|memcache|ehcache|caffeine", (nodes.get(t) or {}).get("name") or "")}
         stores -= caches  # a cache or data grid is not the database the database checks talk about
         vals = {"depends_on_applications": len(out_apps), "depends_on_external_systems": len(out_ext), "data_stores_and_brokers": len(stores), "caches": len(caches), "topics_used": len(topics), "shared_databases": dbs_shared,
                 "unresolved_or_ambiguous_relationships": unresolved, "relied_on_by": (len(in_apps) if portfolio else None)}
+        gap = _untraced(disc, g, me)
+        if gap:
+            vals["map_incomplete"] = gap
         out["architecture_coupling"] = _d("assessed" if portfolio else "partial",
-                                          "Depends on %d application(s), %d external system(s), %d data store(s) or broker(s), %d cache(s); %d topic(s) used, %d shared database(s)%s; %d relationship(s) unresolved" % (
-                                              len(out_apps), len(out_ext), len(stores), len(caches), len(topics), dbs_shared, ("; relied on by %d" % len(in_apps)) if portfolio else "", unresolved),
+                                          "Depends on %d application(s), %d external system(s), %d data store(s) or broker(s), %d cache(s); %d topic(s) used, %d shared database(s)%s; %d relationship(s) unresolved%s" % (
+                                              len(out_apps), len(out_ext), len(stores), len(caches), len(topics), dbs_shared, ("; relied on by %d" % len(in_apps)) if portfolio else "", unresolved,
+                                              "; the map is incomplete: " + gap if gap else ""),
                                           "info", "counts of relationships in the graph; not a score", ["relationships"], vals,
                                           None if portfolio else "single-application graph: who depends on this application is unknown until it is analysed with the others")
         integ = len({e["target"] for e in g["edges"] if e["source"] == me and e["type"] in ("CALLS_API", "PUBLISHES_TO", "CONSUMES_FROM", "READS_FROM", "WRITES_TO", "DEPENDS_ON") and not e["target"].startswith("module:")})

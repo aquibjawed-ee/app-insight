@@ -6,11 +6,14 @@ columns: name, branch (or ref), team, criticality. Lines in .txt files are "<url
 
 Remote repositories are cloned shallow into the client workspace with the user's own git credentials (SSH agent or
 credential helper). Nothing is stored by this tool and git is never allowed to prompt, so a missing credential fails
-that one repository instead of hanging the run.
+that one repository instead of hanging the run. A URL that carries a credential (user:token@, a token as the user name, a
+token in the query) is refused before anything is fetched, and only its masked form is ever kept: git would otherwise write
+it into the clone's .git/config, and the run record would hold it.
 """
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import os
 import re
@@ -20,21 +23,49 @@ from concurrent.futures import ThreadPoolExecutor
 from xml.etree import ElementTree
 
 REMOTE = re.compile(r"^(?:https?://|ssh://|git://|git@[^:]+:)")
+# user info in an http(s)/git URL (a token is often passed as the user name), a password in an ssh URL, a token in the query
+_CRED_USER = re.compile(r"^((?:https?|git|ftp)://)([^/@\s]+)@", re.I)
+_CRED_SSH = re.compile(r"^(ssh://[^/@:\s]*):([^/@\s]*)@", re.I)
+_CRED_QUERY = re.compile(r"(?i)([?&](?:private_token|access_token|token|password|passwd|pwd|key|apikey|api_key|secret)=)[^&\s]+")
+REFUSED = "refused: the URL carries a credential; remove it and use your SSH agent or git credential helper"
+
+
+def credentialed(spec):
+    return bool(_CRED_USER.match(spec) or _CRED_SSH.match(spec) or _CRED_QUERY.search(spec))
+
+
+def mask(spec):
+    """The URL with any credential replaced: the only form of a credentialed URL that is kept or printed."""
+    spec = _CRED_USER.sub(lambda m: m.group(1) + "[REDACTED]@", spec)
+    spec = _CRED_SSH.sub(lambda m: m.group(1) + ":[REDACTED]@", spec)
+    return _CRED_QUERY.sub(lambda m: m.group(1) + "[REDACTED]", spec)
+
+
 REPO_COLS = ("url", "repo", "repository", "git", "git_url", "clone_url", "repo_url", "repository_url", "path", "location")
 
 
 class Source:
     def __init__(self, spec, name=None, branch=None, team=None, criticality=None, row=None):
-        self.spec, self.name, self.branch, self.team, self.criticality, self.row = spec.strip(), name or None, branch or None, team or None, criticality or None, row
-        self.remote = bool(REMOTE.match(self.spec))
+        spec = spec.strip()
+        self.remote = bool(REMOTE.match(spec))
         self.path, self.status, self.error, self.commit, self.changed_files = None, "pending", None, None, None
+        if self.remote and credentialed(spec):  # never fetched, never stored as given
+            spec, self.status, self.error = mask(spec), "failed", REFUSED
+        self.spec, self.name, self.branch, self.team, self.criticality, self.row = spec, name or None, branch or None, team or None, criticality or None, row
+        self._slug = None
 
     def slug(self):
+        """The clone folder: host and full path for a remote (teamA/payments/api and teamB/payments/api never share one)."""
+        if self._slug:
+            return self._slug
         if self.name:
             return re.sub(r"[^\w.-]+", "_", self.name)
         s = re.sub(r"\.git$", "", self.spec.rstrip("/"))
-        parts = re.split(r"[/:]", s)
-        return re.sub(r"[^\w.-]+", "_", "__".join(p for p in parts[-2:] if p)) if self.remote else os.path.basename(os.path.abspath(s))
+        if not self.remote:
+            return os.path.basename(os.path.abspath(s))
+        s = re.sub(r"^[a-z][a-z0-9+.-]*://", "", s, flags=re.I)
+        s = re.sub(r"^[^@/]*@", "", s)
+        return re.sub(r"[^\w.-]+", "_", "__".join(p for p in re.split(r"[/:]", s) if p))
 
     def as_dict(self):
         return {"spec": self.spec, "name": self.name, "branch": self.branch, "team": self.team, "criticality": self.criticality, "remote": self.remote,
@@ -128,6 +159,10 @@ def expand(args):
         if key not in seen:
             seen.add(key)
             uniq.append(s)
+    slugs = [s.slug() for s in uniq if s.remote]
+    for s in uniq:  # two sources that would share a clone folder (the same list name twice) get a suffix from their URL
+        if s.remote and slugs.count(s.slug()) > 1:
+            s._slug = "%s--%s" % (s.slug(), hashlib.sha1(s.spec.encode()).hexdigest()[:8])
     return uniq
 
 
@@ -148,6 +183,8 @@ def _changed(path):
 
 def fetch(src, repos_dir, update=True):
     """Make one source available on disk. Local paths are used where they are; remote ones are cloned or refreshed."""
+    if src.error == REFUSED:
+        return src
     try:
         if not src.remote:
             p = os.path.abspath(os.path.expanduser(src.spec))

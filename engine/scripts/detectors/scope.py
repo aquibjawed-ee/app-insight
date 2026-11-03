@@ -15,7 +15,7 @@ import re
 from evidence import fact, file_ev, grep_files, read_lines
 
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # parents whose contents are public and known not to configure scanners, coverage gates or deploy steps
 PUBLIC_PARENT = re.compile(r"^(?:org\.springframework|io\.spring|org\.apache|org\.sonatype|io\.quarkus|io\.micronaut|io\.dropwizard|org\.jboss|"
@@ -169,8 +169,37 @@ def _deploy(ctx):
     return out
 
 
+# positive markers that deployment is handed to GitOps: the manifests or the deploy itself live in another repository or a
+# controller. An image published with no deploy step is not one: that is also the shape of a manual deploy.
+GITOPS_FILE = [(r"^\s*apiVersion:\s*argoproj\.io/\S+", r"^\s*kind:\s*(?:Application|ApplicationSet|AppProject)\s*$", "Argo CD"),
+               (r"^\s*apiVersion:\s*(?:kustomize|helm|source|image)\.toolkit\.fluxcd\.io/\S+", r".", "Flux"),
+               (r"argocd-image-updater\.argoproj\.io/", r".", "Argo CD Image Updater")]
+MANIFEST_REPO = r"git\s+clone\b[^\n]*(?:gitops|manifest|deploy|k8s|kube|helm|charts?|environments?|infra)[\w.-]*"
+SET_IMAGE = r"kustomize\s+edit\s+set\s+image|\byq\b[^\n]*\bimage\b|\bsed\b[^\n]*\bimage:|helm-?docs?\b[^\n]*\bset\b[^\n]*image"
+
+
+def _gitops(ctx):
+    out = []
+    ymls = [f for f in ctx.files if f.endswith((".yml", ".yaml")) and not ctx._aux(f) and "src/test" not in f][:2000]
+    for api, kind, name in GITOPS_FILE:
+        for f in ymls:
+            hit = grep_files(ctx.repo, [f], api, 1)
+            if hit and grep_files(ctx.repo, [f], kind, 1, flags=0):
+                out.append({"id": "deploy.gitops", "area": "deploy", "what": "deployment handed to %s, whose target manifests this scan cannot see" % name, "ev": hit})
+                break
+    ci = ctx.ci_files + ctx.ci_scripts()
+    for f in ci:  # a pipeline that updates a manifest repository: the deploy happens when that repository is synced
+        push = grep_files(ctx.repo, [f], r"\bgit\s+push\b", 1)
+        moved = grep_files(ctx.repo, [f], MANIFEST_REPO, 1) or grep_files(ctx.repo, [f], SET_IMAGE, 1)
+        if push and moved:
+            out.append({"id": "deploy.gitops", "area": "deploy", "what": "a pipeline step that pushes to a manifest repository (GitOps), whose deploy this scan cannot see",
+                        "ev": moved[:1] + push[:1]})
+            break
+    return out
+
+
 def blind_spots(ctx, areas):
-    spots = _maven_parent(ctx) + _gradle_external(ctx) + _build_tool(ctx) + _ci(ctx) + _config(ctx, areas) + _deploy(ctx)
+    spots = _maven_parent(ctx) + _gradle_external(ctx) + _build_tool(ctx) + _ci(ctx) + _config(ctx, areas) + _deploy(ctx) + _gitops(ctx)
     ev = [e for s in spots for e in s["ev"]][:20]
     value = [{"id": s["id"], "area": s["area"], "what": s["what"], "at": ["%s:%s" % (e["path"], e["line_start"]) for e in s["ev"]]} for s in spots]
     return fact(value, "CONFIRMED" if spots else "NOT_FOUND", ev,

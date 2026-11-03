@@ -15,7 +15,7 @@ PACKS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "packs")
 CONTRACT = "aspects.v1"
 STATES = ("PRESENT", "PARTIAL", "ABSENT", "ISSUE", "UNKNOWN", "NOT_APPLICABLE", "NOT_ASSESSED")
 GAP_STATES = ("ISSUE", "ABSENT", "PARTIAL")
-SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
+SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
 # criteria whose MET result means the pipeline runs the control, not only that it is configured
 ENFORCED = {"automated_build", "tests_run_in_ci", "version_tagging", "automated_deploy", "rollback", "coverage", "secret_scanning", "dependency_scanning", "sast"}
 CRITERION_STATE = {"MET": "PRESENT", "PARTIAL": "PARTIAL", "NO_EVIDENCE": "ABSENT", "NOT_MET": "ISSUE", "UNKNOWN": "UNKNOWN"}
@@ -26,6 +26,18 @@ TEST_CRITERIA = {"unit_tests_exist", "integration_tests", "acceptance_tests", "p
 TEST_PATH = re.compile(r"(^|/)src/(?:test|it|integrationTest|intTest)/|(^|/)tests?/|Tests?\.(?:java|kt|groovy|scala)$")
 CI_PATH = re.compile(r"(^|/)(Jenkinsfile[^/]*|\.gitlab-ci[^/]*\.ya?ml|\.github/workflows/[^/]+|azure-pipelines[^/]*\.ya?ml|bitbucket-pipelines\.ya?ml|\.circleci/[^/]+|buildspec[^/]*\.ya?ml|\.travis\.ya?ml)$")
 # a platform default (Docker's 10 s stop, Kubernetes' rolling update) is there without being configured: partial, not unknown
+# every value a remedy's `requires` may name, per stack key: a value outside this list would silently never match (gitlab vs gitlab-ci)
+STACK_VOCAB = {"ci_system": ["gitlab-ci", "github-actions", "jenkins", "teamcity", "azure-pipelines", "bitbucket", "circleci", "unknown", "external", "none"],
+               "build_tool": ["maven", "gradle", "ant", "sbt", "unknown"],
+               "platform": ["kubernetes", "nomad", "compose", "ansible", "none"],
+               "boot_graceful": ["yes", "no"],
+               "framework": ["spring_boot", "spring", "quarkus", "micronaut", "dropwizard", "ktor", "vertx", "helidon", "none"],
+               "coverage_tool": ["jacoco", "kover", "cobertura", "clover", "none", "unknown"]}
+# the engine steps and detectors each kind of control reads (run_meta.failures names them); a failed one makes the control NOT_ASSESSED
+SECTION_READS = {"runtime": {"stack", "resilience"}}
+NEED_READS = {"stack", "relationships", "runtime", "api"}
+KIND_READS = {"stack", "build_ci", "api", "resilience"}
+SCANS = {"sast", "dependency_scanning", "secret_scanning"}
 HA_STATE = {"present": "PRESENT", "partial": "PARTIAL", "absent": "ABSENT", "unknown": "UNKNOWN", "default": "PARTIAL", "not_applicable": "NOT_APPLICABLE", "not_assessed": "NOT_ASSESSED"}
 
 
@@ -45,7 +57,22 @@ def load_remedy_packs(names):
         p = n if os.path.isfile(n) else os.path.join(PACKS, "remedies", n + ".v1.json")
         if not os.path.isfile(p):
             raise FileNotFoundError("remedy pack not found: %s" % n)
-        out.append(_read(p))
+        pack = _read(p)
+        bad = vocabulary_errors(pack)
+        if bad:  # a value no application can have would make the remedy silently never offered
+            raise ValueError("remedy pack %s: %s" % (n, "; ".join(bad)))
+        out.append(pack)
+    return out
+
+
+def vocabulary_errors(pack):
+    out = []
+    for k, rem in (pack.get("remedies") or {}).items():
+        for key, vals in (rem.get("requires") or {}).items():
+            if key not in STACK_VOCAB:
+                out.append("%s requires unknown key %s" % (k, key))
+            else:
+                out += ["%s requires %s=%s, which no application has (known: %s)" % (k, key, v, ", ".join(STACK_VOCAB[key])) for v in vals if v not in STACK_VOCAB[key]]
     return out
 
 
@@ -94,6 +121,11 @@ class Context:
         self.framework = fw.get("name") or ("spring_boot" if self.needs["spring_boot"] else None)
         self.framework_label = fw.get("label") or ("Spring Boot" if self.needs["spring_boot"] else None)
         self.ha = {c["id"]: c for c in (res or {}).get("summary", [])}
+        cov = str(_fact(disc, "tests.coverage_tool_configured").get("value") or "none").lower().split("+")
+        self.stack["coverage_tool"] = [c if c in STACK_VOCAB["coverage_tool"] else "unknown" for c in cov]
+        # a detector that raised, or an engine step that failed for this repository: "name: Type: message"
+        self.failures = list(((disc or {}).get("run_meta") or {}).get("failures") or [])
+        self.failed = {f.split(":", 1)[0].strip() for f in self.failures}
 
 
 def _boot_before(v, ver):
@@ -154,6 +186,9 @@ def eval_criterion(cid, cx):
             notes.append(f["note"])
     # enforced is earned only by a MET result: those rules require the pipeline to run the control. PARTIAL means configured, not run.
     level = ("enforced" if cid in ENFORCED and st == "PRESENT" else "configured") if st in ("PRESENT", "PARTIAL") else None
+    scan_run = _fact(cx.disc, "security.%s_in_pipeline" % cid)
+    if st == "PARTIAL" and cid in SCANS and scan_run.get("value") is True and any(CI_PATH.search(e.get("path") or "") for e in ev):
+        level = "enforced"  # the pipeline runs it (cited), but on part of the code or with its rules cut: enforced, and partial
     if st == "PRESENT" and cid in TEST_CRITERIA:  # tests the pipeline runs are enforced: cite the line that runs them
         run = []
         if cid in ("unit_tests_exist", "integration_tests") and (cx.criteria.get("tests_run_in_ci") or {}).get("result") == "MET":
@@ -164,6 +199,10 @@ def eval_criterion(cid, cx):
     head = {"PRESENT": "Found", "PARTIAL": "Partly in place", "ABSENT": "Not found in the files read", "ISSUE": "Switched off or disabled", "UNKNOWN": "Cannot be decided from the files"}[st]
     if cid == "coverage" and st in ("PARTIAL", "ABSENT"):
         notes = [coverage_gap(cx)] + notes
+    ctx_only = (_fact(cx.disc, "tests.unit_tests").get("value") or {}).get("context_load_only") if cid in ("unit_tests_exist", "integration_tests") else 0
+    if ctx_only and st == "ABSENT":
+        notes = ["only %s that check%s the application context starts, which test%s no behaviour and %s not counted" % (
+            "1 test class" if ctx_only == 1 else "%d test classes" % ctx_only, "s" if ctx_only == 1 else "", "s" if ctx_only == 1 else "", "is" if ctx_only == 1 else "are")] + notes
     if st == "PRESENT" and not notes:
         notes = [found_what(cid, cx, facts, ev)]
     return _r(st, head + (": " + notes[0] if notes else ""), level, ev, facts)
@@ -180,7 +219,9 @@ def found_what(cid, cx, facts, ev):
         bits = ["%d %s" % (v[k], one if v[k] == 1 else many) for k, one, many in COUNTS if isinstance(v.get(k), int) and v[k]]
         tools = v.get("tools") or v.get("libraries")
         if bits:
-            return ", ".join(bits) + (" (%s)" % ", ".join(tools[:3]) if tools else "")
+            n = v.get("context_load_only") or 0  # dropped from the count, so say so
+            return ", ".join(bits) + (" (%s)" % ", ".join(tools[:3]) if tools else "") + (
+                "; %d more only check%s that the application context starts and %s not counted" % (n, "s" if n == 1 else "", "is" if n == 1 else "are") if n else "")
     return "%s:%s" % (ev[0]["path"], ev[0]["line_start"]) if ev else "found"
 
 
@@ -215,7 +256,27 @@ def eval_ha(hid, cx):
     return _r(st, note or said, "configured" if st in ("PRESENT", "PARTIAL") else None, _ev(c.get("evidence")), ["resilience." + hid])
 
 
+LIFECYCLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "engine", "rules", "lifecycle.v1.json")
+
+
+def reference_status():
+    """The support-date table's source and review status: every result resting on it says whether a person has reviewed it."""
+    ref = _read(LIFECYCLE)
+    rv = ref.get("review") or {}
+    return {"source": "engine/rules/lifecycle.v1.json", "version": ref.get("version"), "as_of": ref.get("as_of"),
+            "status": rv.get("status") or "unreviewed", "reviewed_by": rv.get("reviewed_by"), "reviewed_at": rv.get("reviewed_at")}
+
+
 def eval_lifecycle(which, cx):
+    r = _eval_lifecycle(which, cx)
+    ref = reference_status()
+    r["reference"] = ref
+    if ref["status"] != "reviewed" and r["state"] != "UNKNOWN":
+        r["summary"] += " (support dates: reference data %s, as of %s)" % (ref["status"], ref["as_of"])
+    return r
+
+
+def _eval_lifecycle(which, cx):
     d = (cx.dims or {}).get("dimensions", {}).get("technology_lifecycle") or {}
     if which == "framework":  # the application's framework: Spring Boot by release line, others by their published end-of-life table
         fv = (d.get("values") or {}).get("framework")
@@ -258,7 +319,9 @@ def eval_fact(path, cx, partial_if_file=False):
     if st in ("CONFIRMED", "INFERRED") and val not in (None, False, [], "", {}):
         shown = val if isinstance(val, str) else ", ".join(map(str, val)) if isinstance(val, list) else \
             ("Found at %s:%s" % (ev[0]["path"], ev[0]["line_start"]) if ev else "Found")
-        return _r("PRESENT", str(shown)[:160], "configured" if st == "CONFIRMED" else "declared", ev, [path])
+        if st == "INFERRED":  # inferred, not read from a setting: declared only, which is not "in place" (upstream: not presence alone)
+            return _r("PARTIAL", ("Declared only, not confirmed: %s" % shown)[:160], "declared", ev, [path])
+        return _r("PRESENT", str(shown)[:160], "configured", ev, [path])
     if st == "UNKNOWN":
         return _r("UNKNOWN", f.get("note") or "cannot be decided from the files", facts=[path])
     if partial_if_file and ev:  # the file is there but does not hold what the control asks for (a README with no description)
@@ -270,9 +333,17 @@ def eval_check(path, cx):
     """A detector that decides the state itself: its fact value is {state, summary, level}."""
     f = _fact(cx.disc, path)
     v = f.get("value")
+    sec = path.split(".")[0]
     if not isinstance(v, dict) or v.get("state") not in STATES:
-        return _r("NOT_ASSESSED", "Not in this analysis: it predates the %s detector; scan again" % path.split(".")[0], facts=[path])
-    return _r(v["state"], v["summary"], v.get("level"), _ev(f.get("evidence"), f.get("status")), [path])
+        if sec in getattr(cx, "failed", ()):  # a crash is not an old analysis: say what happened
+            return _r("NOT_ASSESSED", "Not assessed: the %s detector failed on this repository" % sec, facts=[path])
+        return _r("NOT_ASSESSED", "Not in this analysis: it predates the %s detector; scan again" % sec, facts=[path])
+    r = _r(v["state"], v["summary"], v.get("level"), _ev(f.get("evidence"), f.get("status")), [path])
+    if v.get("framework_neutral"):
+        r["neutral"] = v["framework_neutral"]
+    if v.get("by_default"):  # an issue read from a setting's absence (the framework default applies)
+        r["by_default"] = True
+    return r
 
 
 def eval_dependency(spec, cx):
@@ -290,8 +361,10 @@ def eval_dependency(spec, cx):
     conf = _fact(cx.disc, spec["configured_by"]) if spec.get("configured_by") else {}
     if conf.get("value"):  # configured in settings or wired in code, not only declared
         strong, ev = True, ev + _ev(conf.get("evidence"), "CONFIRMED")
-    return _r("PRESENT", ", ".join(sorted({d["technology"] for d in hits})) + ("" if strong else " (dependency declared; no configuration found)"),
-              "configured" if strong else "declared", ev, ["stack.external_dependencies"])
+    tech = ", ".join(sorted({d["technology"] for d in hits}))
+    if not strong:  # a library on the classpath with no configuration shows intent, not a working control
+        return _r("PARTIAL", "Declared only: %s is a dependency, but no configuration or use of it was found" % tech, "declared", ev, ["stack.external_dependencies"])
+    return _r("PRESENT", tech, "configured", ev, ["stack.external_dependencies"])
 
 
 def eval_safetynet(cx):
@@ -377,18 +450,35 @@ AREA_LABEL = {"build": "build file", "ci": "CI file", "config": "configuration f
               "test_source": "test source file", "docs": "documentation file"}
 
 
-def searched(ctl, cx):
-    """Where a check looked and what for, from the files the scan read: a "not found" says where it was not found."""
-    s = ctl.get("search") or {}
+def searched(ctl, cx, spec=None):
+    """Where a check looked and what for, from the files the scan read: a "not found" says where it was not found. The `repo`
+    area is a search for named files anywhere in the repository: the record lists those names, never an empty area."""
+    s = spec if spec is not None else (ctl.get("search") or {})
     read = _fact(cx.disc, "scope.files_read").get("value") or {}
-    where = [{"area": a, "count": None, "files": []} if a == "repo" else
+    where = [{"area": a, "count": len(s.get("names") or []), "files": list(s.get("names") or [])} if a == "repo" else
              {"area": a, "count": (read.get(a) or {}).get("count", 0), "files": (read.get(a) or {}).get("files", [])[:5]} for a in s.get("in", [])]
     return {"for": s.get("for"), "in": where} if s and read else None
 
 
-def blind_for(ctl, cx):
+# what each need is decided from: a "does not apply" derived from not finding it says where it looked, and is undecided when a
+# place outside the repository (a parent POM, an organisation plugin) could add the library that would make it apply
+_DEPS = ["build"]
+NEED_SEARCH = {
+    "outbound_http": {"in": ["build", "main_source", "config"], "for": "an HTTP client library, a client built in code, or a call to another service", "blind_to": _DEPS},
+    "database": {"in": ["build", "config", "main_source"], "for": "a database driver or starter, a datasource setting, or data-access code", "blind_to": _DEPS},
+    "sql_database": {"in": ["build", "config", "main_source"], "for": "a relational database driver or starter that is not in-memory", "blind_to": _DEPS},
+    "messaging": {"in": ["build", "main_source", "config"], "for": "a messaging library, a producer or a consumer", "blind_to": _DEPS},
+    "http_endpoints": {"in": ["main_source"], "for": "HTTP controllers, routes or resources", "blind_to": []},
+    "spring_boot": {"in": ["build"], "for": "the Spring Boot plugin, parent or starters", "blind_to": _DEPS},
+    "framework": {"in": ["build"], "for": "an application framework (Spring Boot, Quarkus, Micronaut, Dropwizard, ...)", "blind_to": _DEPS},
+}
+OUTSIDE = {"platform": "in the hosting platform's settings (GitHub, GitLab, Bitbucket)", "org": "in the organisation's settings or a central configuration",
+           "operations": "in the platform, monitoring or operations repository", "gitops": "in a GitOps repository or controller"}
+
+
+def blind_for(ctl, cx, spec=None):
     """Blind spots in an area this check searches: something the repository names, outside this scan, that may hold the setting."""
-    s = ctl.get("search") or {}
+    s = spec if spec is not None else (ctl.get("search") or {})
     areas = set(s["blind_to"] if "blind_to" in s else s.get("in") or [])  # blind_to: the areas a place outside the repository could fill
     return [b for b in _fact(cx.disc, "scope.blind_spots").get("value") or [] if b["area"] in areas]
 
@@ -398,31 +488,109 @@ def _blind_ev(cx, spots):
     return [dict(e, status="INFERRED") for e in _fact(cx.disc, "scope.blind_spots").get("evidence") or [] if "%s:%s" % (e["path"], e["line_start"]) in at][:4]
 
 
+def reads(ctl, cx):
+    """The engine detectors and steps a control's answer depends on (names as run_meta.failures records them)."""
+    src, a, out = ctl["source"], ctl.get("applies") or {}, set()
+    if a.get("needs"):
+        out |= NEED_READS
+    if a.get("kind"):
+        out |= KIND_READS
+    if "criterion" in src:
+        out |= {f.split(".")[0] for f in (cx.criteria.get(src["criterion"]) or {}).get("facts") or []} or {"build_ci", "tests"}
+    elif "ha" in src:
+        out |= {"availability"}
+    elif "lifecycle" in src:
+        out |= {"stack", "dimensions"}
+    elif "fact" in src:
+        out.add(src["fact"].split(".")[0])
+    elif "check" in src:
+        sec = src["check"].split(".")[0]
+        out |= {sec} | SECTION_READS.get(sec, set())
+    elif "dependency" in src:
+        out |= {"stack"} | ({src["dependency"]["configured_by"].split(".")[0]} if src["dependency"].get("configured_by") else set())
+    elif "safetynet" in src:
+        out |= {"safetynet", "relationships"}
+    elif "security_scan" in src:
+        out.add("dimensions")
+    elif "graph" in src:
+        out |= {"relationships", "runtime", "stack"}
+    return out
+
+
 def evaluate(ctl, cx):
+    down = sorted(reads(ctl, cx) & getattr(cx, "failed", set()))
+    if down and "pending" not in ctl["source"]:  # a crashed input is not a fact about the application: never a gap, never "does not apply"
+        return _r("NOT_ASSESSED", "Not assessed: the %s detector failed on this repository" % " and ".join(down), facts=[])
     r = _evaluate(ctl, cx)
+    need = r.pop("need", None)
     if r["state"] in ("ABSENT", "PARTIAL") and not ctl.get("negative_scan") and not r.get("pending"):
         spots = blind_for(ctl, cx)
         if spots and r["state"] == "ABSENT":  # nothing found here, but the repository points to a place this scan cannot read
             r = _r("UNKNOWN", "Not found in the files read, but the repository uses %s (%s): it may be set there" % (spots[0]["what"], spots[0]["at"][0]),
                    None, _blind_ev(cx, spots), r["facts"] + ["scope.blind_spots"])
-        elif spots:  # a partial result stands for what was read; what lies outside may complete it
+        elif spots:  # a partial result stands for what was read; what lies outside may complete it (the found part is a fact)
             r["summary"] += "; %s (%s) may complete it" % (spots[0]["what"], spots[0]["at"][0])
             r["evidence"] = (r["evidence"] + _blind_ev(cx, spots))[:12]
+    if r["state"] == "ISSUE" and r.get("by_default"):  # a problem read from a setting's absence: something outside may set it
+        spots = blind_for(ctl, cx)
+        if spots:
+            r = _r("UNKNOWN", "%s, as far as the files read show; but the repository uses %s (%s), which may set it" % (r["summary"], spots[0]["what"], spots[0]["at"][0]),
+                   None, _blind_ev(cx, spots), r["facts"] + ["scope.blind_spots"])
+    if r["state"] == "NOT_APPLICABLE" and need in NEED_SEARCH:  # "does not apply" because something was not found
+        spots = blind_for(ctl, cx, NEED_SEARCH[need])
+        if spots:
+            r = _r("UNKNOWN", "%s in the files read, but the repository uses %s (%s), which may add it" % (r["summary"][:1].upper() + r["summary"][1:], spots[0]["what"], spots[0]["at"][0]),
+                   None, _blind_ev(cx, spots), ["scope.blind_spots"])
+        r["need"] = need
     r = _understood(ctl, cx, r)
-    if r["state"] == "ABSENT":
-        r["searched"] = searched(ctl, cx)
+    r = _outside(ctl, cx, r)
+    need = r.pop("need", None)
+    absence = r["state"] in ("ABSENT", "PARTIAL") or (r["state"] == "NOT_APPLICABLE" and need) or (r["state"] == "ISSUE" and r.get("by_default"))
+    if absence and "scope" in getattr(cx, "failed", ()):
+        return _r("NOT_ASSESSED", "Not assessed: the scope detector failed on this repository, so where this looked and what lies outside the scan are not known", facts=r["facts"])
+    if r["state"] in ("ABSENT", "PARTIAL") or (r["state"] == "ISSUE" and r.get("by_default")) or (r["state"] == "UNKNOWN" and ctl.get("usually_outside") and r.get("outside")):
+        r["searched"] = r.get("searched") or searched(ctl, cx)
+    elif r["state"] == "NOT_APPLICABLE" and need in NEED_SEARCH:
+        r["searched"] = searched(ctl, cx, NEED_SEARCH[need])
+    r.pop("outside", None)
+    r.pop("by_default", None)
+    neutral = r.pop("neutral", None)
+    if neutral and r["state"] == "ABSENT":  # kept on the result: verify (CON-9) accepts an absence that holds whatever the framework
+        r["framework_neutral"] = neutral
     return r
 
 
+def _outside(ctl, cx, r):
+    """A control usually set outside the repository (platform settings, organisation settings, a GitOps repository): nothing found
+    here is "not seen; confirm", never a gap. Deployment is treated so only when the repository positively hands it to GitOps."""
+    uo = ctl.get("usually_outside")
+    if not uo or r["state"] != "ABSENT" or r.get("pending") or any("manual_deploy" in f for f in r["facts"]):
+        return r
+    where, ev, why = OUTSIDE.get(uo if isinstance(uo, str) else uo.get("where"), "outside the repository"), r["evidence"], ""
+    if isinstance(uo, dict) and uo.get("marker"):
+        spots = [b for b in _fact(cx.disc, "scope.blind_spots").get("value") or [] if b["id"] == uo["marker"]]
+        if not spots:
+            return r  # no positive marker: the gap stands, with its search record
+        why, ev = " (%s, %s)" % (spots[0]["what"], spots[0]["at"][0]), _blind_ev(cx, spots)
+    out = _r("UNKNOWN", "Not seen in the repository; confirm with the team: it is usually set %s%s" % (where, why), None, ev, r["facts"])
+    out["outside"] = True
+    return out
+
+
 def _understood(ctl, cx, r):
-    # a detector that reads one framework's conventions cannot say "missing" for another: that is "not recognised", not a gap
+    # a detector that reads one framework's conventions cannot say "missing" for another: that is "not recognised", not a gap.
+    # The same holds for "does not apply" because the need was not found (no database, no messaging, no endpoints), whichever need.
+    # A service whose framework is not recognised at all is outside every check's conventions too.
     knows = ctl.get("understands")
-    # (applicability from outbound HTTP or a database is read the same framework-bound way, so it is not trusted either)
-    # a service whose framework is not recognised at all is outside every check's conventions too
     if knows and (cx.framework or cx.kind == "service") and cx.framework not in knows and not r.get("pending") and (
-            r["state"] == "ABSENT" or (r["state"] == "NOT_APPLICABLE" and (ctl.get("applies") or {}).get("needs") in ("outbound_http", "database"))):
-        return _r("UNKNOWN", "Not recognised for %s: this check reads %s conventions, so absence here proves nothing" % (cx.framework_label or "an unrecognised framework", " / ".join(LABEL.get(k, k) for k in knows)),
-                  facts=r["facts"])
+            r["state"] == "ABSENT" or (r["state"] == "NOT_APPLICABLE" and r.get("need"))):
+        label = cx.framework_label or "an unrecognised framework"
+        if r["state"] == "ABSENT" and r.get("neutral"):  # the absence holds whatever the framework (no library at all)
+            r["summary"] += "; %s (%s's own client settings are not read)" % (r["neutral"], label)
+            return r
+        out = _r("UNKNOWN", "Not recognised for %s: this check reads %s conventions, so absence here proves nothing" % (label, " / ".join(LABEL.get(k, k) for k in knows)),
+                 facts=r["facts"])
+        return out
     return r
 
 
@@ -432,7 +600,11 @@ LABEL = {"spring_boot": "Spring Boot", "spring": "Spring", "quarkus": "Quarkus",
 def _evaluate(ctl, cx):
     ok, why = applies(ctl, cx)
     if not ok:
-        return _r("NOT_APPLICABLE", why)
+        a = ctl.get("applies") or {}
+        r = _r("NOT_APPLICABLE", why)
+        if not (a.get("kind") and cx.kind not in a["kind"]):
+            r["need"] = a.get("needs")  # derived from not finding something: guarded like an absence
+        return r
     s = ctl["source"]
     if "criterion" in s:
         return eval_criterion(s["criterion"], cx)
@@ -502,9 +674,11 @@ def build_app(app, disc, rel, res, sn, dims, portfolio, catalogue, packs, genera
         r = evaluate(ctl, cx)
         pending = r.pop("pending", False)
         sev = r.pop("severity") or ctl.get("severity", "medium")
-        c = {"id": ctl["id"], "aspect": ctl["aspect"], "title": ctl["title"], "state": r["state"], "level": r["level"], "summary": r["summary"], "searched": r.get("searched"),
+        c = {"id": ctl["id"], "aspect": ctl["aspect"], "title": ctl["title"], "state": r["state"], "level": r["level"], "summary": r["summary"], "searched": r.get("searched"), "reference": r.get("reference"),
              "severity": sev if r["state"] in GAP_STATES else None, "facts": r["facts"], "evidence": r["evidence"], "fix": ctl.get("fix"),
              "remedies": remedies_for(ctl, packs, cx) if r["state"] in GAP_STATES else [], "finding": None, "pending": pending}
+        if r.get("framework_neutral"):
+            c["framework_neutral"] = r["framework_neutral"]
         if r["state"] in GAP_STATES:
             c["finding"] = "%s@%s" % (ctl["id"], app)
             findings.append(c["finding"])
@@ -517,7 +691,8 @@ def build_app(app, disc, rel, res, sn, dims, portfolio, catalogue, packs, genera
     dd = (dims or {}).get("dimensions", {})
     ctx = {k: {"title": dd[k]["title"], "state": dd[k]["state"], "headline": dd[k]["headline"]} for k in ("business_criticality", "change_complexity", "evidence_completeness", "architecture_coupling") if k in dd}
     return {"contract": CONTRACT, "app": app, "generated_at": generated_at, "catalogue": {"version": catalogue["version"], "status": catalogue.get("status")},
-            "remedy_packs": [{"id": p["id"], "version": p["version"]} for p in packs], "profile": {"kind": cx.kind, "has": cx.needs},
+            "remedy_packs": [{"id": p["id"], "version": p["version"]} for p in packs], "profile": {"kind": cx.kind, "has": cx.needs, "framework": cx.framework},
+            "failures": [f.split(":", 2)[0] + ": " + f.split(":", 2)[1].strip() if f.count(":") >= 1 else f for f in cx.failures],
             "context": ctx, "aspects": aspects, "findings": findings,
             "scope": {"files_read": _fact(disc, "scope.files_read").get("value"), "blind_spots": _fact(disc, "scope.blind_spots").get("value") or []}}
 

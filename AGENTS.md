@@ -7,7 +7,7 @@ This file is for any coding agent (Claude Code, Codex CLI, Gemini CLI, Cursor, .
 
 `app-insight` reads an organisation's application repositories and produces, per application, the AS-IS
 inventory and an aspect trace: aspect → control → state → evidence → finding → remedy. It also builds a portfolio
-report (`report.html`). Nothing is built, run or queried in the target repositories; no model is used.
+report (`report-internal.html` until the client-use gate passes). Nothing is built, run or queried in the target repositories; no model is used.
 
 ## Commands
 
@@ -19,7 +19,7 @@ Run from this folder with `bin/app-insight` (or `python3 -m app_insight` with th
 | See how inputs will be read (no fetching) | `bin/app-insight sources <inputs...>` |
 | Scan | `bin/app-insight scan <inputs...> --client <name> [--remedies modernise-plugin,generic]` |
 | Summary of the latest run | `bin/app-insight summary ~/app-insight-workspaces/<client> [--json]` |
-| Rebuild after changing packs | `bin/app-insight aspects <run-dir or workspace> [--remedies ...]` |
+| Rebuild after changing packs | `bin/app-insight aspects <run-dir or workspace> [--remedies ...]` (a reviewed run is copied to a new run first) |
 | Rebuild the HTML only | `bin/app-insight report <run-dir or workspace>` |
 
 Inputs can be mixed: repository paths, a folder holding repositories, remote URLs (`https://`, `ssh://`, `git@host:`),
@@ -33,10 +33,11 @@ repository, git, clone_url, path or location; optional columns are name, branch,
    agent or credential helper). If a clone fails for authentication, report it and ask the user to fix access.
 3. **Read the `━━ APP-INSIGHT-SUMMARY ━━` block** (or `summary --json`) and report from it. Quote states as written:
    `ABSENT` means "not found in the files read", not "missing in production"; `NOT_ASSESSED` and `UNKNOWN` are never
-   a pass.
+   a pass. Report `gate` (printed as `use:`; today always "Internal: not validated", not for client use) and `verify`; a run whose verify
+   FAILED is never made the latest, and `detector_failures` names the controls that could not be assessed.
 4. **Do not invent remedies, effort, dates or business value.** Remedies come from the client's remedy packs.
 5. **Do not edit the target repositories** while scanning. Fixing a gap is a separate task the user asks for.
-6. Point the user to `report.html` for the full trace; open it only if asked.
+6. Point the user to `report-internal.html` for the full trace (internal: not for a client until it has been reviewed); open it only if asked.
 
 ## Where things are
 
@@ -56,7 +57,7 @@ repository, git, clone_url, path or location; optional columns are name, branch,
 ~/app-insight-workspaces/<client>/
   client.json            remedy packs for this client
   repos/<slug>/          shallow clones of remote repositories
-  runs/<timestamp>/      run.json (inputs, per-source status), analysis/ (engine output + aspects.json), report.html
+  runs/<timestamp>/      run.json (inputs, per-source status), analysis/ (engine output + aspects.json), report-internal.html, verify.json
   latest                 name of the latest run
 ```
 

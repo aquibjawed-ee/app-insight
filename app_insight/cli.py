@@ -22,6 +22,8 @@ from . import verify as V
 
 VERSION = "0.1.0"
 DEFAULT_PACKS = ["generic"]
+# the client-use gate (design section 2): until results are validated and reviewed, every report is for internal preparation
+GATE = "Internal: not validated"
 
 
 def _now():
@@ -85,17 +87,41 @@ def summarise(run_dir):
                     t = top.setdefault(ctl["id"], {"control": ctl["title"], "aspect": asp["title"], "severity": ctl["severity"], "state": ctl["state"], "apps": 0, "remedies": sorted({r.get("cmd") or r["title"] for r in ctl["remedies"]})})
                     t["apps"] += 1
     findings = sorted(top.values(), key=lambda x: (A.SEVERITY_ORDER.get(x["severity"], 9), -x["apps"], x["control"]))
+    fails = []
+    for app in sorted(apps):  # a detector or step that failed: its controls are NOT_ASSESSED, and the run says so
+        f = _read(os.path.join(out, app, "aspects.json")).get("failures") or []
+        if f:
+            fails.append({"app": app, "failed": f})
+    vp = os.path.join(run_dir, "verify.json")
+    ver = _read(vp) if os.path.isfile(vp) else None
     return {"client": run["client"], "run": os.path.basename(run_dir), "applications": len(apps), "failed_sources": [s for s in run["sources"] if s["status"] == "failed"],
-            "aspects": per_aspect, "top_findings": findings[:15], "report": os.path.join(run_dir, "report.html"), "remedy_packs": run["remedy_packs"]}
+            "gate": GATE, "verify": verify_digest(ver), "detector_failures": fails,
+            "aspects": per_aspect, "top_findings": findings[:15], "report": os.path.join(run_dir, V.REPORT), "remedy_packs": run["remedy_packs"]}
+
+
+def verify_digest(ver):
+    """What a reader of the summary or the report needs from verify: passed or not, and which rules failed how often. No detail
+    (a detail names a file and line), so it can sit in the report header."""
+    if ver is None:
+        return {"ok": None, "state": "not run", "failed_rules": {}}
+    by = {}
+    for p in ver["problems"]:
+        by[p["rule"]] = by.get(p["rule"], 0) + 1
+    return {"ok": ver["ok"], "state": "passed" if ver["ok"] else "FAILED", "failed_rules": {k: {"count": n, "rule": V.RULES.get(k, "")} for k, n in sorted(by.items())}}
 
 
 def print_summary(s):
     print("━━ APP-INSIGHT-SUMMARY ━━")
     print("client:        %s" % s["client"])
     print("run:           %s" % s["run"])
+    print("use:           %s" % s["gate"])
+    v = s["verify"]
+    print("verify:        %s%s" % (v["state"], "" if v["ok"] is not False else ": " + ", ".join("%s x%d" % (k, x["count"]) for k, x in v["failed_rules"].items())))
     print("applications:  %d analysed, %d source(s) failed" % (s["applications"], len(s["failed_sources"])))
     for f in s["failed_sources"]:
         print("  failed:      %s (%s)" % (f["spec"], f["error"]))
+    for f in s["detector_failures"]:
+        print("  not assessed: %s: %s failed; the controls it feeds are NOT_ASSESSED" % (f["app"], ", ".join(f["failed"])))
     print("remedy packs:  %s" % ", ".join(s["remedy_packs"]))
     print("aspects (apps with issues / gaps / in place / not assessed / n/a):")
     w = max([len(x["aspect"]) for x in s["aspects"]] + [10])
@@ -126,8 +152,9 @@ def cmd_scan(a):
         done[0] += 1
         print("  [%d/%d] %-8s %s%s" % (done[0], len(srcs), s.status, s.spec, (" (" + s.error + ")") if s.error else ""), file=sys.stderr)
     SRC.fetch_all(srcs, os.path.join(ws, "repos"), jobs=a.jobs, update=not a.no_update, progress=progress)
+    pin(srcs, os.path.join(ws, "repos"), stamp)
     ok = [s for s in srcs if s.path and s.status != "failed"]
-    run = {"contract": "app-insight-run.v1", "tool_version": VERSION, "client": a.client, "started_at": _now().isoformat(), "inputs": a.inputs,
+    run = {"contract": "app-insight-run.v1", "tool_version": VERSION, "client": a.client, "started_at": _now().isoformat(), "inputs": [SRC.mask(x) for x in a.inputs],
            "remedy_packs": cfg["remedy_packs"], "sources": [s.as_dict() for s in srcs]}
     _write(os.path.join(run_dir, "run.json"), run)
     if not ok:
@@ -142,19 +169,35 @@ def cmd_scan(a):
     if rc == 2:
         print("analysis failed before writing results; see the message above", file=sys.stderr)
         return 2
-    A.build(out, A.load_catalogue(), packs)
-    R.build(out, os.path.join(run_dir, "report.html"), A.load_catalogue(), packs, run["sources"], a.client)
+    man = _read(os.path.join(out, "manifest.json"))
+    for f in man.get("failed") or []:  # a repository whose discovery broke: recorded with the reason, no row invented
+        for src in run["sources"]:
+            if src.get("path") and os.path.abspath(src["path"]) == f["repo"]:
+                src["status"], src["error"] = "failed", "analysis failed (%s: %s)" % (f["step"], f["error"].split(":")[0])
     run["finished_at"] = _now().isoformat()
     run["analysis_rc"] = rc
     _write(os.path.join(run_dir, "run.json"), run)
-    with open(os.path.join(ws, "latest"), "w") as fh:
-        fh.write(stamp)
-    ver = V.write(run_dir)
+    A.build(out, A.load_catalogue(), packs)
+    ver = publish(run_dir, packs, run)
+    if ver["ok"]:  # a run that failed verify never becomes the latest
+        with open(os.path.join(ws, "latest"), "w") as fh:
+            fh.write(stamp)
+    else:
+        print("verify failed: %s was not made the latest run; the report says FAILED in its header" % stamp, file=sys.stderr)
     s = summarise(run_dir)
     print_summary(s) if not a.json else print(json.dumps(s, indent=1))
     if not a.json:
         V.print_result(ver)
     return 0 if rc == 0 and ver["ok"] else 1
+
+
+def pin(srcs, repos_dir, stamp):
+    """Keep each run's commit in our own clones with a local ref, so a later rescan's shallow fetch cannot drop it and verify of
+    this run can always re-read it offline (design 8.7). Only clones in the workspace: a local repository is never written to."""
+    root = os.path.realpath(repos_dir) + os.sep
+    for s in srcs:
+        if s.remote and s.path and s.commit and os.path.realpath(s.path).startswith(root):
+            SRC._git(["update-ref", "refs/app-insight/runs/" + stamp, s.commit], cwd=s.path, timeout=60)
 
 
 def cmd_sources(a):
@@ -163,29 +206,55 @@ def cmd_sources(a):
     return 0
 
 
+def publish(run_dir, packs, run):
+    """Verify first, then write the report: the page is rendered to a pending file, verify checks it with everything else the
+    run wrote (citations, consistency, leaks), and only then is the report written, carrying the verify result in its header."""
+    out, cat = os.path.join(run_dir, "analysis"), A.load_catalogue()
+    pending = os.path.join(run_dir, "report.pending.html")
+    R.build(out, pending, cat, packs, run["sources"], run["client"], verify=None, gate=GATE)
+    try:
+        ver = V.check(run_dir, cat, report_path=pending)
+    finally:
+        os.remove(pending)
+    R.build(out, os.path.join(run_dir, V.REPORT), cat, packs, run["sources"], run["client"], verify=verify_digest(ver), gate=GATE)
+    with open(os.path.join(run_dir, "verify.json"), "w", encoding="utf-8") as fh:
+        json.dump(ver, fh, indent=1, sort_keys=True)
+    return ver
+
+
 def _rebuild(run_dir, packs_override=None):
+    """Re-derive the trace with the current catalogue and packs. A run that has been reviewed (review.json) is never changed in
+    place: the rebuild goes into a new run, so the reviewed one stays what was reviewed (design 8.7)."""
+    if os.path.isfile(os.path.join(run_dir, "review.json")):
+        new = os.path.join(os.path.dirname(run_dir), _now().strftime("%Y%m%d-%H%M%S") + "-rebuild")
+        shutil.copytree(run_dir, new, ignore=shutil.ignore_patterns("review.json", "verify.json", "report*.html"))
+        print("%s has been reviewed and is kept as it is; rebuilding into %s" % (os.path.basename(run_dir), os.path.basename(new)), file=sys.stderr)
+        run_dir = new
     run = _read(os.path.join(run_dir, "run.json"))
     if packs_override:
         run["remedy_packs"] = packs_override
         _write(os.path.join(run_dir, "run.json"), run)
     packs = A.load_remedy_packs(run["remedy_packs"])
-    out = os.path.join(run_dir, "analysis")
-    A.build(out, A.load_catalogue(), packs)
-    R.build(out, os.path.join(run_dir, "report.html"), A.load_catalogue(), packs, run["sources"], run["client"])
-    V.write(run_dir)
-    return run_dir
+    A.build(os.path.join(run_dir, "analysis"), A.load_catalogue(), packs)
+    return run_dir, publish(run_dir, packs, run)
 
 
 def cmd_aspects(a):
-    run_dir = _rebuild(resolve_run(a.run), [x.strip() for x in a.remedies.split(",")] if a.remedies else None)
+    run_dir, ver = _rebuild(resolve_run(a.run), [x.strip() for x in a.remedies.split(",")] if a.remedies else None)
     print_summary(summarise(run_dir))
-    return 0
+    V.print_result(ver)
+    return 0 if ver["ok"] else 1
 
 
 def cmd_report(a):
-    run_dir = _rebuild(resolve_run(a.run))
-    print(os.path.join(run_dir, "report.html"))
-    return 0
+    """Re-render the report only, from the run's own aspects.json (AGENTS.md: rebuild the HTML only); it re-verifies."""
+    run_dir = resolve_run(a.run)
+    run = _read(os.path.join(run_dir, "run.json"))
+    ver = publish(run_dir, A.load_remedy_packs(run["remedy_packs"]), run)
+    print(os.path.join(run_dir, V.REPORT))
+    if not ver["ok"]:
+        V.print_result(ver)
+    return 0 if ver["ok"] else 1
 
 
 def cmd_summary(a):

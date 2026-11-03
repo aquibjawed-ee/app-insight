@@ -108,12 +108,51 @@ def run(cmd: List[str], cwd: str, timeout: int = 10):
         return 127, ""
 
 
+def ide_output(path: str) -> bool:
+    """An IDE's compiler output folder (Eclipse/Buildship `bin/`): it mirrors the source sets (bin/main, bin/test) or holds
+    .class files. Its copies of configuration files are stale, never the application's. A `bin/` of scripts is not one."""
+    try:
+        names = os.listdir(path)
+    except OSError:
+        return False
+    if any(n in ("main", "test") and os.path.isdir(os.path.join(path, n)) for n in names):
+        return True
+    seen = 0
+    for _, _, fs in os.walk(path):
+        if any(f.endswith(".class") for f in fs):
+            return True
+        seen += len(fs)
+        if seen > 500:
+            break
+    return False
+
+
+# what a file is, from its path alone: evidence for a control is about the application, never a fixture, example or output
+ROLE_RULES = [
+    ("build_output", re.compile(r"(^|/)(?:target|build|out)/")),
+    ("test_fixture", re.compile(r"(^|/)(?:fixtures?|__fixtures__|testdata|test-data|mocks?|stubs?)/|(^|/)src/test/resources/", re.I)),
+    ("example", re.compile(r"(^|/)(?:[\w.-]*[-_])?(?:docs?|documentation|samples?|examples?|snippets?|demos?|archetype-resources)(?:[-_][\w.-]*)?/", re.I)),
+    ("test", re.compile(r"(^|/)src/(?:test|it|integrationTest|integration-test|intTest|testFixtures)/")),
+]
+
+
+def role(rel: str) -> str:
+    """Only folders above src/ count for the fixture and example rules: a Java package named `example` (com/example/...) is code."""
+    head = ("/" + rel).split("/src/")[0] + "/" if "/src/" in "/" + rel else rel
+    for name, rx in ROLE_RULES:
+        if rx.search(rel if name == "test" or (name == "test_fixture" and "src/test/resources/" in rel) else head):
+            return name
+    return "application"
+
+
 def walk(repo: str, include_build: bool = False) -> List[str]:
-    """Sorted repo-relative posix paths. Deterministic: dirs and files sorted at every level."""
+    """Sorted repo-relative posix paths. Deterministic: dirs and files sorted at every level. IDE output folders are never
+    read: they hold stale copies of the configuration."""
     skip = set(SKIP_DIRS) | (set() if include_build else BUILD_DIRS)
     out = []
     for root, dirs, names in os.walk(repo):
-        dirs[:] = sorted(d for d in dirs if d not in skip and not os.path.islink(os.path.join(root, d)))
+        dirs[:] = sorted(d for d in dirs if d not in skip and not os.path.islink(os.path.join(root, d))
+                         and not (d == "bin" and ide_output(os.path.join(root, d))))
         for n in sorted(names):
             if os.path.islink(os.path.join(root, n)):
                 continue  # a symlink can point outside the repo; never read through it

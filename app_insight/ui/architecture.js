@@ -10,7 +10,7 @@ function nodeSubtitle(n) {
   if (!n) return "";
   const a = n.attrs || {};
   if (n.type === "Application") return kindOf(APPS[n.name] || {name: ""}) || "application";
-  if (n.type === "Database") return [a.technology, a.identity === "connection" ? "shared connection" : "application-local"].filter(Boolean).join(" · ");
+  if (n.type === "Database" || n.type === "Cache") return [a.technology, a.identity === "connection" ? "shared connection" : "application-local"].filter(Boolean).join(" · ");
   if (n.type === "MessageBroker") return a.technology || a.family || "broker";
   if (n.type === "Topic") return (a.broker_family || "topic") + (a.cluster_verified === false ? " · cluster not verified" : "");
   if (n.type === "InfrastructureResource") return a.platform || "deployment";

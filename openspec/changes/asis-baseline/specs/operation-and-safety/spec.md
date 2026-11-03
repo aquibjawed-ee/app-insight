@@ -5,7 +5,11 @@
 ### Requirement: Any mix of inputs, per client workspace
 The CLI SHALL accept repository paths, folders of repositories, remote URLs and list files (.csv, .tsv, .xlsx, .txt),
 and SHALL keep each client in its own workspace with its runs, clones and remedy packs (R-09).
-Status: BUILT (commit f15ec0d; `app_insight/sources.py`, `cli.py:42-44`; `tests/test_sources.py`).
+Status: BUILT (commit f15ec0d; `app_insight/sources.py`, `cli.py:42-44`;
+`tests/test_sources.py::SourcesTest.test_csv_with_header_reads_the_repo_column_and_optional_columns`,
+`tests/test_sources.py::SourcesTest.test_xlsx_is_read_without_extra_libraries`,
+`tests/test_sources.py::SourcesTest.test_a_folder_of_repositories_expands_to_each_repository`); the per-client workspace
+separation BUILT, test PLANNED.
 
 #### Scenario: two clients
 - WHEN scans run for client A and client B
@@ -26,8 +30,8 @@ Clones SHALL use the user's own git configuration with prompts disabled. A sourc
 (`user:token@`) SHALL be refused before cloning and never stored. The product SHALL NOT send data to a network
 service, and the report SHALL load no network resource. Optional tool runs that need a download (a vulnerability
 database) SHALL say so and run only when asked (R-08).
-Status: PARTIAL. BUILT: prompts disabled (`sources.py:135`), report has no network resources
-(`tests/test_report.py`). PLANNED: refusing credentialed URLs (accepted and stored in `run.json` today).
+Status: PARTIAL. BUILT: prompts disabled (`sources.py:135`; test PLANNED), report has no network resources
+(`tests/test_report.py::ReportTest.test_report_has_no_unfilled_placeholders_and_is_self_contained`). PLANNED: refusing credentialed URLs (accepted and stored in `run.json` today).
 
 #### Scenario: a URL with a token
 - WHEN a list file holds `https://user:abc@gitlab.acme/payments/api.git`
@@ -38,7 +42,9 @@ Status: PARTIAL. BUILT: prompts disabled (`sources.py:135`), report has no netwo
 The product SHALL only read target repositories: no build, no test run, no script execution, no writes. Optional tool
 runs SHALL read source only, write outside the repository, and be checked by comparing the inventory fingerprint
 before and after.
-Status: BUILT for the engine (writes only to `--out`); PLANNED: the fingerprint check for tool runs.
+Status: BUILT for the engine (writes only to `--out`;
+`engine/tests/test_platform.py::PlatformTest.test_analyse_succeeds_and_target_repositories_are_untouched`,
+`engine/tests/test_graph.py::ExtractionTest.test_scanned_repositories_are_not_modified`); PLANNED: the fingerprint check for tool runs.
 
 #### Scenario: the semantic prototype runs
 - WHEN the semantic analyser runs on a repository
@@ -46,7 +52,8 @@ Status: BUILT for the engine (writes only to `--out`); PLANNED: the fingerprint 
 
 ### Requirement: Deterministic and model-agnostic
 The same inputs at the same commits SHALL produce the same outputs apart from the run time, whoever runs it (R-01).
-Status: BUILT (no model calls; `engine/tests/test_discovery.py::test_determinism`).
+Status: BUILT (no model calls; `engine/tests/test_discovery.py::Contract.test_determinism`,
+`engine/tests/test_platform.py::PlatformTest.test_whole_analysis_is_byte_identical_on_rerun`).
 
 #### Scenario: two runs
 - WHEN the same repositories are scanned twice with a fixed time
@@ -56,8 +63,8 @@ Status: BUILT (no model calls; `engine/tests/test_discovery.py::test_determinism
 A failed source, a failed detector, a failure in extraction, safety-net mapping or resilience for one repository, a
 failed tool run and a failed verify SHALL each be named in the run summary, `summary --json` and the report; one
 repository's failure SHALL NOT stop the others; the controls a failure feeds SHALL be NOT_ASSESSED.
-Status: PARTIAL. BUILT: failed sources in the summary (`cli.py:88`), detector failures recorded in
-`run_meta.failures`. PLANNED: per-repository isolation in `relate.py:88-99`; verify and detector failures in the
+Status: PARTIAL. BUILT: failed sources in the summary (`cli.py:88`; test PLANNED), detector failures recorded in
+`run_meta.failures` (`engine/tests/test_accuracy.py::Phase1Test.test_a_detector_that_raises_is_named_and_the_other_detectors_still_run`). PLANNED: per-repository isolation in `relate.py:88-99`; verify and detector failures in the
 summary and report.
 
 #### Scenario: resilience analysis raises on one repository
