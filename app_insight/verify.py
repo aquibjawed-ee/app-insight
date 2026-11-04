@@ -51,7 +51,12 @@ RULES = {
     "CON-8": "a 'not found' or 'does not apply because not found' result in an area the scan recorded as partly outside its reach",
     "CON-9": "a 'not found' or 'does not apply because not found' result from a check that does not read the application's framework",
     "CON-10": "a dimension headline disagrees with the controls it summarises",
+    "CON-11": "a count or derived number in the client file disagrees with a recomputation from the internal results with the review outcomes applied",
+    "CON-12": "the client file shows something outside design 8.6 (an unreviewed verdict, an application out of scope, or the internal data)",
 }
+# design 8.8: these rules fail one application of the client file (it shows "Not available: verification failed"); every other
+# rule, including any added later, fails the whole file
+PER_APP = {"ACC-1", "ACC-2", "ACC-3", "ACC-4", "ACC-5", "ACC-6", "ACC-7", "ACC-10", "CON-1", "CON-2", "CON-3", "CON-5", "CON-7", "CON-8"}
 UNKNOWN_WORDS = re.compile(r"(?i)\bunknown\b|line-specific|not in the reference data|cannot be decided|not recognised")
 # (what one control says is not there, the controls whose result shows it is there)
 # a second pattern set, independent of evidence.redact: shapes of credentials that redaction does not key on. A hit means a
@@ -292,6 +297,8 @@ def check(run_dir, catalogue=None, report_path=None):
                 j = text.find(";\n", i)
                 blob = json.loads(text[i + len("const D = "):j])
                 leaked = evidence.redact_tree(blob) != blob or evidence.redact(text[:i] + text[j:]) != text[:i] + text[j:]
+            elif name.endswith(".html"):  # a page with no data blob (the client file): each decoded text and attribute value on its own
+                leaked = any(evidence.redact(x) != x for x in _html_strings(text))
             else:
                 leaked = evidence.redact(text) != text
             if leaked:  # the location only: the value itself is never repeated
@@ -302,6 +309,21 @@ def check(run_dir, catalogue=None, report_path=None):
     for t in temps:
         shutil.rmtree(t, ignore_errors=True)
     return {"ok": not probs, "checked": n, "problems": probs, "rules": RULES}
+
+
+def _html_strings(text):
+    import html.parser
+    out = []
+
+    class P(html.parser.HTMLParser):
+        def handle_data(self, d):
+            out.append(d)
+
+        def handle_starttag(self, tag, attrs):
+            out.extend(v for _, v in attrs if v)
+
+    P(convert_charrefs=True).feed(text)
+    return out
 
 
 def _strings(text):
@@ -367,6 +389,206 @@ def _coupling_disagrees(ctl, head, coup):
     if ctl["state"] == "PRESENT" and ("incomplete" in head or unres):
         return "calls matched says all matched, the headline does not"
     return None
+
+
+def client_level(rule):
+    return "app" if rule in PER_APP else "run"
+
+
+class _Page(__import__("html.parser").parser.HTMLParser):
+    """The client file's marked elements (data-* attributes) and the text inside each result."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.els, self.stack, self.text = [], [], {}
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag in ("meta", "br", "img", "input", "link"):
+            if any(k.startswith("data-") for k in a):
+                self.els.append((tag, a))
+            return
+        self.stack.append((tag, a.get("data-key")))
+        if any(k.startswith("data-") for k in a):
+            self.els.append((tag, a))
+        if a.get("data-key"):
+            self.text[a["data-key"]] = []
+
+    def handle_endtag(self, tag):
+        while self.stack:
+            t, _ = self.stack.pop()
+            if t == tag:
+                break
+
+    def handle_data(self, data):
+        for _, k in self.stack:
+            if k:
+                self.text[k].append(data)
+
+
+def _client_expect(run_dir, cat, at):
+    """The client file's numbers recomputed here from aspects.json and review.json, from the rules of design 8.2, 8.4 and 8.6
+    written again, not by calling the client file's code (review 2 N21)."""
+    import datetime
+    rv = _read(os.path.join(run_dir, "review.json"))
+    out = os.path.join(run_dir, "analysis")
+    ctl = {c["id"]: c for c in cat["controls"]}
+    outc, extra = rv["outcomes"], rv.get("must_extra") or {}
+
+    def live(k):
+        o = outc.get(k)
+        if not o or (o["outcome"] != "confirmed" and at - datetime.datetime.fromisoformat(o["at"]) > datetime.timedelta(days=90)):
+            return None
+        return o
+
+    exp = {}
+    for app in rv["scope"]["apps"]:
+        doc = _read(os.path.join(out, app, "aspects.json"))
+        res, unresolved = [], False
+        for asp in doc["aspects"]:
+            for c in asp["controls"]:
+                if c.get("pending"):
+                    continue
+                k, st, cc = "%s::%s" % (app, c["id"]), c["state"], ctl.get(c["id"]) or {}
+                csev = cc.get("severity", "medium")
+                need = (cc.get("applies") or {}).get("needs")
+                high = csev in ("high", "critical")
+                must = (st == "ISSUE" and c.get("confirmed") is not False) or st in ("ABSENT", "PARTIAL", "UNKNOWN") or \
+                    (high and st == "NOT_APPLICABLE" and bool(need) and c["summary"] == A.NEED_TEXT.get(need)) or \
+                    (high and st == "PRESENT" and c.get("level") not in ("enforced", "verified")) or k in extra
+                o = live(k)
+                if must and (not o or (extra.get(k) == "individual" and o["mode"] != "individual")):
+                    unresolved = True
+                res.append((asp["id"], k, c, o, csev))
+        exp[app] = {"failed": bool(doc.get("failures")), "unresolved": unresolved, "results": res}
+    return rv, exp
+
+
+def _eff(c, o, csev):
+    """(class, problem found, high) of a resolved outcome: 8.4's "counts as" column."""
+    st = {"confirmed": c["state"], "corrected": o.get("state"), "team_stated": o.get("state"), "gap_stated": "ISSUE?"}.get(o["outcome"])
+    if o["outcome"] == "confirmed" and c["state"] == "ISSUE" and c.get("confirmed") is False:
+        return "possible", False, False
+    sev = (c.get("severity") or csev) if o["outcome"] == "confirmed" else csev
+    cls = "gap" if st in ("ABSENT", "PARTIAL", "ISSUE", "ISSUE?") else "pass" if st == "PRESENT" else "na" if st == "NOT_APPLICABLE" else "neutral"
+    return cls, cls == "gap" and st == "ISSUE", cls == "gap" and (st == "ISSUE" or sev in ("high", "critical"))
+
+
+def _cell(rows):
+    y, done = len(rows), [(o, _eff(c, o, s)) for c, o, s in rows if o]
+    tests = [  # first row whose test holds gives the cell
+        (y == 0, "Not checked"),
+        (any(e[2] for _, e in done), "High gaps"),
+        (any(e[0] == "gap" for _, e in done), "Gaps"),
+        (len(done) < y, "Reviewed %d of %d" % (len(done), y)),
+        (all(e[0] == "na" for _, e in done), "Not applicable"),
+        (not any(e[0] == "pass" for _, e in done), "Reviewed, nothing confirmed"),
+        (any(e[0] in ("neutral", "possible") for _, e in done), "Partly confirmed"),
+        (any(e[0] == "pass" and o["outcome"] in ("corrected", "team_stated") for o, e in done), "In place (stated)"),
+        (True, "In place"),
+    ]
+    return next(name for test, name in tests if test)
+
+
+def check_client(run_dir, path, catalogue=None):
+    """The client-count rule (CON-11) and the whitelist rule (CON-12) over a client file, against review.json and aspects.json."""
+    import datetime
+    cat = catalogue or A.load_catalogue()
+    probs = []
+
+    def bad(rule, app, ctl, detail):
+        probs.append({"rule": rule, "app": app, "control": ctl, "detail": detail})
+
+    text = open(path, encoding="utf-8").read()
+    pg = _Page()
+    pg.feed(text)
+    root = next((a for t, a in pg.els if t == "html"), {})
+    at = datetime.datetime.fromisoformat(root.get("data-generated") or "1970-01-01T00:00:00+00:00")
+    rv, exp = _client_expect(run_dir, cat, at)
+    scope = rv["scope"]["apps"]
+    if "const D = " in text or "<script" in text.lower():
+        bad("CON-12", "-", "-", "the client file carries a script or the internal report's data")
+    rows = {a["data-app"]: a for t, a in pg.els if "data-app" in a and "data-status" in a}
+    for app in sorted(set(rows) - set(scope)):
+        bad("CON-12", app, "-", "an application outside the review's scope has a row")
+    oos = sorted(a["data-oos"] for t, a in pg.els if "data-oos" in a)
+    if oos != sorted({x["app"] for x in _read(os.path.join(run_dir, "analysis", "manifest.json"))["applications"]} - set(scope)):
+        bad("CON-11", "-", "-", "the applications listed as not in this review are not the analysed applications outside the scope")
+    shown, n = {}, {"n": 0, "k": 0, "j": 0}
+    for app in scope:
+        row, e = rows.get(app), exp[app]
+        if not row:
+            bad("CON-11", app, "-", "an application in scope has no row")
+            continue
+        st = row["data-status"]
+        want = "na_analysis" if e["failed"] else "not_yet" if e["unresolved"] else "shown"
+        if st != want and not (st == "na_verify" and want != "na_analysis"):  # withholding after a failed check never overclaims
+            bad("CON-11", app, "-", "status %s, recomputed %s" % (st, want))
+        n["n" if st == "shown" else "k" if st == "not_yet" else "j"] += 1
+        if st == "shown":
+            shown[app] = e
+    s = next((a for t, a in pg.els if "data-n" in a), {})
+    if [s.get("data-%s" % k) for k in "nmkj"] != [str(n["n"]), str(len(scope)), str(n["k"]), str(n["j"])]:
+        bad("CON-11", "-", "-", "summary row %s, recomputed %d of %d; %d; %d" % ([s.get("data-%s" % k) for k in "nmkj"], n["n"], len(scope), n["k"], n["j"]))
+    keyed = {a["data-key"]: a for t, a in pg.els if "data-key" in a}
+    for k in keyed:
+        if k.split("::")[0] not in shown:
+            bad("CON-12", k.split("::")[0], k.split("::")[1] if "::" in k else "-", "a result is shown for an application that is not shown as reviewed")
+    find, rem = {}, {}
+    cells = {(a.get("data-row"), a["data-aspect"]): a["data-cell"] for t, a in pg.els if "data-cell" in a}
+    for app, e in shown.items():
+        cnt = {"issues": 0, "high": 0, "gaps": 0, "disputes": 0}
+        by = {}
+        for aid, k, c, o, csev in e["results"]:
+            if c["state"] == "NOT_ASSESSED" or (c["state"] == "ISSUE" and c.get("confirmed") is False and not o):
+                if k in keyed:
+                    bad("CON-12", app, c["id"], "a result that is not shown in a client file (not checked, or a possible issue nobody reviewed) is shown")
+                continue
+            by.setdefault(aid, []).append((c, o, csev))
+            el = keyed.get(k)
+            if el is None:
+                bad("CON-11", app, c["id"], "a result is missing")
+                continue
+            if (el.get("data-outcome") or "none") != (o["outcome"] if o else "none"):
+                bad("CON-11", app, c["id"], "outcome %s, review.json %s" % (el.get("data-outcome"), o["outcome"] if o else "none"))
+            if not o:
+                if "".join(pg.text.get(k, [])).strip() != "%s: Not reviewed" % c["title"]:
+                    bad("CON-12", app, c["id"], "a result with no outcome shows more than 'Not reviewed'")
+                continue
+            cls, issue, high = _eff(c, o, csev)
+            cnt["issues"] += issue
+            cnt["high"] += high
+            cnt["gaps"] += cls == "gap"
+            cnt["disputes"] += o["outcome"] == "disputed"
+            ids = [x for x in (el.get("data-remedies") or "").split(",") if x]
+            if ids and cls != "gap":
+                bad("CON-12", app, c["id"], "a remedy is shown on a result that is not a reviewed gap")
+            if o["outcome"] == "confirmed" and cls == "gap" and ids != ["%s:%s" % (r["pack"], r["key"]) for r in c.get("remedies") or []]:
+                bad("CON-11", app, c["id"], "the remedies shown are not the result's remedies")
+            if cls == "gap":
+                find[c["id"]] = find.get(c["id"], 0) + 1
+                for x in ids:
+                    rem.setdefault(x, [0, set()])
+                    rem[x][0] += 1
+                    rem[x][1].add(app)
+        row = rows[app]
+        for kk, v in cnt.items():
+            if row.get("data-" + kk) != str(v):
+                bad("CON-11", app, "-", "%s %s, recomputed %d" % (kk, row.get("data-" + kk), v))
+        for aid, rs in by.items():
+            got = cells.get((app, aid))
+            if got != _cell(rs):
+                bad("CON-11", app, aid, "aspect cell %s, recomputed %s" % (got, _cell(rs)))
+    got_f = {a["data-control"]: int(a["data-apps"]) for t, a in pg.els if "data-control" in a}
+    if got_f != find:
+        bad("CON-11", "-", "-", "the gap counts across applications do not recompute")
+    got_r = {a["data-remedy"]: (int(a["data-gaps"]), int(a["data-apps"])) for t, a in pg.els if "data-remedy" in a}
+    if got_r != {k: (v[0], len(v[1])) for k, v in rem.items()}:
+        bad("CON-11", "-", "-", "the remedy counts do not recompute")
+    audited = next((a["data-audited"] for t, a in pg.els if "data-audited" in a), None)
+    if audited == "yes" and not (rv.get("auditor") and rv.get("audit")):
+        bad("CON-11", "-", "-", "the statement says a second person audited, but review.json holds no audit")
+    return {"ok": not probs, "problems": probs}
 
 
 def write(run_dir, catalogue=None):

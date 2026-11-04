@@ -227,7 +227,7 @@ def _rebuild(run_dir, packs_override=None):
     place: the rebuild goes into a new run, so the reviewed one stays what was reviewed (design 8.7)."""
     if os.path.isfile(os.path.join(run_dir, "review.json")):
         new = os.path.join(os.path.dirname(run_dir), _now().strftime("%Y%m%d-%H%M%S") + "-rebuild")
-        shutil.copytree(run_dir, new, ignore=shutil.ignore_patterns("review.json", "verify.json", "report*.html"))
+        shutil.copytree(run_dir, new, ignore=shutil.ignore_patterns("review.json", "review.lock", "verify.json", "client-verify.json", "report*.html"))
         print("%s has been reviewed and is kept as it is; rebuilding into %s" % (os.path.basename(run_dir), os.path.basename(new)), file=sys.stderr)
         run_dir = new
     run = _read(os.path.join(run_dir, "run.json"))
@@ -267,6 +267,60 @@ def cmd_verify(a):
     res = V.write(resolve_run(a.run))
     print(json.dumps(res, indent=1)) if a.json else V.print_result(res)
     return 0 if res["ok"] else 1
+
+
+def cmd_review(a):
+    """Consultant review of a run (design 8): the local review page, or --record outcomes from a file; --publish writes the client
+    file. Agents run it only to record outcomes a person decided (AGENTS.md rule 7)."""
+    from . import client_file as CF
+    from . import review as RV
+    run_dir = resolve_run(a.run)
+    apps = [x.strip() for x in a.apps.split(",") if x.strip()] if a.apps else None
+    if (a.record or not a.publish) and not a.reviewer:
+        print("review refused: name the person recording outcomes (--reviewer)", file=sys.stderr)
+        return 2
+    try:
+        rv = RV.Review(run_dir, apps, a.chosen_by, a.reviewer, a.auditor, a.first_meeting, seed=a.seed, budget=a.budget)
+    except RV.Refused as e:
+        print("review refused: %s" % e, file=sys.stderr)
+        return 2
+    rc = 0
+    try:
+        if a.record:
+            try:
+                RV.apply_file(rv, a.record)
+            except RV.Refused as e:
+                print("record stopped: %s (outcomes before it are saved)" % e, file=sys.stderr)
+                rc = 2
+        if not a.record and not a.publish:
+            from . import review_page
+            review_page.serve(rv, a.port, not a.no_open)
+        if a.publish and rc == 0:
+            res = CF.publish(rv)
+            if res["ok"]:
+                print("client file:   %s%s" % (res["path"], "; not available (verification failed): " + ", ".join(res["not_available"]) if res["not_available"] else ""))
+            else:
+                for r in res["refused"]:
+                    print("client file not written: %s" % r, file=sys.stderr)
+                for p in res["problems"]:  # the file and rule only, never a value
+                    print("client file deleted: %s failed (%s) in %s" % (p["rule"], V.RULES.get(p["rule"], ""), p["where"]), file=sys.stderr)
+                rc = 1
+        RV.print_state(rv)
+        if a.publish and rc == 0:
+            print("note: the client-use gate (design 2) also needs the severity table signed off (D-6) and the reference data reviewed (8.9)", file=sys.stderr)
+    finally:
+        rv.close()
+    return rc
+
+
+def cmd_fixture_check(a):
+    from . import sanitise
+    hits, found = sanitise.check_file(a.file, os.path.abspath(os.path.expanduser(a.workspace)))
+    for p, kind, n in hits:
+        print("%s:%d: holds a workspace %s" % (p, n, kind))
+    print("fixture check: %s (%d application names, %d package prefixes, %d hostnames compared)" % (
+        "FAIL, the fixture cannot leave the workspace" if hits else "PASS", len(found["applications"]), len(found["packages"]), len(found["hostnames"])))
+    return 1 if hits else 0
 
 
 def cmd_doctor(a):
@@ -315,6 +369,24 @@ def main(argv=None):
     p.add_argument("run")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_verify)
+    p = sub.add_parser("review", help="consultant review of a run: the local review page, or --record outcomes; --publish writes the client file")
+    p.add_argument("run", help="run directory, or a client workspace for its latest run")
+    p.add_argument("--apps", help="comma-separated applications in scope (required for a new review)")
+    p.add_argument("--chosen-by", choices=["consultant", "client"], help="who chose the scope")
+    p.add_argument("--reviewer", help="the person recording outcomes")
+    p.add_argument("--auditor", help="the second person who checks the audit sample")
+    p.add_argument("--first-meeting", action="store_true", help="a first client meeting: the audit sample by a second person is required (D-7b)")
+    p.add_argument("--record", help="apply outcomes a person decided, from a JSON file, without the page")
+    p.add_argument("--publish", action="store_true", help="write and verify report-client.html")
+    p.add_argument("--seed", type=int, help="audit-sample seed for a new review (default: random, recorded)")
+    p.add_argument("--budget", type=int, default=40, help="review budget in minutes per application (design 8.1)")
+    p.add_argument("--port", type=int, default=0, help="port for the review page (default: a free one)")
+    p.add_argument("--no-open", action="store_true", help="do not open the page in a browser")
+    p.set_defaults(fn=cmd_review)
+    p = sub.add_parser("fixture-check", help="fail if a fixture written from a dispute holds the workspace's application names, package prefixes or hostnames")
+    p.add_argument("file", help="fixture file or folder")
+    p.add_argument("--workspace", required=True, help="the client workspace the dispute came from")
+    p.set_defaults(fn=cmd_fixture_check)
     p = sub.add_parser("doctor", help="check the local prerequisites")
     p.set_defaults(fn=cmd_doctor)
     a = ap.parse_args(argv)

@@ -77,7 +77,8 @@ and application to "Not reviewed" and double the sample.
 Status: PLANNED (design 8.3).
 
 #### Scenario: an audit-sample disagreement
-- WHEN a bulk-confirmed "Health endpoint: in place" is disputed in the audit sample
+- WHEN a bulk-confirmed "Health endpoint: in place" is not confirmed in the audit sample (for example "Gap stated by the
+  consultant"; "Disputed" is recorded on gaps only, design 8.4)
 - THEN every bulk confirmation of that application's Observability aspect reverts to "Not reviewed", and the sample doubles
 
 #### Scenario: a small bulk population

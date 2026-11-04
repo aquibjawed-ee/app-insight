@@ -287,8 +287,17 @@ A review covers a **named set of applications**. The client file records who cho
 expected to cover tens of applications, not 300.
 
 **Workload** (F4-11): the review records the time spent per individually reviewed item and per bulk screen, and
-projects the effort by item counts. Before T-2.1 starts, a budget per application is set from the six repositories'
-must-review counts; when a planned scope exceeds it, the scope is reduced. Must-review is never capped.
+projects the effort by item counts. When a planned scope exceeds the budget, the scope is reduced. Must-review is never
+capped.
+
+**Budget (T-2.0, 2026-11-03)**: on the six repositories (run 20261102-195900) the must-review set is 26-32 items per
+application (mean 29.3; mostly gaps, 15-23 each) and 5-20 bulk-confirmable results. At about one minute per item, the
+budget is **40 minutes per application**; a first meeting of 15 applications is about 10 hours of review. Phase 2
+replaces the one-minute assumption with the measured time per item.
+
+**Interface (DECIDED 2026-11-03)**: `app-insight review <run>` serves a local review page (Python standard library,
+bound to 127.0.0.1, a random port and a per-session token required on every request, nothing leaves the machine), one
+item at a time with its evidence and the outcomes of 8.4, keyboard-driven, saving to `review.json` as it goes.
 
 ### 8.2 What is reviewed one by one (must-review)
 

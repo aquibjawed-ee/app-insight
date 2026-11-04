@@ -75,22 +75,38 @@ D-7 (consultant review, design section 8): round 4 APPROVE WITH CONDITIONS; cond
 (`reviews/red-team-4-conditions.md`); User approved D-7 on 2026-11-02; phase 2 starts after phase 1. `review` runs verify and the independent leak check after writing
 the client file and deletes it on failure (F3-8).
 
-- [ ] T-2.0 Count must-review items per application on the six repositories, by 8.2 item (including item 7, every
-      UNKNOWN and "Not seen here"); set the per-application review budget.
+- [x] T-2.0 Count must-review items per application on the six repositories, by 8.2 item (including item 7, every
+      UNKNOWN and "Not seen here"); set the per-application review budget. Evidence: design 8.1 (mean 29.3 items,
+      budget 40 minutes per application).
       (F4-11; before T-2.1)
-- [ ] T-2.1 `app-insight review` per design 8.1-8.5: scope and chooser; must-review items 1-6 one by one in
+- [x] T-2.1 `app-insight review` per design 8.1-8.5: scope and chooser; must-review items 1-6 one by one in
       deterministic order; bulk for PRESENT/N/A outside them; outcomes incl. corrected and cannot confirm; expiry and
       re-presentation; audit sample (seed, second person, revert on disagreement); stop-rule escalation; time per item;
-      single-writer lock.
-- [ ] T-2.2 Mark binding and carry-forward per design 8.7; reviewed runs immutable; commits pinned with local refs at
-      scan time; verify via `git show` and temporary exports; hashes over redacted text.
-- [ ] T-2.3 Client file per design 8.6 (whitelist, precedence, recomputed derived views, summary row), written under a
-      temporary name and verified with the rule classification of 8.8.
+      single-writer lock. Evidence (uncommitted): `app_insight/review.py` (`Review`; items 1-7 in `reasons`, the stop
+      rule in `_firings`/`tool_error`, the audit sample in `audit_order`/`audit_size`, the lock in `acquire`),
+      `app_insight/review_page.py` (127.0.0.1, per-session token, Host check), `review --record` through the same
+      functions; `tests/test_review.py` ScopeTest, MustReviewTest, BulkAuditTest, OutcomeTest, StopRuleTest,
+      ReviewPageTest, RecordCliTest.
+- [x] T-2.2 Mark binding and carry-forward per design 8.7; reviewed runs immutable; commits pinned with local refs at
+      scan time; verify via `git show` and temporary exports; hashes over redacted text. Evidence (uncommitted):
+      `Review.binding`/`scope_hash`/`_carry_forward`, `same_binding` in `app_insight/review.py`;
+      `tests/test_review.py::BindingTest` (catalogue change to one control, searched files changed, carried-forward
+      label, second reviewer refused, atomic write and immutable run); pinning and the temporary export are phase 1
+      (`cli.pin`, `verify.source_view`, `tests/test_phase1.py`, commit 23d5aeb). Verify exports with `git archive`
+      rather than `git show`; same effect (read-only, never a checkout).
+- [x] T-2.3 Client file per design 8.6 (whitelist, precedence, recomputed derived views, summary row), written under a
+      temporary name and verified with the rule classification of 8.8. Evidence (uncommitted): `app_insight/client_file.py`
+      (`model`, `cell`, `render`, `publish`), verify rules CON-11 (client counts) and CON-12 (whitelist) with
+      `verify.check_client` and `verify.client_level`; `tests/test_review.py::ClientFileTest`, `ClientVerifyTest`.
+      Demo on a copy of run 20261102-195900 (two applications, synthetic outcomes): client file written and verify PASS.
 - [ ] T-2.3a Reference data reviewed by a person before first client use. (design 8.9)
-- [ ] T-2.3b Sanitising test for fixtures written from disputes. (design 8.4)
+- [x] T-2.3b Sanitising test for fixtures written from disputes. (design 8.4) Evidence (uncommitted):
+      `app_insight/sanitise.py`, `app-insight fixture-check <file> --workspace <ws>`;
+      `tests/test_review.py::SanitiseTest`.
 - [ ] T-2.4 Strata and `depends_on` for every control fixed before any corpus run.
-- [ ] T-2.5 Select about 60 repositories, weighted to the dominant stack; record URL and commit; split by hash. Needs
-      D-5 approval for cloning.
+- [ ] T-2.5 Select repositories, weighted to the dominant stack; record URL and commit; split by hash (cloning approved,
+      D-5). DECIDED 2026-11-03: start with about 15 repositories of the main stack (about 200 person-labelled cases,
+      labelled by the user or a colleague), then grow towards about 60.
 - [ ] T-2.6 Labels per design 7.3 (person reference; model labels only where agreement bound ≥90%; re-check of
       agreeing cases). (N3)
 - [ ] T-2.7 Harness: false-pass, false-gap, wrong-kind, undecided, reason, level, evidence, remedy; exact bounds;
