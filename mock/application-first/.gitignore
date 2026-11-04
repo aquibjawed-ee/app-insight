@@ -1,0 +1,7 @@
+# generated from a real run: client data, stays on this machine
+mock.html
+data-real.js
+llm-fill.json
+shots/
+.shot/
+.dom/
