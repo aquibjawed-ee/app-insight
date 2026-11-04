@@ -1,0 +1,16 @@
+url,commit,split,hash_split,moved_to_tuning,added
+https://github.com/gothinkster/spring-boot-realworld-example-app,ee17e31aafe733d98c4853c8b9a74d7f2f6c924a,held-out,held-out,,2026-11-04
+https://github.com/jhipster/jhipster-sample-app-gradle,8bdbaacecdb91cf3bef693e01294e82e00c2ac06,held-out,held-out,,2026-11-04
+https://github.com/eventuate-tram/eventuate-tram-examples-customers-and-orders,8632d030301c2a477141350df1e77f3f991f64e0,tuning,tuning,2026-11-04 discovery hang traced on it (fix 861161e),2026-11-04
+https://github.com/microservices-patterns/ftgo-application,558dfc53b11d30a5f1d995c0c6d58d5106c28189,tuning,held-out,2026-11-04 discovery hang traced on it (fix 861161e),2026-11-04
+https://github.com/polarbookshop/catalog-service,9923d9b0eb59d719f29d65f4c54d440122c6537d,held-out,held-out,,2026-11-04
+https://github.com/polarbookshop/order-service,33bb76448edb871e13a711fbec1d08590efb756e,held-out,held-out,,2026-11-04
+https://github.com/spring-io/sagan,d048075533efe59653115578e58d31eac0815a11,tuning,tuning,,2026-11-04
+https://github.com/thombergs/buckpal,dc819c66640be4f42100a622b9e97b1e82ad75a7,held-out,held-out,,2026-11-04
+https://github.com/spring-petclinic/spring-petclinic-kotlin,817dba3b02261e4291f138d5d8bb8c85c7d49758,held-out,held-out,,2026-11-04
+https://github.com/spring-projects/spring-petclinic,500158f732419217507c7656904b8e6aa1bcc0d6,held-out,held-out,,2026-11-04
+https://github.com/spring-guides/tut-spring-boot-kotlin,4b45a63b466397fe9896447ceb6a48e7c635f16b,held-out,held-out,,2026-11-04
+https://github.com/spring-guides/gs-accessing-data-jpa,9a2095581b70cac648dcc4ba6a6cd0622264d67d,tuning,tuning,,2026-11-04
+https://github.com/d-stoll/citymatch,4fff166b17c2b7fd0adf3117fded94d6ecc58af5,tuning,tuning,2026-11-04 Boot version miss found on it (apply false),2026-11-04
+https://github.com/garystafford/voter-service,f4f8800f5cced497dd40a84edfcbc10c08fc7b30,held-out,held-out,,2026-11-04
+https://github.com/ifspcbt-devspace/tickets-api,85788fde8b5854dd67cd59e7ae10128c2e59c733,tuning,tuning,,2026-11-04

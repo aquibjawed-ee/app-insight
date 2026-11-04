@@ -70,6 +70,14 @@ class Detection(unittest.TestCase):
         self.assertEqual(doc["stack"]["java_version"]["value"], "11")
         self.assertEqual(doc["run_meta"]["evidence_invalid"], [])
 
+    def test_gradle_boot_version_is_read_whatever_follows_it(self):
+        # a multi-module root declares the plugin `apply false` (found in a public corpus repository)
+        for line, want in (('    id("org.springframework.boot") version "2.2.2.RELEASE" apply false', "2.2.2.RELEASE"),
+                           ("    id 'org.springframework.boot' version '3.4.4'", "3.4.4"),
+                           ('    id("org.springframework.boot").version("3.1.0")', "3.1.0")):
+            _, doc = run(java({"settings.gradle.kts": 'include("app")\n', "build.gradle.kts": "plugins {\n%s\n}\n" % line}))
+            self.assertEqual(doc["stack"]["spring_boot_version"]["value"], want, line)
+
     def test_no_tests(self):
         _, doc = run({"pom.xml": POM % {"deps": "", "plugins": ""},
                       "src/main/java/a/C.java": "package a;\nclass C {}\n"})

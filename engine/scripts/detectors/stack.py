@@ -295,9 +295,10 @@ def detect(ctx) -> dict:
             m = re.search(r"<version>([^<]+)<", cand[0]["snippet"])
             sbv, sb = m.group(1), sb + cand[:1]
     else:
-        sb = grep_files(r, ctx.gradle, r"org\.springframework\.boot['\"]?\)?\s*(version)?\s*['\"][\d.A-Za-z-]+['\"]", 1)
+        sb = grep_files(r, ctx.gradle, r"org\.springframework\.boot['\"]?\)?\.?\s*(version)?\s*\(?['\"][\d.A-Za-z-]+['\"]", 1)
         if sb:
-            m = re.search(r"['\"]([\d][^'\"]*)['\"]\s*\)?\s*$", sb[0]["snippet"])
+            # the version right after the plugin id, whatever follows it (`apply false` in a multi-module root)
+            m = re.search(r"org\.springframework\.boot['\"]?\)?\.?\s*(?:version)?\s*\(?['\"](\d[^'\"]*)['\"]", sb[0]["snippet"])
             sbv = m.group(1) if m else None
         else:
             sb = grep_files(r, ctx.gradle, r"spring-boot-gradle-plugin:\$\{?(\w+)\}?", 1)

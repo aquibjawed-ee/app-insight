@@ -104,9 +104,13 @@ the client file and deletes it on failure (F3-8).
       `app_insight/sanitise.py`, `app-insight fixture-check <file> --workspace <ws>`;
       `tests/test_review.py::SanitiseTest`.
 - [ ] T-2.4 Strata and `depends_on` for every control fixed before any corpus run.
-- [ ] T-2.5 Select repositories, weighted to the dominant stack; record URL and commit; split by hash (cloning approved,
+- [x] T-2.5 Select repositories, weighted to the dominant stack; record URL and commit; split by hash (cloning approved,
       D-5). DECIDED 2026-11-03: start with about 15 repositories of the main stack (about 200 person-labelled cases,
-      labelled by the user or a colleague), then grow towards about 60.
+      labelled by the user or a colleague), then grow towards about 60. Evidence (uncommitted): corpus v1 approved by the
+      user 2026-11-04, 15 Spring Boot + Gradle repositories in `corpus/corpus-v1.csv` (URL, full commit, split);
+      `corpus/split.py --check` (held out when SHA-256 of the normalised URL is odd; 9 held-out, 6 tuning; ftgo moved
+      to tuning because a fix was traced on it, design 7.5). Gap: both GitLab CI repositories fell to tuning, so the
+      held-out set measures nothing on GitLab CI until the corpus grows.
 - [ ] T-2.6 Labels per design 7.3 (person reference; model labels only where agreement bound ≥90%; re-check of
       agreeing cases). (N3)
 - [ ] T-2.7 Harness: false-pass, false-gap, wrong-kind, undecided, reason, level, evidence, remedy; exact bounds;
