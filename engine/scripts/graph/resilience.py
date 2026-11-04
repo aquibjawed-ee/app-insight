@@ -100,6 +100,26 @@ def _first(lines, rx, flags=0):
     return None
 
 
+def _strategy_type(lines):
+    """The `type:` directly inside a `strategy:` block, read line by line (a regex over the
+    whole document backtracked exponentially on long manifests and read past the block)."""
+    for i, ln in enumerate(lines):
+        m = re.match(r"(\s*)strategy:\s*(?:#.*)?$", ln)
+        if not m:
+            continue
+        ind = len(m.group(1))
+        for nxt in lines[i + 1:]:
+            s = nxt.strip()
+            if not s or s.startswith("#"):
+                continue
+            if len(nxt) - len(nxt.lstrip()) <= ind:
+                break
+            t = re.match(r"type:\s*[\"']?(\w+)", s)
+            if t:
+                return t.group(1)
+    return None
+
+
 def _docs(lines):
     starts = [0] + [i + 1 for i, l in enumerate(lines) if l.strip() == "---"]
     for n, s in enumerate(starts):
@@ -213,9 +233,9 @@ def k8s_checks(app, repo, f, s, doc, lines_all, ctx, siblings, helm_vals, eks):
         c[pid] = _res("present", None, None, e) if e else _res("absent" if pid != "startup" else "absent", None, "not defined in the workload", None)
     # rollout
     st = at(r"strategy:")
-    typ = re.search(r"strategy:\s*\n(?:\s+.*\n)*?\s+type:\s*(\w+)", text + "\n")
+    typ = _strategy_type(doc)
     mu = at(r"maxUnavailable:")
-    if typ and typ.group(1) == "Recreate":
+    if typ == "Recreate":
         c["rollout"] = _res("absent", "Recreate", "Recreate stops every instance before starting new ones", st)
     elif mu:
         c["rollout"] = _res("present", None, None, mu)

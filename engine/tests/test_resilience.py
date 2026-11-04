@@ -98,6 +98,25 @@ class ResilienceTest(unittest.TestCase):
         self.assertEqual((r["unread"]["mechanism"], r["unread"]["evidence"][0]["path"]), ("Ansible", "Jenkinsfile"))
         self.assertIn("Ansible", r["reason"])
 
+    def test_a_long_manifest_after_strategy_is_read_in_linear_time(self):
+        # the old whole-document regex backtracked exponentially here (a public repository hung for hours)
+        import time
+        files = dict(F.WEAK_K8S)
+        filler = "".join("        - name: VAR_%d\n          value: \"%d\"\n" % (i, i) for i in range(400))
+        files["deploy/k8s/app.yaml"] = files["deploy/k8s/app.yaml"].replace("    type: Recreate\n", "    rollingUpdate:\n      maxSurge: 1\n").replace(
+            "          image: registry.example.org/weak-service:latest\n", "          image: registry.example.org/weak-service:latest\n          env:\n" + filler)
+        t = time.time()
+        r = resilience.assess(F.make_repo(tempfile.mkdtemp(), "long", files))
+        self.assertLess(time.time() - t, 5)
+        self.assertNotIn("Recreate stops every instance before starting new ones", {n for s in r["summary"] for n in s.get("notes", [])})
+
+    def test_strategy_type_is_read_only_inside_the_strategy_block(self):
+        self.assertEqual(resilience._strategy_type(["  strategy:", "    # stop first", "    type: \"Recreate\"", "  template:"]), "Recreate")
+        self.assertEqual(resilience._strategy_type(["  strategy:  # default", "", "    type: RollingUpdate"]), "RollingUpdate")
+        self.assertIsNone(resilience._strategy_type(["  strategy:", "    rollingUpdate:", "      maxSurge: 1", "  template:",
+                                                     "    spec:", "      securityContext:", "        seccompProfile:", "          type: RuntimeDefault"]))
+        self.assertIsNone(resilience._strategy_type(["  strategy: {}", "  type: Recreate"]))
+
     def test_deterministic(self):
         import json
         root = tempfile.mkdtemp()
