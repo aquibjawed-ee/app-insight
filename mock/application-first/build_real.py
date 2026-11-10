@@ -27,8 +27,9 @@ PATCHES = [  # (old, new): each must match exactly once
     ("else if(initialHash==='compare'){state.mode='inventory'}", "else if(initialHash==='compare'){state.mode='inventory'}else if(initialHash.startsWith('estate')){state.mode='estate';state.estate=initialHash.split('/')[1]||'built'}"),
     ("Compare selected (0/5)</button></div></section>${demoBanner()}<section class=\"card\">", "Compare selected (0/5)</button></div></section>${demoBanner()}${onlyChip()}<section class=\"card\">"),
     ("<th>Connections</th><th style=\"width:65px\">Explore</th>", ""),
-    ("rows+=`<tr><td colspan=\"8\" class=\"grouphead\">", "rows+=`<tr><td colspan=\"6\" class=\"grouphead\">"),
-    ("'<tr><td colspan=\"8\"><div class=\"empty\">", "'<tr><td colspan=\"6\"><div class=\"empty\">"),
+    ("rows+=`<tr><td colspan=\"8\" class=\"grouphead\">", "rows+=`<tr><td colspan=\"10\" class=\"grouphead\">"),
+    ("'<tr><td colspan=\"8\"><div class=\"empty\">", "'<tr><td colspan=\"10\"><div class=\"empty\">"),
+    ("<th>Entry type</th>", "<th class=\"tcol\">Unit</th><th class=\"tcol\">Integration</th><th class=\"tcol\">Contract</th><th class=\"tcol\">Acceptance</th><th class=\"tcol\">Performance</th>"),
     ("Support reference not reviewed", "support dates are reference data, unreviewed"),
 ]
 for old, new in PATCHES:

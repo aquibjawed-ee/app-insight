@@ -80,3 +80,5 @@ svg.arch g.hit:focus{outline:none}
 .name-cell{display:flex;align-items:flex-start;gap:8px}.row-toggle{border:0;background:none;color:#5d7491;font-size:13px;line-height:20px;width:18px;padding:0;transition:transform .15s}.row-toggle.open{transform:rotate(90deg);color:#1769db}.row-toggle:hover{color:#1769db}
 .row-toggle{font-size:17px;width:22px;line-height:22px;color:#46607f}.mini-grid{grid-template-columns:repeat(5,minmax(0,1fr))}@media(max-width:900px){.mini-grid{grid-template-columns:1fr 1fr}}
 .row-toggle{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:6px;margin-top:-1px}.row-toggle:hover{background:#eef4fc}
+.tcol{text-align:center!important;font-size:9.5px!important;padding-left:4px!important;padding-right:4px!important}.tcell{text-align:center}.tmark{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%}.tmark.yes{background:#e3f6ec;color:#11804f;border:1px solid #b9e6cc}.tmark.no{background:#fdecee;color:#c2394a;border:1px solid #f5c5cc}
+.tmark{width:22px;height:22px}.tmark.yes{background:#1f9d61;color:#fff;border-color:#1f9d61}.tmark.no{background:#d93a4b;color:#fff;border-color:#d93a4b}
